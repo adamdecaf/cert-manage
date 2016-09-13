@@ -1,5 +1,9 @@
 package lib
 
+import (
+	"crypto/x509"
+)
+
 type Platform interface {
-	FindCerts() []Cert
+	FindCerts() []*x509.Certificate
 }
