@@ -2,16 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/adamdecaf/cert-manage/platforms"
+	"github.com/adamdecaf/cert-manage/certs"
 )
 
 func main() {
-	platform, err := platforms.Find()
-	if err != nil  {
-		fmt.Printf("Error finding platform - %s\n", err)
-		return
+	certificates, err := certs.FindCerts()
+	if err != nil {
+		fmt.Println(err)
 	}
-
-	certs := platform.FindCerts()
-	fmt.Println(certs)
+	certs.PrintCertsToStdout(certificates)
 }

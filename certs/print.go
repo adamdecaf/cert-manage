@@ -1,19 +1,12 @@
-package osx
+package certs
 
 import (
 	"crypto/x509"
 	"fmt"
 	"encoding/hex"
-	"github.com/adamdecaf/cert-manage/lib"
-	"os/exec"
 )
 
-func findCerts() []*x509.Certificate {
-	certs, err := getPEMCertBodiesFromCLI()
-	if err != nil {
-		return nil
-	}
-
+func PrintCertsToStdout(certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Printf("cert\n")
 		fmt.Printf("  signature - %s (%s)\n", hex.EncodeToString(certs[i].Signature), certs[i].SignatureAlgorithm.String())
@@ -49,19 +42,4 @@ func findCerts() []*x509.Certificate {
 			fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
 		}
 	}
-
-	return certs
-}
-
-func getPEMCertBodiesFromCLI() ([]*x509.Certificate, error) {
-	b, err := exec.Command("security", "find-certificate", "-a", "-p").Output()
-	if err != nil {
-		return nil, err
-	}
-
-	certs, err := lib.ParsePEMIntoCerts(b)
-	if err != nil {
-		return nil, err
-	}
-	return certs, nil
 }
