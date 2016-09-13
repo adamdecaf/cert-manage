@@ -18,21 +18,36 @@ func findCerts() []*x509.Certificate {
 		fmt.Printf("cert\n")
 		fmt.Printf("  signature - %s (%s)\n", hex.EncodeToString(certs[i].Signature), certs[i].SignatureAlgorithm.String())
 		fmt.Printf("  pub key algo - %d\n", certs[i].PublicKeyAlgorithm)
+		fmt.Printf("  Issuer CommonName - %s, SerialNumber - %s\n", certs[i].Issuer.CommonName, certs[i].Issuer.SerialNumber)
+		fmt.Printf("  Subject CommonName - %s, SerialNumber - %s\n", certs[i].Subject.CommonName, certs[i].Subject.SerialNumber)
+		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
+		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
+		fmt.Printf("  MaxPathLen - %d\n", certs[i].MaxPathLen)
 
-		// Issuer              pkix.Name
-		// Subject             pkix.Name
-		// NotBefore, NotAfter time.Time // Validity bounds.
+		fmt.Printf("  DNSNames\n")
+		for j := range certs[i].DNSNames {
+			fmt.Printf("    %s\n", certs[i].DNSNames[j])
+		}
 
-		// IsCA
-		// MaxPathLen
+		fmt.Printf("  EmailAddresses\n")
+		for j := range certs[i].EmailAddresses {
+			fmt.Printf("    %s\n", certs[i].EmailAddresses[j])
+		}
 
-		// DNSNames
-		// EmailAddresses
-		// IPAddresses
+		fmt.Printf("  IPAddresses\n")
+		for j := range certs[i].IPAddresses {
+			fmt.Printf("    %s\n", certs[i].IPAddresses[j])
+		}
 
-		// PermittedDNSDomains
+		fmt.Printf("  PermittedDNSDomains\n")
+		for j := range certs[i].PermittedDNSDomains {
+			fmt.Printf("    %s\n", certs[i].PermittedDNSDomains[j])
+		}
 
-		// CRLDistributionPoints
+		fmt.Printf("  CRLDistributionPoints\n")
+		for j := range certs[i].CRLDistributionPoints {
+			fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
+		}
 	}
 
 	return certs
