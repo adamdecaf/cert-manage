@@ -36,3 +36,25 @@ func TestReadSinglePEMBlock(t *testing.T) {
 		t.Fatalf("found other crl(s) (%s) in example.crt", crls)
 	}
 }
+
+func TestReadLotsOfPEMBlock(t *testing.T) {
+	r, err := os.Open("../testdata/lots.crt")
+	defer r.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	certificates, err := ParsePEMIntoCerts(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(certificates) != 5 {
+		t.Fatal("Found != 5 certs in example.crt")
+	}
+}
