@@ -51,14 +51,14 @@ func findCmd(app *string) {
 			fatal(err)
 		}
 		certificates = c
+	} else {
+		// Find certs for a platform
+		c, err := certs.FindCerts()
+		if err != nil {
+			fmt.Println(err)
+		}
+		certificates = c
 	}
-
-	// Find certs for a platform
-	c, err := certs.FindCerts()
-	if err != nil {
-		fmt.Println(err)
-	}
-	certificates = c
 
 	certs.PrintCertsToStdout(certificates)
 }
