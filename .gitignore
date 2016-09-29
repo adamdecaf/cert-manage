@@ -26,3 +26,6 @@ _testmain.go
 # binaries
 cert-manage
 cert-manage-*
+
+# log files
+*.log
