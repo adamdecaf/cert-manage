@@ -1,4 +1,4 @@
-package certs
+package cmd
 
 import (
 	"crypto/x509"
@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 )
 
-func PrintCertsToStdout(certs []*x509.Certificate) {
+func printCertsToStdout(certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Printf("cert\n")
 		fmt.Printf("  signature - %s (%s)\n", hex.EncodeToString(certs[i].Signature), certs[i].SignatureAlgorithm.String())
