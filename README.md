@@ -11,6 +11,14 @@
 | Linux Desktops (Debian, Ubuntu) | todo | todo | Firefox, Chrome, golang |
 | Linux Servers (Debian, Ubuntu) | todo | todo | golang |
 
+## Install
+
+## Building
+
+You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
+
+You can test out a specific platform with the scripts under `./build/$platform/`. They're based on docker containers and I'm working to add support under there for all platforms.
+
 ## Background
 
 There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys. Below are a few examples of recent exploits whose trust is still valid on most machines.
