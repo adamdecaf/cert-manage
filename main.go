@@ -45,7 +45,7 @@ func findCmd(app *string) {
 	var certificates []*x509.Certificate
 
 	// Find certs for an app
-	if app != nil {
+	if app != nil && *app != "" {
 		c, err := certs.FindCertsForApplication(*app)
 		if err != nil {
 			fatal(err)
