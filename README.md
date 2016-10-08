@@ -26,4 +26,5 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 - https://www.computest.nl/blog/startencrypt-considered-harmful-today/
 - https://wiki.mozilla.org/CA:WoSign_Issues
   - https://docs.google.com/document/d/1C6BlmbeQfn4a9zydVi2UvjBGv6szuSB4sMYUcVrR8vQ/preview
+  - https://www.wosign.com/report/WoSign_Incident_Report_Update_07102016.pdf
 - https://crt.sh/?id=34242572 (Comodo cert for `www.sb`)
