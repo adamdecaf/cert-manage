@@ -30,7 +30,9 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
   - https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/BV5XyFJLnQM
 - StartCom & Qihoo Incidents
   - https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E
-- https://crt.sh/?id=34242572 (Comodo cert for `www.sb`)
+- Comodo
+  - https://crt.sh/?id=34242572 (Comodo cert for `www.sb`)
+  - https://bugzilla.mozilla.org/show_bug.cgi?id=1311713 (Comodo uses OCR in cert generation processes)
 
 <details>
 <summary>GlobalSign [Accidental cross-signing](https://downloads.globalsign.com/acton/fs/blocks/showLandingPage/a/2674/p/p-008f/t/page/fm/0)</summary>
@@ -52,6 +54,6 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 > Chief Product Officer
 > GMO GlobalSign
 
-> US +1 603-570-7060 | UK +44 1622 766 766 | EU +32 16 89 1900 
+> US +1 603-570-7060 | UK +44 1622 766 766 | EU +32 16 89 1900
 > www.globalsign.com/en
 </details>
