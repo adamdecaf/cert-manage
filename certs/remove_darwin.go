@@ -18,3 +18,11 @@
 // ^ Then offer a way to mass-import all of them.
 
 package certs
+
+import (
+	"crypto/x509"
+)
+
+func removeCert(cert x509.Certificate) *error {
+	return nil
+}
