@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/adamdecaf/cert-manage/certs"
+	"os"
 )
 
 // `Find` finds certs for the given platform or application
@@ -14,7 +15,8 @@ func Find(app *string) {
 	if app != nil && *app != "" {
 		c, err := certs.FindCertsForApplication(*app)
 		if err != nil {
-			fatal(err)
+			fmt.Printf("error finding certs for application %s\n", err)
+			os.Exit(2)
 		}
 		certificates = c
 	} else {
