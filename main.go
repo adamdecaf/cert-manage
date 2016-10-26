@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"github.com/adamdecaf/cert-manage/cmd"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,10 +35,41 @@ func main() {
 		return
 	}
 	if whitelist != nil && *whitelist != "" {
-		w := strings.TrimSpace(*whitelist)
-		cmd.Whitelist(w, app)
+		w, err := filepath.Abs(strings.TrimSpace(*whitelist))
+		if err != nil {
+			fmt.Printf("Error finding whitelist path '%v'\n", whitelist)
+			return
+		}
+		if validWhitelistPath(w) {
+			cmd.Whitelist(w, app)
+		}
 		return
 	}
 
 	fmt.Println("Run `cert-manage -h` to get help information")
+}
+
+// validWhitelistPath verifies that the given whitelist filepath is properly defined
+// and exists on the given filesystem.
+func validWhitelistPath(path string) bool {
+	valid := true
+	isFlag := strings.HasPrefix(path, "-")
+
+	if len(path) == 0 || isFlag {
+		valid = false
+		fmt.Printf("The given whitelist file path '%s' doesn't look correct.\n", path)
+		if isFlag {
+			fmt.Println("The path looks like a cli flag, -whitelist requires a path to the whitelist file.")
+		} else {
+			fmt.Println("The given whitelist file path is empty.")
+		}
+	}
+
+	_, err := os.Stat(path)
+	if err != nil {
+		valid = false
+		fmt.Printf("The path %s doesn't seem to exist.\n", path)
+	}
+
+	return valid
 }
