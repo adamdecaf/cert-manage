@@ -16,7 +16,7 @@ func Find(app *string) {
 		c, err := certs.FindCertsForApplication(*app)
 		if err != nil {
 			fmt.Printf("error finding certs for application %s\n", err)
-			os.Exit(2)
+			os.Exit(1)
 		}
 		certificates = c
 	} else {
@@ -24,6 +24,7 @@ func Find(app *string) {
 		c, err := certs.FindCerts()
 		if err != nil {
 			fmt.Println(err)
+			os.Exit(1)
 		}
 		certificates = c
 	}
