@@ -13,6 +13,8 @@
 
 ## Install
 
+You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
+
 ## Building
 
 You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
