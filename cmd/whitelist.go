@@ -23,6 +23,8 @@ func Whitelist(path string, app *string) {
 		}
 	}
 
+	// todo: Check filepath exists
+
 	if app != nil && *app != "" {
 		fmt.Println("A")
 		errors := certs.RemoveCertsForApplication(*app, nil)
