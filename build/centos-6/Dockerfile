@@ -1,3 +1,5 @@
-FROM ubuntu:14.04
+FROM centos:6
+
 COPY cert-manage /bin/cert-manage
+
 ENTRYPOINT ["/bin/cert-manage"]
