@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"flag"
 	"github.com/adamdecaf/cert-manage/cmd"
+	"strings"
 )
 
 var (
@@ -24,7 +25,8 @@ func main() {
 		return
 	}
 	if whitelist != nil && *whitelist != "" {
-		cmd.Whitelist(*whitelist, app)
+		w := strings.TrimSpace(*whitelist)
+		cmd.Whitelist(w, app)
 		return
 	}
 
