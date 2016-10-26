@@ -23,6 +23,7 @@ func RemoveCerts(certs []x509.Certificate) []error {
 
 // `RemoveCertsForApplication` is a factory for choosing the proper removal
 // steps for an application.
+// On error an empty array will be returned along with a non-nil error value.
 func RemoveCertsForApplication(app string, certs []x509.Certificate) []error {
 	var errors []error
 
