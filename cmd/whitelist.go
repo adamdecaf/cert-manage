@@ -19,6 +19,11 @@ func Whitelist(path string, app *string) *error {
 		return &err
 	}
 
+	// todo: make a backup file, timestamped so we can make multiple if the latest isn't the same
+	// .backup.20161020HHMMSS
+	// .backup.20161025HHMMSS
+	// - compare hash of existing file to latest, if not equal make a new backup
+
 	// todo: find all certs, diff, and remove
 	// c, err := certs.FindCerts()
 
