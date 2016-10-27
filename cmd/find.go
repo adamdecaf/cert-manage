@@ -81,7 +81,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 // printCertsToStdout very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 func printCertsToStdout(certs []*x509.Certificate) {
-	for i := range certs[:10] {
+	for i := range certs {
 		ss := sha256.New()
 		ss.Write(certs[i].RawSubjectPublicKeyInfo)
 		fingerprint := hex.EncodeToString(ss.Sum(nil))
