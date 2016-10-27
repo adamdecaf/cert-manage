@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"github.com/adamdecaf/cert-manage/certs"
 	"os"
+	"sort"
+	"strings"
+	"text/tabwriter"
 )
 
 // `Find` finds certs for the given platform or application
@@ -39,8 +42,40 @@ func Find(app *string, format string) {
 	}
 }
 
-func printCertsInTable(certs []*x509.Certificate) {
+// IStringSlice is a case-insensitive string sorting implementation
+type IStringSlice []string
+func (p IStringSlice) Len() int           { return len(p) }
+func (p IStringSlice) Less(i, j int) bool { return strings.ToLower(p[i]) < strings.ToLower(p[j]) }
+func (p IStringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
+// printCertsInTable outputs a nicely formatted table of the certs found. This uses golang's
+// native text/tabwriter package to align based on the rows given to it.
+func printCertsInTable(certs []*x509.Certificate) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tFingerprint\tNot Before\tNot After")
+	defer w.Flush()
+
+	rows := make([]string, len(certs))
+	for i := range certs {
+		ss := sha256.New()
+		ss.Write(certs[i].RawSubjectPublicKeyInfo)
+		fingerprint := hex.EncodeToString(ss.Sum(nil))
+
+		c1 := certs[i].Subject.CommonName
+		c2 := certs[i].Issuer.CommonName
+		c3 := stringifyPublicKeyAlgo(certs[i].PublicKeyAlgorithm)
+		c4 := fingerprint[:16]
+
+		c5 := certs[i].NotBefore.Format("2006-01-02")
+		c6 := certs[i].NotAfter.Format("2006-01-02")
+
+		rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", c1, c2, c3, c4, c5, c6)
+	}
+
+	sort.Sort(IStringSlice(rows))
+	for i := range rows {
+		fmt.Fprintln(w, rows[i])
+	}
 }
 
 // printCertsToStdout very verbosly prints out the ecah certificate's information
