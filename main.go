@@ -8,13 +8,18 @@ import (
 )
 
 var (
-	// actions
+	// Finding application/system certs
 	find = flag.Bool("find", false, "Find certs for application or platform.")
-	whitelist = flag.String("whitelist", "", "Deactivate all certs except for those in the given whitelist")
-	version = flag.Bool("version", false, "Output the version number")
+	format = flag.String("format", "table", "The output format for certs. options: table, raw")
 
-	// where?
+	// Pruning the trusted certs
+	whitelist = flag.String("whitelist", "", "Deactivate all certs except for those in the given whitelist")
+
+	// -app is used by both -find and -whitelist
 	app = flag.String("app", "", "Find certs for an application (optional)")
+
+	// Just output the version and exit cleanly
+	version = flag.Bool("version", false, "Output the version number")
 )
 
 const Version = "0.0.1-dev"
@@ -28,7 +33,7 @@ func main() {
 	}
 
 	if find != nil && *find {
-		cmd.Find(app)
+		cmd.Find(app, *format)
 		return
 	}
 

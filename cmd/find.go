@@ -10,7 +10,7 @@ import (
 )
 
 // `Find` finds certs for the given platform or application
-func Find(app *string) {
+func Find(app *string, format string) {
 	var certificates []*x509.Certificate
 
 	// Find certs for an app
@@ -31,22 +31,30 @@ func Find(app *string) {
 		certificates = c
 	}
 
-	printCertsToStdout(certificates)
+	if format == "table" {
+		printCertsInTable(certificates)
+	} else {
+		// -format raw
+		printCertsToStdout(certificates)
+	}
+}
+
+func printCertsInTable(certs []*x509.Certificate) {
+
 }
 
 // printCertsToStdout very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 func printCertsToStdout(certs []*x509.Certificate) {
-	for i := range certs[:1] {
-		fmt.Printf("cert\n")
-
+	for i := range certs[:10] {
 		ss := sha256.New()
 		ss.Write(certs[i].RawSubjectPublicKeyInfo)
 		fingerprint := hex.EncodeToString(ss.Sum(nil))
 
-		fmt.Printf("  sha256 fingerprint - %s\n", fingerprint)
-		fmt.Printf("  signature algorithm: %s\n", certs[i].SignatureAlgorithm.String())
-		fmt.Printf("  pub key algo - %d\n", certs[i].PublicKeyAlgorithm)
+		fmt.Printf("Certificate\n")
+		fmt.Printf("  SHA256 Fingerprint - %s\n", fingerprint)
+		fmt.Printf("  Signature Algorithm: %s\n", certs[i].SignatureAlgorithm.String())
+		fmt.Printf("  Public Key Algorithm - %v\n", stringifyPublicKeyAlgo(certs[i].PublicKeyAlgorithm))
 		fmt.Printf("  Issuer CommonName - %s, SerialNumber - %s\n", certs[i].Issuer.CommonName, certs[i].Issuer.SerialNumber)
 		fmt.Printf("  Subject CommonName - %s, SerialNumber - %s\n", certs[i].Subject.CommonName, certs[i].Subject.SerialNumber)
 		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
@@ -78,4 +86,18 @@ func printCertsToStdout(certs []*x509.Certificate) {
 			fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
 		}
 	}
+}
+
+
+func stringifyPublicKeyAlgo(p x509.PublicKeyAlgorithm) string {
+	res := "Unknown"
+	switch p {
+	case x509.RSA:
+		res = "RSA"
+	case x509.DSA:
+		res = "DSA"
+	case x509.ECDSA:
+		res = "ECDSA"
+	}
+	return res
 }
