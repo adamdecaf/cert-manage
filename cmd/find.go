@@ -43,10 +43,10 @@ func Find(app *string, format string) {
 }
 
 // IStringSlice is a case-insensitive string sorting implementation
-type IStringSlice []string
-func (p IStringSlice) Len() int           { return len(p) }
-func (p IStringSlice) Less(i, j int) bool { return strings.ToLower(p[i]) < strings.ToLower(p[j]) }
-func (p IStringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+type iStringSlice []string
+func (p iStringSlice) Len() int           { return len(p) }
+func (p iStringSlice) Less(i, j int) bool { return strings.ToLower(p[i]) < strings.ToLower(p[j]) }
+func (p iStringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // printCertsInTable outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
@@ -72,7 +72,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 		rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", c1, c2, c3, c4, c5, c6)
 	}
 
-	sort.Sort(IStringSlice(rows))
+	sort.Sort(iStringSlice(rows))
 	for i := range rows {
 		fmt.Fprintln(w, rows[i])
 	}
