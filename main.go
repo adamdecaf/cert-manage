@@ -14,6 +14,7 @@ var (
 
 	// Pruning the trusted certs
 	whitelist = flag.String("whitelist", "", "Deactivate all certs except for those in the given whitelist")
+	dry = flag.Bool("dry-run", false, "Don't actually deactivate or remove certs. Print the changes instead.")
 
 	// -app is used by both -find and -whitelist
 	app = flag.String("app", "", "Find certs for an application (optional)")
@@ -38,7 +39,7 @@ func main() {
 	}
 
 	if whitelist != nil && *whitelist != "" {
-		err := cmd.Whitelist(*whitelist, app)
+		err := cmd.Whitelist(*whitelist, app, *dry)
 		if err != nil {
 			os.Exit(1)
 		}

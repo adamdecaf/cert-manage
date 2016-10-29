@@ -11,13 +11,15 @@ import (
 // `Whitelist` deactivates all certs except for those in the given
 // whitelist.
 // A non-nil error value will be returned on failure.
-func Whitelist(path string, app *string) *error {
+func Whitelist(path string, app *string, dryRun bool) *error {
 	// Validate path
 	path, err := filepath.Abs(strings.TrimSpace(path))
 	if err != nil || !validWhitelistPath(path) {
 		err = fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", path)
 		return &err
 	}
+
+	// todo: use dryRun flag
 
 	// todo: make a backup file, timestamped so we can make multiple if the latest isn't the same
 	// .backup.20161020HHMMSS
