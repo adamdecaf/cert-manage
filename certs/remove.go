@@ -29,7 +29,7 @@ func RemoveCertsForApplication(app string, certs []x509.Certificate) []error {
 
 	switch strings.ToLower(app) {
 	case "chrome":
-		errors = RemoveCertsChrome(certs)
+		errors = RemoveCertsNSS(certs)
 	case "java":
 		errors = RemoveCertsJava(certs)
 	default:

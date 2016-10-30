@@ -5,6 +5,6 @@ import (
 )
 
 // tood: docs
-func RemoveCertsChrome(certs []x509.Certificate) []error {
+func RemoveCertsNSS(certs []x509.Certificate) []error {
 	return nil
 }

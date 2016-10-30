@@ -15,7 +15,7 @@ func FindCertsForApplication(app string) ([]*x509.Certificate, error) {
 
 	switch strings.ToLower(app) {
 	case "chrome":
-		certs, err = FindCertsChrome()
+		certs, err = FindCertsNSS()
 	case "java":
 		certs, err = FindCertsJava()
 	default:
