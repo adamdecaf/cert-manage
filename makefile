@@ -7,7 +7,7 @@ linux:
 osx:
 	GOOS=darwin GOARCH=386 go build -o bin/cert-manage-osx .
 win:
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/cert-manage-win .
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/cert-manage.exe .
 
 build: vet osx linux win
 
