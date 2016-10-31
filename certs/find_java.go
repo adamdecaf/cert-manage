@@ -10,6 +10,7 @@ import (
 
 // Docs:
 // - https://docs.oracle.com/cd/E19830-01/819-4712/ablqw/index.html
+// - https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html
 
 var (
 	// These paths are all to be joined with JAVA_HOME
