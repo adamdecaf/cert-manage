@@ -9,6 +9,11 @@ osx:
 win:
 	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/cert-manage.exe .
 
+run:
+	@cp ./bin/cert-manage-linux ./build/$(platform)/cert-manage
+	@cd ./build/$(platform) && docker build -t cert-manage-$(platform):latest . > run.log
+	@docker run -it cert-manage-$(platform):latest $(flags)
+
 build: vet osx linux win
 
 test: build
