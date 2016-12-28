@@ -1,6 +1,7 @@
 package certs
 
 import (
+	"crypto/x509"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,7 +9,13 @@ import (
 )
 
 type WhitelistItem struct {
+	// todo
+	// Signature string
+}
 
+func (wh WhitelistItem) Matches(c x509.Certificate) bool {
+	// todo
+	return true
 }
 
 // ``
@@ -16,8 +23,10 @@ func NewWhitelistItems(path string) ([]WhitelistItem, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}
-
-	return nil, nil
+	// todo
+	var items []WhitelistItem
+	items = append(items, WhitelistItem{})
+	return items, nil
 }
 
 // validWhitelistPath verifies that the given whitelist filepath is properly defined
