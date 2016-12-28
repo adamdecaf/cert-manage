@@ -34,10 +34,14 @@ func main() {
 	}
 
 	if find != nil && *find {
-		cmd.Find(app, *format)
+		if app != nil && *app != "" {
+			cmd.FindCertsForApp(*app, *format)
+		}
+		cmd.FindCertsForPlatform(app, *format)
 		return
 	}
 
+	// todo: split out into platform and app branches
 	if whitelist != nil && *whitelist != "" {
 		err := cmd.Whitelist(*whitelist, app, *dry)
 		if err != nil {
