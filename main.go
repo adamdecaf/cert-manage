@@ -44,9 +44,9 @@ func main() {
 	if whitelist != nil && *whitelist != "" {
 		var err error = nil
 		if app != nil && *app != "" {
-			err = cmd.WhitelistCertsForApp(*whitelist, *app, *dry)
+			err = cmd.WhitelistCertsForApp(*whitelist, *app, *dry, *format)
 		}
-		err = cmd.WhitelistCertsForPlatform(*whitelist, *dry)
+		err = cmd.WhitelistCertsForPlatform(*whitelist, *dry, *format)
 
 		if err != nil {
 			os.Exit(1)
