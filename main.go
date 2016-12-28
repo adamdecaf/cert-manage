@@ -41,9 +41,13 @@ func main() {
 		return
 	}
 
-	// todo: split out into platform and app branches
 	if whitelist != nil && *whitelist != "" {
-		err := cmd.Whitelist(*whitelist, app, *dry)
+		var err error = nil
+		if app != nil && *app != "" {
+			err = cmd.WhitelistCertsForApp(*whitelist, *app, *dry)
+		}
+		err = cmd.WhitelistCertsForPlatform(*whitelist, *dry)
+
 		if err != nil {
 			os.Exit(1)
 		}

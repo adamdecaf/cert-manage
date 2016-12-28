@@ -17,17 +17,38 @@ import (
 // Does it make sense to create a `Manager` struct for each type of cert?
 // Platforms would need a manage specific to them.
 
-// `Whitelist` deactivates all certs except for those in the given whitelist.
-// A non-nil error value will be returned on failure.
-func Whitelist(path string, app *string, dryRun bool) *error {
-	// Validate path
-	path, err := filepath.Abs(strings.TrimSpace(path))
-	if err != nil || !validWhitelistPath(path) {
-		err = fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", path)
-		return &err
+// todo: use dryRun flag
+// todo: print certs in whitelist not found
+// after diff, remove certs that aren't whitelisted
+// `whitelist` performs the diffing of a given set of certs and
+
+//
+func WhitelistCertsForPlatform(whitelist string, dryRun bool) error {
+	if !validWhitelistPath(whitelist) {
+		return fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", whitelist)
 	}
 
+	// // Whitelist a platform's certs
+	// certs, err := certs.FindCerts()
+	// if err != nil {
+	// 	return err
+	// }
+	// return whitelistCertsForPlatform(certs, path)
+
+	// errors := certs.RemoveCerts(nil) // nil is for "certs to remove"
+	// if len(errors) > 0 {
+	// 	fmt.Println(errors)
+	// 	// todo: return some error
+	// }
+
 	return nil
+}
+
+//
+func WhitelistCertsForApp(whitelist, app string, dryRun bool) error {
+	if !validWhitelistPath(whitelist) {
+		return fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", whitelist)
+	}
 
 	// // Whitelist an app's certs
 	// if app != nil && *app != "" {
@@ -38,25 +59,24 @@ func Whitelist(path string, app *string, dryRun bool) *error {
 	// 	return whitelistCertsForApplication(certs, path)
 	// }
 
-	// // Whitelist a platform's certs
-	// certs, err := certs.FindCerts()
-	// if err != nil {
-	// 	return err
+	// errors := certs.RemoveCertsForApplication(*app, nil) // nil is for "certs to remove"
+	// if len(errors) != 0 {
+	// 	fmt.Println(errors)
+	// 	// todo: return some error
 	// }
-	// return whitelistCertsForPlatform(certs, path)
+
+	return nil
 }
-
-// todo: use dryRun flag
-// todo: print certs in whitelist not found
-// after diff, remove certs that aren't whitelisted
-// `whitelist` performs the diffing of a given set of certs and
-// func whitelist(certs []x509.Certificate, path string) error {
-
-// }
 
 // validWhitelistPath verifies that the given whitelist filepath is properly defined
 // and exists on the given filesystem.
 func validWhitelistPath(path string) bool {
+	path, err := filepath.Abs(strings.TrimSpace(path))
+	if err != nil {
+		fmt.Printf("expanding the path failed with: %s\n", err)
+		return false
+	}
+
 	valid := true
 	isFlag := strings.HasPrefix(path, "-")
 
@@ -70,7 +90,7 @@ func validWhitelistPath(path string) bool {
 		}
 	}
 
-	_, err := os.Stat(path)
+	_, err = os.Stat(path)
 	if err != nil {
 		valid = false
 		fmt.Printf("The path %s doesn't seem to exist.\n", path)
@@ -78,18 +98,3 @@ func validWhitelistPath(path string) bool {
 
 	return valid
 }
-
-// if app != nil && *app != "" {
-// 	fmt.Println("A")
-// 	errors := certs.RemoveCertsForApplication(*app, nil) // nil is for "certs to remove"
-// 	if len(errors) != 0 {
-// 		fmt.Println(errors)
-// 		// todo: return some error
-// 	}
-// } else {
-// 	errors := certs.RemoveCerts(nil) // nil is for "certs to remove"
-// 	if len(errors) > 0 {
-// 		fmt.Println(errors)
-// 		// todo: return some error
-// 	}
-// }
