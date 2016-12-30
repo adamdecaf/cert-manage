@@ -15,7 +15,7 @@ const (
 	MinimumSignatureLength = 8
 )
 
-// `WhitelistItem` can be compared against an x509 Certificate to see if the cert represents
+// WhitelistItem can be compared against an x509 Certificate to see if the cert represents
 // some value presented by the whitelist item. This is useful in comparing specific fields of
 // Certificate against multiple whitelist candidates.
 type WhitelistItem interface {
@@ -71,7 +71,7 @@ func (w NotAfterWhitelistItem) Matches(c x509.Certificate) bool {
 	return c.NotAfter.Before(w.Time) || c.NotAfter.Equal(w.Time)
 }
 
-// ``
+// todo: docs
 func NewWhitelistItems(path string) ([]WhitelistItem, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)

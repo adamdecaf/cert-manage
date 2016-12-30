@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// `RemoveCerts` is a useful wrapper around the app/platform specific
+// RemoveCerts is a useful wrapper around the app/platform specific
 // removal step(s).
 func RemoveCerts(certs []x509.Certificate) []error {
 	var errors []error
@@ -21,7 +21,7 @@ func RemoveCerts(certs []x509.Certificate) []error {
 	return errors
 }
 
-// `RemoveCertsForApplication` is a factory for choosing the proper removal
+// RemoveCertsForApplication is a factory for choosing the proper removal
 // steps for an application.
 // On error an empty array will be returned along with a non-nil error value.
 func RemoveCertsForApplication(app string, certs []x509.Certificate) []error {

@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 )
 
-// `Keep` filters a list of x509 Certificates against whitelist items to
+// Keep filters a list of x509 Certificates against whitelist items to
 // retain only the certificates that are allowed by our whitelist.
 // An empty slice of certificates is a possible (and valid) output.
 func Keep(incoming []*x509.Certificate, whitelisted []WhitelistItem) []*x509.Certificate {
