@@ -76,9 +76,9 @@ func NewWhitelistItems(path string) ([]WhitelistItem, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}
-	// todo
+	// todo, read from json whitelist file
 	var items []WhitelistItem
-	items = append(items, WhitelistItem{})
+	items = append(items, HexSignatureWhitelistItem{})
 	return items, nil
 }
 

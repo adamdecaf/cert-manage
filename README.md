@@ -28,8 +28,7 @@ Whitelists are stored in json files. There is a basic structure to them which al
     },
     "Issuers": [
         {
-            "CommonName": "",
-            "Organization": ""
+            "CommonName": ""
         }
     ],
     "Time": {
