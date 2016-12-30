@@ -39,10 +39,10 @@ Whitelists are stored in json files. There is a basic structure to them which al
 
 **Fields**
 
-`Signatures.Hex`: The hex encoded signature on the certificate.
-`Issuers.CommonName`: An exact match to the Issuer's CommonName on the certificate. (e.g. "Go Daddy")
-`Issuers.Organization`: An exact match to the Issuers's Organization field on the certificate.
-`Time.NotAfter`: The NotAfter field on the certificate. (Useful for only allowing certs with long expirations. e.g. 2030)
+- `Signatures.Hex`: The hex encoded signature on the certificate.
+- `Issuers.CommonName`: An exact match to the Issuer's CommonName on the certificate. (e.g. "Go Daddy")
+- `Issuers.Organization`: An exact match to the Issuers's Organization field on the certificate.
+- `Time.NotAfter`: The NotAfter field on the certificate. (Useful for only allowing certs with long expirations. e.g. 2030)
 
 ## Developing
 
