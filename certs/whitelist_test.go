@@ -45,3 +45,37 @@ func TestWhitelist_HexSignature(t *testing.T) {
 		t.Fatal("wh4 and cert don't match, but should")
 	}
 }
+
+func TestWhitelist_IssuerCommonName(t *testing.T) {
+	certificates := loadPEM(t, "../testdata/example.crt")
+	if len(certificates) != 1 {
+		t.Fatal("Found != 1 certs in example.crt")
+	}
+	if certificates[0] == nil {
+		t.Fatal("Unable to read cert")
+	}
+
+	// Empty whitelist name
+	wh1 := IssuersCommonNameWhitelistItem{
+		Name: "",
+	}
+	if wh1.Matches(*certificates[0]) {
+		t.Fatal("wh1 and cert should not match")
+	}
+
+	// Matching word
+	wh2 := IssuersCommonNameWhitelistItem{
+		Name: "Starfield",
+	}
+	if !wh2.Matches(*certificates[0]) {
+		t.Fatal("wh2 and cert don't match")
+	}
+
+	// Full Match
+	wh3 := IssuersCommonNameWhitelistItem{
+		Name: "Starfield Secure Certification Authority",
+	}
+	if !wh3.Matches(*certificates[0]) {
+		t.Fatal("wh3 and cert don't match")
+	}
+}

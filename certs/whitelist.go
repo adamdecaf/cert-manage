@@ -47,6 +47,18 @@ func (w HexSignatureWhitelistItem) Matches(c x509.Certificate) bool {
 	return w.Signature == fingerprint
 }
 
+// Matches a Certificate's Issuer CommonName
+type IssuersCommonNameWhitelistItem struct {
+	Name string
+	WhitelistItem
+}
+func (w IssuersCommonNameWhitelistItem) Matches(c x509.Certificate) bool {
+	if len(strings.TrimSpace(w.Name)) > 0 {
+		return strings.Contains(c.Subject.CommonName, w.Name)
+	}
+	return false
+}
+
 // ``
 func NewWhitelistItems(path string) ([]WhitelistItem, error) {
 	if !validWhitelistPath(path) {
