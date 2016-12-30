@@ -11,11 +11,43 @@
 | Linux Desktops (Debian, Ubuntu) | todo | todo | Firefox, Chrome, golang |
 | Linux Servers (Debian, Ubuntu) | todo | todo | golang |
 
-## Install
+## Getting Started
+
+#### Install
 
 You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
 
-## Building
+#### Configuration
+
+Whitelists are stored in json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
+
+```json
+{
+    "Signatures": {
+        "Hex": [""]
+    },
+    "Issuers": [
+        {
+            "CommonName": "",
+            "Organization": ""
+        }
+    ],
+    "Time": {
+        "NotAfter": ""
+    }
+}
+```
+
+**Fields**
+
+`Signatures.Hex`: The hex encoded signature on the certificate.
+`Issuers.CommonName`: An exact match to the Issuer's CommonName on the certificate. (e.g. "Go Daddy")
+`Issuers.Organization`: An exact match to the Issuers's Organization field on the certificate.
+`Time.NotAfter`: The NotAfter field on the certificate. (Useful for only allowing certs with long expirations. e.g. 2030)
+
+## Developing
+
+#### Building
 
 You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
 
