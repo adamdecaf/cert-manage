@@ -1,21 +1,50 @@
 package certs
 
 import (
+	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type WhitelistItem struct {
-	// todo
-	// Signature string
+const (
+	MinimumSignatureLength = 8
+)
+
+// `WhitelistItem` can be compared against an x509 Certificate to see if the cert represents
+// some value presented by the whitelist item. This is useful in comparing specific fields of
+// Certificate against multiple whitelist candidates.
+type WhitelistItem interface {
+	Matches(x509.Certificate) bool
 }
 
-func (wh WhitelistItem) Matches(c x509.Certificate) bool {
-	// todo
-	return true
+// HexSignatureWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
+// todo: combine usage with print.go's hex encoding
+type HexSignatureWhitelistItem struct {
+	Signature string // hex encoded
+
+	WhitelistItem
+}
+func (w HexSignatureWhitelistItem) Matches(c x509.Certificate) bool {
+	// Grab the cert's hex encoding
+	ss := sha256.New()
+	ss.Write(c.RawSubjectPublicKeyInfo)
+	fingerprint := hex.EncodeToString(ss.Sum(nil))
+
+	// Check some constraints
+	if len(w.Signature) < MinimumSignatureLength {
+		return false
+	}
+
+	// If the whitelist has a shortened fingerprint use it as a prefix
+	// Otherwise, compare their full contents
+	if len(w.Signature) < len(fingerprint) {
+		return strings.HasPrefix(fingerprint, w.Signature)
+	}
+	return w.Signature == fingerprint
 }
 
 // ``

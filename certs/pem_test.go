@@ -1,13 +1,14 @@
 package certs
 
 import (
+	"crypto/x509"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
-func TestReadSinglePEMBlock(t *testing.T) {
-	r, err := os.Open("../testdata/example.crt")
+func loadPEM(t *testing.T, path string) []*x509.Certificate {
+	r, err := os.Open(path)
 	defer r.Close()
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +23,11 @@ func TestReadSinglePEMBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return certificates
+}
 
+func TestReadSinglePEMBlock(t *testing.T) {
+	certificates := loadPEM(t, "../testdata/example.crt")
 	if len(certificates) != 1 {
 		t.Fatal("Found != 1 certs in example.crt")
 	}
@@ -38,22 +43,7 @@ func TestReadSinglePEMBlock(t *testing.T) {
 }
 
 func TestReadLotsOfPEMBlock(t *testing.T) {
-	r, err := os.Open("../testdata/lots.crt")
-	defer r.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	body, err := ioutil.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	certificates, err := ParsePEMIntoCerts(body)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	certificates := loadPEM(t, "../testdata/lots.crt")
 	if len(certificates) != 5 {
 		t.Fatal("Found != 5 certs in example.crt")
 	}
