@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"time"
 	"strings"
 )
 
@@ -57,6 +58,17 @@ func (w IssuersCommonNameWhitelistItem) Matches(c x509.Certificate) bool {
 		return strings.Contains(c.Subject.CommonName, w.Name)
 	}
 	return false
+}
+
+// Matches the NotAfter on a Certificate
+// This will accept certificates whose NotAfter is before or the same as the
+// given value in the WhitelistItem
+type NotAfterWhitelistItem struct {
+	Time time.Time
+	WhitelistItem
+}
+func (w NotAfterWhitelistItem) Matches(c x509.Certificate) bool {
+	return c.NotAfter.Before(w.Time) || c.NotAfter.Equal(w.Time)
 }
 
 // ``
