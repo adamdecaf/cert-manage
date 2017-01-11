@@ -5,6 +5,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"encoding/hex"
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +15,7 @@ import (
 
 const (
 	MinimumSignatureLength = 8
+	NotAfterFormat = "2006-01-02 03:04:05"
 )
 
 // WhitelistItem can be compared against an x509 Certificate to see if the cert represents
@@ -71,14 +74,56 @@ func (w NotAfterWhitelistItem) Matches(c x509.Certificate) bool {
 	return c.NotAfter.Before(w.Time) || c.NotAfter.Equal(w.Time)
 }
 
-// todo: docs
-func NewWhitelistItems(path string) ([]WhitelistItem, error) {
+// Json structure in struct form
+type jsonWhitelist struct {
+	Signatures jsonSignatures `json:"Signatures,omitempty"`
+	Issuers []jsonIssuers `json:"Issuers,omitempty"`
+	Time jsonTime `json:"Time,omitempty"`
+}
+type jsonSignatures struct {
+	Hex []string `json:"Hex"`
+}
+type jsonIssuers struct {
+	CommonName string `json:"CommonName"`
+}
+type jsonTime struct {
+	NotAfter string `json:"NotAfter"`
+}
+
+// FromFile reads a whitelist file and parses it into WhitelistItems
+func FromFile(path string) ([]WhitelistItem, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}
-	// todo, read from json whitelist file
+
+	// read file
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var parsed jsonWhitelist
+	err = json.Unmarshal(b, &parsed)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read parsed format into structs
 	var items []WhitelistItem
-	items = append(items, HexSignatureWhitelistItem{})
+	for _,s := range parsed.Signatures.Hex {
+		items = append(items, HexSignatureWhitelistItem{Signature: s})
+	}
+	for _,i := range parsed.Issuers {
+		items = append(items, IssuersCommonNameWhitelistItem{Name: i.CommonName})
+	}
+	if t := parsed.Time.NotAfter; len(strings.TrimSpace(t)) > 0 {
+		when, err := time.Parse(NotAfterFormat, t)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, NotAfterWhitelistItem{Time: when})
+	}
+
 	return items, nil
 }
 

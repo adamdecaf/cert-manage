@@ -117,3 +117,36 @@ func TestWhitelist_NotAfter(t *testing.T) {
 		t.Fatal("wh3 should allow the cert through, it's NotAfter is later than the cert")
 	}
 }
+
+func TestWhitelist__FromFileFull(t *testing.T) {
+	items, err := FromFile("../testdata/complete-whitelist.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 3 {
+		t.Fatalf("Wrong number of parsed items in whitelist, found=%d", len(items))
+	}
+
+	for _,i := range items {
+		if v,ok := i.(HexSignatureWhitelistItem); ok && v.Signature != "a" {
+			t.Fatalf("Signature didn't match, got %s", v.Signature)
+		}
+		if v,ok := i.(IssuersCommonNameWhitelistItem); ok && v.Name != "b" {
+			t.Fatalf("Issuer Name didn't match, got %s", v.Name)
+		}
+		when, _ := time.Parse(NotAfterFormat, "2016-01-01 12:34:56")
+		if v,ok := i.(NotAfterWhitelistItem); ok && !v.Time.Equal(when) {
+			t.Fatalf("NotAfter times don't match, got %s", v.Time)
+		}
+	}
+}
+
+func TestWhitelist__FromFileEmpty(t *testing.T) {
+	items, err := FromFile("../testdata/empty-whitelist.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("empty whitelist was not parsed as empty! had %d items", len(items))
+	}
+}

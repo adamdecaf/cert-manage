@@ -21,7 +21,7 @@ import (
 
 //
 func WhitelistCertsForPlatform(whitelist string, dryRun bool, format string) error {
-	wh, err := certs.NewWhitelistItems(whitelist)
+	wh, err := certs.FromFile(whitelist)
 	if err != nil {
 		return fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", whitelist)
 	}
