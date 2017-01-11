@@ -1,6 +1,6 @@
 .PHONY: build test
 
-default: build
+default: test
 
 vet:
 	go tool vet .
