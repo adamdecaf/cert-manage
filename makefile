@@ -1,5 +1,7 @@
 .PHONY: build test
 
+default: build
+
 vet:
 	go tool vet .
 linux:
