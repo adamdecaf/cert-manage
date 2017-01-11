@@ -7,11 +7,14 @@ import (
 )
 
 // RemoveCerts collects errors from removing certs against a platform.
-func RemoveCerts(certs []x509.Certificate) []error {
+func RemoveCerts(certs []*x509.Certificate) []error {
 	var errors []error
 
 	for i := range certs {
-		err := removeCert(certs[i])
+		if certs[i] == nil {
+			continue
+		}
+		err := removeCert(*certs[i])
 		if err != nil {
 			errors = append(errors, *err)
 		}

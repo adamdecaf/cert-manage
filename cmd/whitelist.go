@@ -32,19 +32,21 @@ func WhitelistCertsForPlatform(whitelist string, dryRun bool, format string) err
 		return err
 	}
 
-	// figure out which certs to keep
-	keep := certs.Keep(certificates, wh)
+	// Filter certs
+	removable := certs.Filter(certificates, wh)
 
 	if dryRun {
-		fmt.Println("These certs will be kept.")
-		PrintCerts(keep, format)
+		fmt.Println("These certs will be removed.")
+		PrintCerts(removable, format)
 	}
 
-	// errors := certs.RemoveCerts(nil) // nil is for "certs to remove"
-	// if len(errors) > 0 {
-	// 	fmt.Println(errors)
-	// 	// todo: return some error
-	// }
+	errors := certs.RemoveCerts(removable)
+	if len(errors) > 0 {
+		for _,e := range errors {
+			fmt.Println(e)
+		}
+		return fmt.Errorf("Errors when trying to whitelist certs")
+	}
 
 	return nil
 }
