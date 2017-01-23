@@ -9,5 +9,5 @@ The following CA's have had issues or raised concerns of mine.
 - [GoDaddy](https://groups.google.com/forum/?hl=en#!msg/mozilla.dev.security.policy/Htujoyq-pO8/uRBcS2TmBQAJ)
 - [Government Root Cert Authority](government-root-cert-authority.md)
 - [Startcom](startcom.md)
-- [Symantec](http://arstechnica.com/security/2017/01/already-on-probation-symantec-issues-more-illegit-https-certificates/)
+- [Symantec](symantec.md)
 - [Wosign](wosign.md)
