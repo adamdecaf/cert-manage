@@ -37,7 +37,7 @@ func Google() []*x509.Certificate {
 
 	all := make([]*x509.Certificate, 0)
 	for u,chk := range fingerprints {
-		go func(url string) {
+		go func(url, chk string) {
 			cs := loadCerts(url)
 			mu.Lock()
 			defer mu.Unlock()
@@ -52,7 +52,7 @@ func Google() []*x509.Certificate {
 					all = append(all, kept...)
 				}
 			}
-		}(u)
+		}(u, chk)
 	}
 
 	// length check on certs
@@ -63,10 +63,10 @@ func Google() []*x509.Certificate {
 
 func loadCerts(url string) []*x509.Certificate {
 	resp, err := http.Get(url)
-	defer resp.Body.Close()
 	if err != nil {
 		return nil
 	}
+	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
