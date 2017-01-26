@@ -1,10 +1,8 @@
 package certs
 
 import (
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -33,10 +31,7 @@ type HexSignatureWhitelistItem struct {
 	WhitelistItem
 }
 func (w HexSignatureWhitelistItem) Matches(c x509.Certificate) bool {
-	// Grab the cert's hex encoding
-	ss := sha256.New()
-	ss.Write(c.RawSubjectPublicKeyInfo)
-	fingerprint := hex.EncodeToString(ss.Sum(nil))
+	fingerprint := GetHexSHA256Fingerprint(c)
 
 	// Check some constraints
 	if len(w.Signature) < MinimumSignatureLength {
@@ -75,18 +70,18 @@ func (w NotAfterWhitelistItem) Matches(c x509.Certificate) bool {
 }
 
 // Json structure in struct form
-type jsonWhitelist struct {
-	Signatures jsonSignatures `json:"Signatures,omitempty"`
-	Issuers []jsonIssuers `json:"Issuers,omitempty"`
-	Time jsonTime `json:"Time,omitempty"`
+type JsonWhitelist struct {
+	Signatures JsonSignatures `json:"Signatures,omitempty"`
+	Issuers []JsonIssuers `json:"Issuers,omitempty"`
+	Time JsonTime `json:"Time,omitempty"`
 }
-type jsonSignatures struct {
+type JsonSignatures struct {
 	Hex []string `json:"Hex"`
 }
-type jsonIssuers struct {
+type JsonIssuers struct {
 	CommonName string `json:"CommonName"`
 }
-type jsonTime struct {
+type JsonTime struct {
 	NotAfter string `json:"NotAfter"`
 }
 
@@ -102,7 +97,7 @@ func FromFile(path string) ([]WhitelistItem, error) {
 		return nil, err
 	}
 
-	var parsed jsonWhitelist
+	var parsed JsonWhitelist
 	err = json.Unmarshal(b, &parsed)
 	if err != nil {
 		return nil, err

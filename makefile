@@ -6,10 +6,13 @@ vet:
 	go tool vet .
 linux:
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/cert-manage-linux .
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/gen-whitelist-linux ./gen/
 osx:
 	GOOS=darwin GOARCH=386 go build -o bin/cert-manage-osx .
+	GOOS=darwin GOARCH=386 go build -o bin/gen-whitelist-osx ./gen/
 win:
 	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/cert-manage.exe .
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/gen-whitelist.exe ./gen/
 
 run:
 	@cp ./bin/cert-manage-linux ./build/$(platform)/cert-manage
