@@ -15,9 +15,7 @@ const (
 // This is a list of roots suggested by Google as certs to trust.
 // It's pulled from https://pki.goog/roots.pem
 func GoogleSuggestedRoots() []*x509.Certificate {
-	certs := make([]*x509.Certificate, 0)
-
-	return certs
+	return loadCerts(SponsoredTrustedRootsUrl)
 }
 
 // Returns the Google owned CA certs
