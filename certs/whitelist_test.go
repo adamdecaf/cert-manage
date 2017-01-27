@@ -15,7 +15,7 @@ func TestWhitelist_HexSignature(t *testing.T) {
 	}
 
 	// Empty signature
-	wh1 := HexSignatureWhitelistItem{
+	wh1 := HexFingerprintWhitelistItem{
 		Signature: "",
 	}
 	if wh1.Matches(*certificates[0]) {
@@ -23,7 +23,7 @@ func TestWhitelist_HexSignature(t *testing.T) {
 	}
 
 	// Signature too short
-	wh2 := HexSignatureWhitelistItem{
+	wh2 := HexFingerprintWhitelistItem{
 		Signature: "",
 	}
 	if wh2.Matches(*certificates[0]) {
@@ -31,7 +31,7 @@ func TestWhitelist_HexSignature(t *testing.T) {
 	}
 
 	// Short signature
-	wh3 := HexSignatureWhitelistItem{
+	wh3 := HexFingerprintWhitelistItem{
 		Signature: "96940d99",
 	}
 	if !wh3.Matches(*certificates[0]) {
@@ -39,7 +39,7 @@ func TestWhitelist_HexSignature(t *testing.T) {
 	}
 
 	// Full signature
-	wh4 := HexSignatureWhitelistItem{
+	wh4 := HexFingerprintWhitelistItem{
 		Signature: "96940d991419151450d1e75f66218f6f2594e1df4af31a5ad673c9a8746817ce",
 	}
 	if !wh4.Matches(*certificates[0]) {
@@ -128,7 +128,7 @@ func TestWhitelist__FromFileFull(t *testing.T) {
 	}
 
 	for _,i := range items {
-		if v,ok := i.(HexSignatureWhitelistItem); ok && v.Signature != "a" {
+		if v,ok := i.(HexFingerprintWhitelistItem); ok && v.Signature != "a" {
 			t.Fatalf("Signature didn't match, got %s", v.Signature)
 		}
 		if v,ok := i.(IssuersCommonNameWhitelistItem); ok && v.Name != "b" {

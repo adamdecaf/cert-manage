@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 )
 
-// todo: better name
 func GetHexSHA256Fingerprint(c x509.Certificate) string {
 	// Grab the cert's hex encoding
 	ss := sha256.New()

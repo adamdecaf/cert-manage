@@ -22,14 +22,13 @@ type WhitelistItem interface {
 	Matches(x509.Certificate) bool
 }
 
-// HexSignatureWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
-// todo: combine usage with print.go's hex encoding
-type HexSignatureWhitelistItem struct {
+// HexFingerprintWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
+type HexFingerprintWhitelistItem struct {
 	Signature string // hex encoded
 
 	WhitelistItem
 }
-func (w HexSignatureWhitelistItem) Matches(c x509.Certificate) bool {
+func (w HexFingerprintWhitelistItem) Matches(c x509.Certificate) bool {
 	fingerprint := GetHexSHA256Fingerprint(c)
 
 	// Check some constraints
@@ -105,7 +104,7 @@ func FromFile(path string) ([]WhitelistItem, error) {
 	// Read parsed format into structs
 	var items []WhitelistItem
 	for _,s := range parsed.Signatures.Hex {
-		items = append(items, HexSignatureWhitelistItem{Signature: s})
+		items = append(items, HexFingerprintWhitelistItem{Signature: s})
 	}
 	for _,i := range parsed.Issuers {
 		items = append(items, IssuersCommonNameWhitelistItem{Name: i.CommonName})

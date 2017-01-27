@@ -45,7 +45,7 @@ func Google() []*x509.Certificate {
 
 			if cs != nil {
 				wh := []certs.WhitelistItem{
-					certs.HexSignatureWhitelistItem{Signature: chk},
+					certs.HexFingerprintWhitelistItem{Signature: chk},
 				}
 				kept := certs.Filter(cs, wh)
 				if len(kept) > 0 {
@@ -55,7 +55,7 @@ func Google() []*x509.Certificate {
 		}(u, chk)
 	}
 
-	// length check on certs
+	// todo: length check on certs
 
 	wait.Wait()
 	return all
