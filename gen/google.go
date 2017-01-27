@@ -12,13 +12,13 @@ const (
 	SponsoredTrustedRootsUrl = "https://pki.goog/roots.pem"
 )
 
-// rename to something under google's recommendation
-// from https://pki.goog/roots.pem
-// func TrustedCommunityRoots() []*x509.Certificate {
-// 	certs := make([]*x509.Certificate, 0)
+// This is a list of roots suggested by Google as certs to trust.
+// It's pulled from https://pki.goog/roots.pem
+func GoogleSuggestedRoots() []*x509.Certificate {
+	certs := make([]*x509.Certificate, 0)
 
-// 	return certs
-// }
+	return certs
+}
 
 // Returns the Google owned CA certs
 // These are copied from https://pki.goog/
