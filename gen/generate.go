@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"github.com/adamdecaf/cert-manage/cmd"
 	"github.com/adamdecaf/cert-manage/certs"
+	"path/filepath"
 	"strings"
 	"os"
 )
@@ -34,7 +35,6 @@ func main() {
 	}
 
 	// Check flags
-	// todo: reuse whitelist.go's validWhitelistPath(..) func here also
 	if file == nil || strings.TrimSpace(*file) == "" {
 		fmt.Println("Missing whitelist path.")
 		os.Exit(1)
@@ -78,9 +78,13 @@ func main() {
 		fmt.Println("error:", err)
 	}
 
-	// write to the file
-	// todo: expand_path
-	err = ioutil.WriteFile(*file, b, 0644)
+	// write to the file file
+	path, err := filepath.Abs(*file)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = ioutil.WriteFile(path, b, 0644)
 	if err != nil {
 		fmt.Println("error:", err)
 	}

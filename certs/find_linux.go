@@ -5,10 +5,9 @@ package certs
 import (
 	"crypto/x509"
 	"fmt"
+	"github.com/adamdecaf/cert-manage/file"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	// "os/exec"
 )
 
 // From Go's source, src/crypto/x509/root_linux.go
@@ -23,14 +22,9 @@ var certFiles = []string {
 func FindCerts() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])
+		if err != nil && file.Exists(path) {
+			fmt.Printf("checking %s\n", certFiles[i])
 
-		fmt.Printf("checking %s\n", certFiles[i])
-
-		if err != nil {
-			return nil, err
-		}
-		_, err = os.Stat(path)
-		if err == nil {
 			bytes, err := ioutil.ReadFile(path)
 			if err != nil {
 				return nil, err

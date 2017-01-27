@@ -2,6 +2,7 @@ package certs
 
 import (
 	"crypto/x509"
+	"github.com/adamdecaf/cert-manage/file"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +40,7 @@ func FindCertsJava() ([]*x509.Certificate, error) {
 	for _, p := range paths {
 		for _, f := range cacertsFile {
 			fp := filepath.Join(p, f)
-			if exists(fp) {
+			if file.Exists(fp) {
 				certs = append(certs, readCerts(fp)...)
 			}
 		}
@@ -68,14 +69,14 @@ func findJavaInstallPaths() []string {
 
 	// Add whatever is under JAVA_HOME
 	if jh := os.Getenv("JAVA_HOME"); jh != "" {
-		if !contains(paths, jh) && exists(jh) {
+		if !contains(paths, jh) && file.Exists(jh) {
 			paths = append(paths, jh)
 		}
 	}
 
 	// Find path under default paths
 	for _, p := range javaInstallPaths {
-		if exists(p) && !contains(paths, p) {
+		if file.Exists(p) && !contains(paths, p) {
 			paths = append(paths, p)
 		}
 	}
@@ -93,9 +94,4 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
-}
-
-func exists(p string) bool {
-	_, err := os.Stat(p)
-	return err == nil
 }
