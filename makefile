@@ -1,4 +1,4 @@
-.PHONY: build test
+.PHONY: build test whitelists
 
 default: test
 
@@ -23,3 +23,6 @@ build: vet osx linux win
 
 test: build
 	go test -v ./...
+
+whitelists:
+	./bin/gen-whitelists.sh

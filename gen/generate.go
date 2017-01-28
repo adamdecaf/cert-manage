@@ -51,7 +51,7 @@ func main() {
 		whitelisted = append(whitelisted, GoogleSuggestedRoots()...)
 	}
 
-	// Distinct all whitelist items
+	// Distinct (and sort) all whitelist items
 	// todo
 
 	if *print {
