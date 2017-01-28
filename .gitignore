@@ -24,6 +24,7 @@ _testmain.go
 *.prof
 
 # binaries
+bin/*
 cert-manage
 cert-manage-*
 

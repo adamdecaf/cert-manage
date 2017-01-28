@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"crypto/sha256"
 	"crypto/x509"
-	"encoding/hex"
+	util "github.com/adamdecaf/cert-manage/certs" // todo: probably need folder restructure
 	"fmt"
 	"os"
 	"sort"
@@ -27,9 +26,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 
 	rows := make([]string, len(certs))
 	for i := range certs {
-		ss := sha256.New()
-		ss.Write(certs[i].RawSubjectPublicKeyInfo)
-		fingerprint := hex.EncodeToString(ss.Sum(nil))
+		fingerprint := util.GetHexSHA256Fingerprint(*certs[i])
 
 		c1 := certs[i].Subject.CommonName
 		c2 := certs[i].Issuer.CommonName
@@ -52,9 +49,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 func printCertsToStdout(certs []*x509.Certificate) {
 	for i := range certs {
-		ss := sha256.New()
-		ss.Write(certs[i].RawSubjectPublicKeyInfo)
-		fingerprint := hex.EncodeToString(ss.Sum(nil))
+		fingerprint := util.GetHexSHA256Fingerprint(*certs[i])
 
 		fmt.Printf("Certificate\n")
 		fmt.Printf("  SHA256 Fingerprint - %s\n", fingerprint)

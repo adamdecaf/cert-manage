@@ -1,14 +1,11 @@
 package certs
 
 import (
-	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
-	"encoding/hex"
 	"encoding/json"
+	"github.com/adamdecaf/cert-manage/file"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"time"
 	"strings"
 )
@@ -25,18 +22,14 @@ type WhitelistItem interface {
 	Matches(x509.Certificate) bool
 }
 
-// HexSignatureWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
-// todo: combine usage with print.go's hex encoding
-type HexSignatureWhitelistItem struct {
+// HexFingerprintWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
+type HexFingerprintWhitelistItem struct {
 	Signature string // hex encoded
 
 	WhitelistItem
 }
-func (w HexSignatureWhitelistItem) Matches(c x509.Certificate) bool {
-	// Grab the cert's hex encoding
-	ss := sha256.New()
-	ss.Write(c.RawSubjectPublicKeyInfo)
-	fingerprint := hex.EncodeToString(ss.Sum(nil))
+func (w HexFingerprintWhitelistItem) Matches(c x509.Certificate) bool {
+	fingerprint := GetHexSHA256Fingerprint(c)
 
 	// Check some constraints
 	if len(w.Signature) < MinimumSignatureLength {
@@ -75,18 +68,18 @@ func (w NotAfterWhitelistItem) Matches(c x509.Certificate) bool {
 }
 
 // Json structure in struct form
-type jsonWhitelist struct {
-	Signatures jsonSignatures `json:"Signatures,omitempty"`
-	Issuers []jsonIssuers `json:"Issuers,omitempty"`
-	Time jsonTime `json:"Time,omitempty"`
+type JsonWhitelist struct {
+	Signatures JsonSignatures `json:"Signatures,omitempty"`
+	Issuers []JsonIssuers `json:"Issuers,omitempty"`
+	Time JsonTime `json:"Time,omitempty"`
 }
-type jsonSignatures struct {
+type JsonSignatures struct {
 	Hex []string `json:"Hex"`
 }
-type jsonIssuers struct {
+type JsonIssuers struct {
 	CommonName string `json:"CommonName"`
 }
-type jsonTime struct {
+type JsonTime struct {
 	NotAfter string `json:"NotAfter"`
 }
 
@@ -102,7 +95,7 @@ func FromFile(path string) ([]WhitelistItem, error) {
 		return nil, err
 	}
 
-	var parsed jsonWhitelist
+	var parsed JsonWhitelist
 	err = json.Unmarshal(b, &parsed)
 	if err != nil {
 		return nil, err
@@ -111,7 +104,7 @@ func FromFile(path string) ([]WhitelistItem, error) {
 	// Read parsed format into structs
 	var items []WhitelistItem
 	for _,s := range parsed.Signatures.Hex {
-		items = append(items, HexSignatureWhitelistItem{Signature: s})
+		items = append(items, HexFingerprintWhitelistItem{Signature: s})
 	}
 	for _,i := range parsed.Issuers {
 		items = append(items, IssuersCommonNameWhitelistItem{Name: i.CommonName})
@@ -130,30 +123,20 @@ func FromFile(path string) ([]WhitelistItem, error) {
 // validWhitelistPath verifies that the given whitelist filepath is properly defined
 // and exists on the given filesystem.
 func validWhitelistPath(path string) bool {
-	path, err := filepath.Abs(strings.TrimSpace(path))
-	if err != nil {
-		fmt.Printf("expanding the path failed with: %s\n", err)
-		return false
+	if !file.Exists(path) {
+		fmt.Printf("The path %s doesn't seem to exist.\n", path)
 	}
 
-	valid := true
 	isFlag := strings.HasPrefix(path, "-")
-
 	if len(path) == 0 || isFlag {
-		valid = false
 		fmt.Printf("The given whitelist file path '%s' doesn't look correct.\n", path)
 		if isFlag {
 			fmt.Println("The path looks like a cli flag, -whitelist requires a path to the whitelist file.")
 		} else {
 			fmt.Println("The given whitelist file path is empty.")
 		}
+		return false
 	}
 
-	_, err = os.Stat(path)
-	if err != nil {
-		valid = false
-		fmt.Printf("The path %s doesn't seem to exist.\n", path)
-	}
-
-	return valid
+	return true
 }
