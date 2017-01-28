@@ -18,6 +18,9 @@ var (
 	google = flag.Bool("google", false, "Add google's owned CA certs")
 	googleSuggested = flag.Bool("google-suggested", false, "Add google's suggested CA certs list")
 
+	// Digicert
+	digicert = flag.Bool("digicert", false, "Add Digicert CA certs")
+
 	// meta
 	file = flag.String("file", "", "Whitelist output file location")
 	print = flag.Bool("print", false, "Print the certs that will be put into the whitelist json")
@@ -49,6 +52,11 @@ func main() {
 	}
 	if set(googleSuggested) {
 		whitelisted = append(whitelisted, GoogleSuggestedRoots()...)
+	}
+
+	// digicert
+	if set(digicert) {
+		whitelisted = append(whitelisted, Digicert()...)
 	}
 
 	// Distinct (and sort) all whitelist items

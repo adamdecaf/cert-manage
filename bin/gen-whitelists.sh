@@ -10,3 +10,6 @@ fi
 # Google whitelists
 ./bin/gen-whitelist-$platform -file whitelists/google.json -google
 ./bin/gen-whitelist-$platform -file whitelists/google-suggested.json -google-suggested
+
+# Digicert
+./bin/gen-whitelist-$platform -file whitelists/digicert.json -digicert
