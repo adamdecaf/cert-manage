@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 )
 
+// https://tools.ietf.org/html/rfc7250
 func GetHexSHA256Fingerprint(c x509.Certificate) string {
 	// Grab the cert's hex encoding
 	ss := sha256.New()
