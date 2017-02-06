@@ -13,3 +13,6 @@ fi
 
 # Digicert
 ./bin/gen-whitelist-$platform -file whitelists/digicert.json -digicert
+
+# Visa
+./bin/gen-whitelist-$platform -file whitelists/visa.json -visa

@@ -21,6 +21,9 @@ var (
 	// Digicert
 	digicert = flag.Bool("digicert", false, "Add Digicert CA certs")
 
+	// Visa
+	visa = flag.Bool("visa", false, "Add Visa CA certs")
+
 	// meta
 	file = flag.String("file", "", "Whitelist output file location")
 	print = flag.Bool("print", false, "Print the certs that will be put into the whitelist json")
@@ -67,6 +70,15 @@ func main() {
 	// Digicert
 	if set(digicert) {
 		cs, err := Digicert()
+		if err != nil {
+			errors = append(errors, err)
+		}
+		whitelisted = append(whitelisted, cs...)
+	}
+
+	// Visa
+	if set(visa) {
+		cs, err := Visa()
 		if err != nil {
 			errors = append(errors, err)
 		}
