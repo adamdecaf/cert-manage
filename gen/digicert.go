@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 )
 
-func Digicert() []*x509.Certificate {
+func Digicert() ([]*x509.Certificate, error) {
 	cs := derCerts{
 		fingerprints: []string{
 			"d4de20d05e66fc53fe1a50882c78db2852cae474",

@@ -46,17 +46,36 @@ func main() {
 	// Accumulate all certs for the whitelist
 	whitelisted := make([]*x509.Certificate, 0)
 
+	errors := make([]error, 0)
+
 	// Google
 	if set(google) {
-		whitelisted = append(whitelisted, Google()...)
+		cs, err := Google()
+		if err != nil {
+			errors = append(errors, err)
+		}
+		whitelisted = append(whitelisted, cs...)
 	}
 	if set(googleSuggested) {
-		whitelisted = append(whitelisted, GoogleSuggestedRoots()...)
+		cs, err := GoogleSuggestedRoots()
+		if err != nil {
+			errors = append(errors, err)
+		}
+		whitelisted = append(whitelisted, cs...)
 	}
 
-	// digicert
+	// Digicert
 	if set(digicert) {
-		whitelisted = append(whitelisted, Digicert()...)
+		cs, err := Digicert()
+		if err != nil {
+			errors = append(errors, err)
+		}
+		whitelisted = append(whitelisted, cs...)
+	}
+
+	// Print any errors generated
+	for _, err := range errors {
+		fmt.Println(err)
 	}
 
 	// Distinct (and sort) all whitelist items
