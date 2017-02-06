@@ -127,6 +127,11 @@ func main() {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
+
+	// Exit non-zero if there were errors
+	if len(errors) != 0 {
+		os.Exit(1)
+	}
 }
 
 func set(b *bool) bool {
