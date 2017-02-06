@@ -7,9 +7,9 @@ then
     platform='osx'
 fi
 
-# Google whitelists
+# Google
 ./bin/gen-whitelist-$platform -file whitelists/google.json -google
-./bin/gen-whitelist-$platform -file whitelists/google-suggested.json -google-suggested
+# ./bin/gen-whitelist-$platform -file whitelists/google-suggested.json -google-suggested
 
 # Digicert
 ./bin/gen-whitelist-$platform -file whitelists/digicert.json -digicert

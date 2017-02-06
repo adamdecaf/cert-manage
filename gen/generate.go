@@ -111,6 +111,8 @@ func main() {
 		},
 	}
 
+	// todo: sort json so we don't get noisy diffs on every re-gen
+
 	// marshal to json
 	b, err := json.Marshal(list)
 	if err != nil {
