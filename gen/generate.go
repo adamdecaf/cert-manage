@@ -16,7 +16,6 @@ import (
 var (
 	// Google entities
 	google = flag.Bool("google", false, "Add google's owned CA certs")
-	googleSuggested = flag.Bool("google-suggested", false, "Add google's suggested CA certs list")
 
 	// Digicert
 	digicert = flag.Bool("digicert", false, "Add Digicert CA certs")
@@ -54,13 +53,6 @@ func main() {
 	// Google
 	if set(google) {
 		cs, err := Google()
-		if err != nil {
-			errors = append(errors, err)
-		}
-		whitelisted = append(whitelisted, cs...)
-	}
-	if set(googleSuggested) {
-		cs, err := GoogleSuggestedRoots()
 		if err != nil {
 			errors = append(errors, err)
 		}

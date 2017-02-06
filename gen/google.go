@@ -4,21 +4,6 @@ import (
 	"crypto/x509"
 )
 
-const (
-	SponsoredTrustedRootsUrl = "https://pki.goog/roots.pem"
-)
-
-// This is a list of roots suggested by Google as certs to trust.
-// It's pulled from https://pki.goog/roots.pem
-func GoogleSuggestedRoots() ([]*x509.Certificate, error) {
-	cs := pemCerts{
-		urls: []string{
-			SponsoredTrustedRootsUrl,
-		},
-	}
-	return cs.Pull()
-}
-
 // Returns the Google owned CA certs
 // These are copied from https://pki.goog/
 func Google() ([]*x509.Certificate, error) {
