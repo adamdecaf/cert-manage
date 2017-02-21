@@ -29,6 +29,7 @@ bin/*-osx
 bin/*.exe
 cert-manage
 cert-manage-*
+gen-whitelist-*
 
 # log files
 *.log
