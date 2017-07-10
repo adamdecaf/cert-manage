@@ -6,7 +6,7 @@
 
 
 |  OS  | Version Range | System Store? | Applications |
-|------|-----------|------|----|--------------|
+|------|-----------|------|--------------|
 | Windows | todo | todo | Firefox, Chrome, Microsoft Edge |
 | OSX / macOS | todo | todo | Firefox, Chrome, Safari |
 | Linux Desktops (Debian, Ubuntu) | todo | todo | Firefox, Chrome, golang |
