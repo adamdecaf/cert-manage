@@ -2,7 +2,7 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-`cert-manage` is a tool to manage, and lint [x509 Certificates](https://en.wikipedia.org/wiki/X.509) all certificate stores on your machines. This tool many operating systems for desktops and servers along with many applications.
+`cert-manage` is a tool to manage, and lint all [x509 Certificates](https://en.wikipedia.org/wiki/X.509) certificate stores on your machines. This tool many operating systems for desktops and servers along with many applications.
 
 
 |  OS  | Version Range | System Store? | Applications |
