@@ -2,7 +2,8 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-`cert-manage` is a tool to manage [x509 Certificates](https://en.wikipedia.org/wiki/X.509) across all certificate stores on your machines. This tool many operating systems for desktops and servers along with many applications.
+`cert-manage` is a tool to manage, and lint [x509 Certificates](https://en.wikipedia.org/wiki/X.509) all certificate stores on your machines. This tool many operating systems for desktops and servers along with many applications.
+
 
 |  OS  | Version Range | System Store? | Applications |
 |------|-----------|------|----|--------------|
@@ -11,48 +12,18 @@
 | Linux Desktops (Debian, Ubuntu) | todo | todo | Firefox, Chrome, golang |
 | Linux Servers (Debian, Ubuntu) | todo | todo | golang |
 
-## Getting Started
 
-#### Install
+## Features
+
+`cert-manage` aims to help you with:
+
+- removing insecure root certs from applications and systems
+- updating cert stores based on public verifiable data
+- linting certificates to ensure spec compatability
+
+## Install
 
 You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
-
-#### Configuration
-
-Whitelists are stored in json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
-
-```json
-{
-  "Signatures": {
-    "Hex": [
-      "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
-    ]
-  },
-  "Issuers": [
-    {
-      "CommonName": "WoSign"
-    }
-  ],
-  "Time": {
-    "NotAfter": "2016-01-01 12:34:56"
-  }
-}
-```
-
-**Fields**
-
-- `Signatures.Hex`: The hex encoded signature on the certificate.
-- `Issuers.CommonName`: An exact match to the Issuer's CommonName on the certificate. (e.g. "Go Daddy")
-- `Issuers.Organization`: An exact match to the Issuers's Organization field on the certificate.
-- `Time.NotAfter`: The NotAfter field on the certificate. (Useful for only allowing certs with long expirations. e.g. 2030)
-
-## Developing
-
-#### Building
-
-You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
-
-You can test out a specific platform with commands like `make run platform=alpine-35 flags='-find'`. They're based on docker containers and I'm working to add support under there for all platforms.
 
 ## Background
 
