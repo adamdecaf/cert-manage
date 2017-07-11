@@ -33,3 +33,5 @@ gen-whitelist-*
 
 # log files
 *.log
+
+cmd/fetcher/fetcher

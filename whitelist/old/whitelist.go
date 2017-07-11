@@ -15,35 +15,6 @@
 // 	NotAfterFormat = "2006-01-02 03:04:05"
 // )
 
-// // WhitelistItem can be compared against an x509 Certificate to see if the cert represents
-// // some value presented by the whitelist item. This is useful in comparing specific fields of
-// // Certificate against multiple whitelist candidates.
-// type WhitelistItem interface {
-// 	Matches(x509.Certificate) bool
-// }
-
-// // HexFingerprintWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
-// type HexFingerprintWhitelistItem struct {
-// 	Signature string // hex encoded
-
-// 	WhitelistItem
-// }
-// func (w HexFingerprintWhitelistItem) Matches(c x509.Certificate) bool {
-// 	fingerprint := GetHexSHA256Fingerprint(c)
-
-// 	// Check some constraints
-// 	if len(w.Signature) < MinimumSignatureLength {
-// 		return false
-// 	}
-
-// 	// If the whitelist has a shortened fingerprint use it as a prefix
-// 	// Otherwise, compare their full contents
-// 	if len(w.Signature) < len(fingerprint) {
-// 		return strings.HasPrefix(fingerprint, w.Signature)
-// 	}
-// 	return w.Signature == fingerprint
-// }
-
 // // Matches a Certificate's Issuer CommonName
 // type IssuersCommonNameWhitelistItem struct {
 // 	Name string

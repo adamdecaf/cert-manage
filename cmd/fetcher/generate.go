@@ -1,4 +1,4 @@
-// package main
+package main
 
 // import (
 // 	"crypto/x509"
@@ -126,8 +126,4 @@
 // 	if len(errors) != 0 {
 // 		os.Exit(1)
 // 	}
-// }
-
-// func set(b *bool) bool {
-// 	return b != nil && *b
 // }
