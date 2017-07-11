@@ -1,3 +1,5 @@
+package old
+
 // // +build darwin
 
 // // security remove-trusted-cert <crt-file>
