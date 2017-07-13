@@ -171,8 +171,11 @@ func collectCerts(p string) ([]*x509.Certificate, error) {
 		}
 		// Ignore the archive
 		_, name := path.Split(p)
-		if name == appleLocalTarballName {
-			return nil
+		ignored := []string{appleLocalTarballName, ".cvsignore"}
+		for i := range ignored {
+			if name == ignored[i] {
+				return nil
+			}
 		}
 
 		// Read the cert as DER encoded
