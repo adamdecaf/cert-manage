@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"crypto/x509"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -169,18 +170,19 @@ func collectCerts(p string) ([]*x509.Certificate, error) {
 			return nil
 		}
 		// Ignore the archive
-		if _, name := path.Split(p); name == appleLocalTarballName {
+		_, name := path.Split(p)
+		if name == appleLocalTarballName {
 			return nil
 		}
 
 		// Read the cert as DER encoded
 		b, err := ioutil.ReadFile(p)
 		if err != nil {
-			return fmt.Errorf("error reading %s -- %s", name, err.String())
+			return fmt.Errorf("error reading %s -- %s", name, err.Error())
 		}
 		cs, err := x509.ParseCertificates(b)
 		if err != nil {
-			return fmt.Errorf("error parsing cert %s -- %s", name, err.String())
+			return fmt.Errorf("error parsing cert %s -- %s", name, err.Error())
 		}
 		certs = append(certs, cs...)
 		return nil
