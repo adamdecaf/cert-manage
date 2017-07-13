@@ -176,11 +176,11 @@ func collectCerts(p string) ([]*x509.Certificate, error) {
 		// Read the cert as DER encoded
 		b, err := ioutil.ReadFile(p)
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading %s -- %s", name, err.String())
 		}
 		cs, err := x509.ParseCertificates(b)
 		if err != nil {
-			return err
+			return fmt.Errorf("error parsing cert %s -- %s", name, err.String())
 		}
 		certs = append(certs, cs...)
 		return nil
