@@ -1,28 +1,27 @@
 package ca
 
-// // +build darwin
+import (
+	"crypto/x509"
+	"github.com/adamdecaf/cert-manage/tools"
+	"os/exec"
+)
 
-// package certs
+// Docs
+// - https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html
 
-// import (
-// 	"crypto/x509"
-// 	"os/exec"
-// )
+// todo: find and show each cert's trust status
 
-// // Docs
-// // - https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html
+// TODO(adam): Error if we're running this on non-darwin?
 
-// // todo: find and show each cert's trust status
+func Darwin() ([]*x509.Certificate, error) {
+	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
+	if err != nil {
+		return nil, err
+	}
 
-// func FindCerts() ([]*x509.Certificate, error) {
-// 	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	certs, err := ParsePEMIntoCerts(b)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return certs, nil
-// }
+	certs, err := tools.ParsePEMIntoCerts(b)
+	if err != nil {
+		return nil, err
+	}
+	return certs, nil
+}
