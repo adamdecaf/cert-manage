@@ -57,6 +57,8 @@ func main() {
 			switch strings.TrimSpace(strings.ToLower(who)) {
 			case "apple":
 				add(ca.Apple())
+			case "ct":
+				add(ca.CT())
 			case "digicert":
 				add(ca.Digicert())
 			case "google":
