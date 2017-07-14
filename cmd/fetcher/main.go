@@ -98,7 +98,12 @@ func main() {
 
 	// Print certs
 	if set(print) {
-		cmd.PrintCerts(whitelisted, "table")
+		if len(whitelisted) > 0 {
+			cmd.PrintCerts(whitelisted, "table")
+		} else {
+			exit = 1
+			fmt.Println("No certificates found")
+		}
 	}
 
 	// TODO(adam): write whitelist json file
