@@ -187,6 +187,7 @@ func collectCerts(p string) ([]*x509.Certificate, error) {
 		if err != nil {
 			return fmt.Errorf("error parsing cert %s -- %s", name, err.Error())
 		}
+		// TODO(adam): Only uniq insertions, tree/heap structure would be better
 		certs = append(certs, cs...)
 		return nil
 	}
