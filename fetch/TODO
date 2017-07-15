@@ -2,5 +2,3 @@
 
 # add root cert pub keys from
 # third-party/rootfetch/rootfetch
-
-# read from NSS and certdata.txt
