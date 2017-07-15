@@ -10,26 +10,45 @@ import (
 )
 
 var (
-	// Google URLs
-	googleCTUrls = []string{
-		"https://ct.googleapis.com/aviator/ct/v1/get-roots",
-		"https://ct.googleapis.com/pilot/ct/v1/get-roots",
-		"https://ct.googleapis.com/icarus/ct/v1/get-roots",
-		"https://ct.googleapis.com/rocketeer/ct/v1/get-roots",
-		"https://ct.googleapis.com/skydiver/ct/v1/get-roots",
+	// The following CT servers was pulled from
+	// https://www.certificate-transparency.org/known-logs
+	ctUrls = []string{
+		// Google URLs
+		"https://ct.googleapis.com/aviator",
+		"https://ct.googleapis.com/pilot",
+		"https://ct.googleapis.com/icarus",
+		"https://ct.googleapis.com/rocketeer",
+		"https://ct.googleapis.com/skydiver",
+		// Other URLs
+		// "https://ct.gdca.com.cn",
+		// "https://ct.izenpe.eus",
+		// "https://ct.startssl.com",
+		// "https://ct.ws.symantec.com",
+		"https://ct1.digicert-ct.com/log",
+		"https://ct2.digicert-ct.com/log",
+		// "https://ctlog-gen2.api.venafi.com",
+		// "https://ctlog.api.venafi.com",
+		// "https://ctlog.gdca.com.cn",
+		// "https://ctlog.wosign.com",
+		// "https://ctserver.cnnic.cn",
+		// "https://mammoth.ct.comodo.com",
+		// "https://sabre.ct.comodo.com",
+		// "https://sirius.ws.symantec.com",
+		// "https://vega.ws.symantec.com",
 	}
 )
 
-type googleCTJson struct {
+type ctJson struct {
 	Certificates []string `json:"certificates"`
 }
 
 
-func googleCTCerts() ([]*x509.Certificate, error) {
+func getCTCerts() ([]*x509.Certificate, error) {
 	out := make([]*x509.Certificate, 0)
 
-	for i := range googleCTUrls {
-		resp, err := http.DefaultClient.Get(googleCTUrls[i])
+	for i := range ctUrls {
+		u := ctUrls[i] + "/ct/v1/get-roots"
+		resp, err := http.DefaultClient.Get(u)
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +59,7 @@ func googleCTCerts() ([]*x509.Certificate, error) {
 		}
 
 		// Decode from json
-		var certs googleCTJson
+		var certs ctJson
 		err = json.Unmarshal(b, &certs)
 		if err != nil {
 			return nil, err
@@ -96,8 +115,7 @@ func CT() ([]*x509.Certificate, error) {
 		return nil
 	}
 
-	// google
-	err := add(googleCTCerts())
+	err := add(getCTCerts())
 	if err != nil {
 		return nil, err
 	}
