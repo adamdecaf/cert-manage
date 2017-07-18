@@ -9,6 +9,10 @@ import (
 	"github.com/adamdecaf/cert-manage/tools"
 )
 
+// TODO(adam): Specify the exact cert used for each CT log
+// TODO(adam): When running through, ignore conns that fail?
+// TODO(adam): Flag to specify which log(s) to pull from, rather than all?
+
 var (
 	// The following CT servers was pulled from
 	// https://www.certificate-transparency.org/known-logs
