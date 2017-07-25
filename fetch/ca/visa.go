@@ -5,6 +5,7 @@ import (
 	"github.com/adamdecaf/cert-manage/fetch"
 )
 
+// Visa returns a slice of certificates from their CA
 func Visa() ([]*x509.Certificate, error) {
 	cs := fetch.PemCerts{
 		Fingerprints: []string{

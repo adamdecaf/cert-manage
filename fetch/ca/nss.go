@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,15 +19,21 @@ import (
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/tools/NSS_Tools_certutil#Listing_Certificates_in_a_Database
 
 const (
-	nssPublicUrl = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
+	nssPublicURL = "https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt"
 )
 
+// NSS returns the added certificates into the latest NSS/certdata.txt file
 func NSS() ([]*x509.Certificate, error) {
-	resp, err := http.DefaultClient.Get(nssPublicUrl)
+	resp, err := http.DefaultClient.Get(nssPublicURL)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		e := resp.Body.Close()
+		if e != nil {
+			fmt.Printf("error closing nss http resp - %s\n", e)
+		}
+	}()
 
 	objects, err := parseInput(resp.Body)
 	if err != nil {
@@ -150,7 +155,10 @@ func convertObjectsToCertificates(objects []*object) ([]*x509.Certificate, error
 	for i := range certs {
 		derBytes := certs[i].attrs["CKA_VALUE"].value
 		hash := sha1.New()
-		hash.Write(derBytes)
+		_, err := hash.Write(derBytes)
+		if err != nil {
+			return nil, err
+		}
 		digest := hash.Sum(nil)
 
 		cert, err := x509.ParseCertificate(derBytes)
@@ -204,31 +212,6 @@ func convertObjectsToCertificates(objects []*object) ([]*x509.Certificate, error
 	}
 
 	return out, nil
-}
-
-// nameToString converts name into a string representation containing the
-// CommonName, Organization and OrganizationalUnit.
-func nameToString(name pkix.Name) string {
-	ret := ""
-	if len(name.CommonName) > 0 {
-		ret += "CN=" + name.CommonName
-	}
-
-	if org := strings.Join(name.Organization, "/"); len(org) > 0 {
-		if len(ret) > 0 {
-			ret += " "
-		}
-		ret += "O=" + org
-	}
-
-	if orgUnit := strings.Join(name.OrganizationalUnit, "/"); len(orgUnit) > 0 {
-		if len(ret) > 0 {
-			ret += " "
-		}
-		ret += "OU=" + orgUnit
-	}
-
-	return ret
 }
 
 // filterObjectsByClass returns a subset of in where each element has the given

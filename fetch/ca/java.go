@@ -32,6 +32,8 @@ var (
 
 )
 
+// Java returns a slice of the certificates trusted by the installed
+// java keystore on the running machine
 func Java() ([]*x509.Certificate, error) {
 	certs := make([]*x509.Certificate, 0, 50)
 	paths := findJavaInstallPaths()
@@ -51,6 +53,10 @@ func Java() ([]*x509.Certificate, error) {
 
 func readCerts(p string) []*x509.Certificate {
 	p, err := filepath.Abs(p)
+	if err != nil {
+		return nil
+	}
+
 	b, err := exec.Command("keytool", "-list", "-rfc", "-storepass", cacertsPassword, "-keystore", p).Output()
 	if err != nil {
 		return nil

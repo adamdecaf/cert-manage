@@ -5,10 +5,13 @@ import (
 	"fmt"
 )
 
-// Pull ASN.1 DER encoded certificates
+// DerCerts is a structure for pulling ASN.1 DER encoded certificates
 type DerCerts struct {
 	Fingerprints, Urls []string
 }
+
+// Pull will extract the certificates at from c.Urls and match them
+// against known fingerprints to return a slice of certificates
 func (c DerCerts) Pull() ([]*x509.Certificate, error) {
 	bs := getRawDataFromUrls(c.Urls)
 

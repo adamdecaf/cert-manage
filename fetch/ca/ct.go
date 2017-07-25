@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"github.com/adamdecaf/cert-manage/tools"
@@ -12,55 +13,57 @@ import (
 // TODO(adam): Specify the exact cert used for each CT log
 // TODO(adam): When running through, ignore conns that fail?
 // TODO(adam): Flag to specify which log(s) to pull from, rather than all?
+// TODO(adam): filtering of which CT log servers to pull from
+// TODO(adam): pin CT server certs for retrieval
 
 var (
 	// The following CT servers was pulled from
 	// https://www.certificate-transparency.org/known-logs
 	// https://www.gstatic.com/ct/log_list/all_logs_list.json
 	ctUrls = []string{
-		"https://alpha.ctlogs.org",
-		"https://clicky.ct.letsencrypt.org",
-		"https://ct.akamai.com",
-		"https://ct.filippo.io/behindthesofa",
-		"https://ct.gdca.com.cn",
-		"https://ct.googleapis.com/aviator",
+		// "https://alpha.ctlogs.org",
+		// "https://clicky.ct.letsencrypt.org",
+		// "https://ct.akamai.com",
+		// "https://ct.filippo.io/behindthesofa",
+		// "https://ct.gdca.com.cn",
+		// "https://ct.googleapis.com/aviator",
 		"https://ct.googleapis.com/daedalus",
-		"https://ct.googleapis.com/icarus",
-		"https://ct.googleapis.com/pilot",
-		"https://ct.googleapis.com/rocketeer",
-		"https://ct.googleapis.com/skydiver",
-		"https://ct.googleapis.com/submariner",
-		"https://ct.googleapis.com/testtube",
-		"https://ct.izenpe.com",
-		"https://ct.izenpe.eus",
-		"https://ct.sheca.com",
-		"https://ct.startssl.com",
-		"https://ct.wosign.com",
-		"https://ct.ws.symantec.com",
-		"https://ct1.digicert-ct.com/log",
-		"https://ct2.digicert-ct.com/log",
-		"https://ctlog-gen2.api.venafi.com",
-		"https://ctlog.api.venafi.com",
-		"https://ctlog.gdca.com.cn",
-		"https://ctlog.sheca.com",
-		"https://ctlog.wosign.com",
-		"https://ctlog2.wosign.com",
-		"https://ctserver.cnnic.cn",
-		"https://ctserver.cnnic.cn",
-		"https://deneb.ws.symantec.com",
-		"https://dodo.ct.comodo.com",
-		"https://flimsy.ct.nordu.net:8080",
-		"https://log.certly.io",
-		"https://mammoth.ct.comodo.com",
-		"https://plausible.ct.nordu.net",
-		"https://sabre.ct.comodo.com",
-		"https://sirius.ws.symantec.com",
-		"https://vega.ws.symantec.com",
-		"https://www.certificatetransparency.cn/ct",
+		// "https://ct.googleapis.com/icarus",
+		// "https://ct.googleapis.com/pilot",
+		// "https://ct.googleapis.com/rocketeer",
+		// "https://ct.googleapis.com/skydiver",
+		// "https://ct.googleapis.com/submariner",
+		// "https://ct.googleapis.com/testtube",
+		// "https://ct.izenpe.com",
+		// "https://ct.izenpe.eus",
+		// "https://ct.sheca.com",
+		// "https://ct.startssl.com",
+		// "https://ct.wosign.com",
+		// "https://ct.ws.symantec.com",
+		// "https://ct1.digicert-ct.com/log",
+		// "https://ct2.digicert-ct.com/log",
+		// "https://ctlog-gen2.api.venafi.com",
+		// "https://ctlog.api.venafi.com",
+		// "https://ctlog.gdca.com.cn",
+		// "https://ctlog.sheca.com",
+		// "https://ctlog.wosign.com",
+		// "https://ctlog2.wosign.com",
+		// "https://ctserver.cnnic.cn",
+		// "https://ctserver.cnnic.cn",
+		// "https://deneb.ws.symantec.com",
+		// "https://dodo.ct.comodo.com",
+		// "https://flimsy.ct.nordu.net:8080",
+		// "https://log.certly.io",
+		// "https://mammoth.ct.comodo.com",
+		// "https://plausible.ct.nordu.net",
+		// "https://sabre.ct.comodo.com",
+		// "https://sirius.ws.symantec.com",
+		// "https://vega.ws.symantec.com",
+		// "https://www.certificatetransparency.cn/ct",
 	}
 )
 
-type ctJson struct {
+type ctJSON struct {
 	Certificates []string `json:"certificates"`
 }
 
@@ -74,14 +77,19 @@ func getCTCerts() ([]*x509.Certificate, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer func() {
+			e := resp.Body.Close()
+			if e != nil {
+				fmt.Printf("error closing http req to ct server - %s\n", e)
+			}
+		}()
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}
 
 		// Decode from json
-		var certs ctJson
+		var certs ctJSON
 		err = json.Unmarshal(b, &certs)
 		if err != nil {
 			return nil, err
@@ -126,6 +134,8 @@ func getCTCerts() ([]*x509.Certificate, error) {
 	return out, nil
 }
 
+// CT returns a slice of the roots from a set of
+// certificate transparency servers
 func CT() ([]*x509.Certificate, error) {
 	out := make([]*x509.Certificate, 0)
 

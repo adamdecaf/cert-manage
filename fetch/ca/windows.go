@@ -13,6 +13,7 @@ import (
 
 // TODO(adam): Error if we're running this on non-windows?
 
+// Windows returns a slice of certificates installed on the running machine
 func Windows() ([]*x509.Certificate, error) {
 	stores := []string{"My", "AuthRoot", "Root", "Trust", "CA", "Disallowed"}
 	for i := range stores {

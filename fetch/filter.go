@@ -12,9 +12,9 @@ func filter(fingerprints []string, cs []*x509.Certificate) []*x509.Certificate {
 		return cs
 	}
 
-	wh := make([]whitelist.WhitelistItem, len(fingerprints))
+	wh := make([]whitelist.Item, len(fingerprints))
 	for i := range fingerprints {
-		wh[i] = whitelist.HexFingerprintWhitelistItem{Signature: fingerprints[i]}
+		wh[i] = whitelist.HexFingerprintItem{Signature: fingerprints[i]}
 	}
 	return whitelist.Filter(cs, wh)
 }

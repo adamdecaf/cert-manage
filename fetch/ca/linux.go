@@ -19,6 +19,7 @@ var certFiles = []string {
 
 // TODO(adam): Error if we're running this on non-linux?
 
+// Linux returns the trusted root certificates trusted on the running machine
 func Linux() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])

@@ -5,6 +5,7 @@ import (
 	"github.com/adamdecaf/cert-manage/fetch"
 )
 
+// Digicert returns a slice of the root certs from their CA
 func Digicert() ([]*x509.Certificate, error) {
 	cs := fetch.DerCerts{
 		Fingerprints: []string{

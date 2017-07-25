@@ -6,10 +6,13 @@ import (
 	"github.com/adamdecaf/cert-manage/tools"
 )
 
-// Pull PEM encoded certs
+// PemCerts is a structure for pulling PEM encoded certs
 type PemCerts struct {
 	Fingerprints, Urls []string
 }
+
+// Pull will extract the certificates at from c.Urls and match them
+// against known fingerprints to return a slice of certificates
 func (c PemCerts) Pull() ([]*x509.Certificate, error) {
 	bs := getRawDataFromUrls(c.Urls)
 

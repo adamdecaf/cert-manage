@@ -5,7 +5,11 @@ import (
 	"github.com/adamdecaf/cert-manage/fetch"
 )
 
+// Google returns a slice of the certificates returned from Google's
+// PKI homepage. The links/certs are for now manually pulled and
+// added to this file.
 // https://pki.goog
+// TODO(adam): pin cert for retrieval of these urls
 func Google() ([]*x509.Certificate, error) {
 	cs := fetch.PemCerts{
 		Fingerprints: []string {

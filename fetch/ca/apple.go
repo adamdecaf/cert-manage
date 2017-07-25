@@ -30,7 +30,10 @@ func getTarballNames() []string {
 	}
 	defer func() {
 		if resp.Body != nil {
-			resp.Body.Close()
+			e := resp.Body.Close()
+			if e != nil {
+				fmt.Printf("error closing http body for apple certs - %s\n", e)
+			}
 		}
 	}()
 	b, err := ioutil.ReadAll(resp.Body)
@@ -74,7 +77,12 @@ func downloadTarball(u string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer out.Close()
+	defer func() {
+		e := out.Close()
+		if e != nil {
+			fmt.Printf("error closing apple output tarball file - %s\n", e)
+		}
+	}()
 
 	// Download the file
 	resp, err := http.DefaultClient.Get(u)
@@ -83,12 +91,18 @@ func downloadTarball(u string) (string, error) {
 	}
 	defer func() {
 		if resp.Body != nil {
-			resp.Body.Close()
+			e := resp.Body.Close()
+			if e != nil {
+				fmt.Printf("error closing apple tarball http req - %s\n", e)
+			}
 		}
 	}()
 
 	// Gracefully copy file to temp location
 	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", err
+	}
 
 	return tmp, nil
 }
@@ -101,7 +115,6 @@ func extractTarball(p string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
 	// gzip and tar
 	g, err := gzip.NewReader(f)
@@ -112,29 +125,36 @@ func extractTarball(p string) error {
 
 	// Read each file out
 	for {
-		hdr, err := r.Next()
-		if err == io.EOF {
+		hdr, e := r.Next()
+		if e == io.EOF {
 			break
 		}
-		if err != nil {
-			return err
+		if e != nil {
+			return e
 		}
 
 		// Only process files we care about
 		if hdr.Typeflag == tar.TypeReg && isCertFile(hdr.Name) {
 			_, name := path.Split(hdr.Name)
-			f, err := os.Create(path.Join(dir, name))
+			fd, e := os.Create(path.Join(dir, name))
 			// TODO(adam): Does this cause a big slew of fd.Close() calls at the end?
 			//             Instead should we `go f.Close()` after? What if err != nil
-			defer f.Close()
-			if err != nil {
-				return nil
+			if e != nil {
+				return e
+
 			}
-			io.Copy(f, r)
+			_, e = io.Copy(fd, r)
+			if e != nil {
+				return e
+			}
+
+			e = f.Close()
+			return e
 		}
 	}
 
-	return nil
+	err = f.Close()
+	return err
 }
 
 func isCertFile(p string) bool {
@@ -197,25 +217,35 @@ func collectCerts(p string) ([]*x509.Certificate, error) {
 }
 
 // Cleanup the parent dir for a given path
-func cleanup(p string) error {
-	return os.RemoveAll(filepath.Dir(p))
+func cleanup(p string) {
+	err := os.RemoveAll(filepath.Dir(p))
+	if err != nil {
+		fmt.Printf("error cleaning up apple files - %s\n", err)
+	}
 }
 
-// Pull the latest set of certs from Apple's page and
-// extract them.
+// Apple pulls the latest set of certs from Apple's page and extracts them
 func Apple() ([]*x509.Certificate, error) {
 	latest := findLatestTarball(getTarballNames())
 	u := appleTarballCertPage + "/" + latest
 	p, err := downloadTarball(u)
 	if err != nil {
+		cleanup(p)
 		return nil, err
 	}
-	defer cleanup(p)
 
 	err = extractTarball(p)
 	if err != nil {
+		cleanup(p)
 		return nil, err
 	}
 
-	return collectCerts(p)
+	certs, err := collectCerts(p)
+	if err != nil {
+		cleanup(p)
+		return nil, err
+	}
+
+	cleanup(p)
+	return certs, nil
 }

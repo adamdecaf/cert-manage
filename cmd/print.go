@@ -9,6 +9,8 @@ import (
 	"github.com/adamdecaf/cert-manage/tools/_x509"
 )
 
+// PrintCerts outputs the slice of certificates in `format` to stdout
+// Format can be 'table' and any other value will output them in more detail
 func PrintCerts(certs []*x509.Certificate, format string) {
 	if format == "table" {
 		printCertsInTable(certs)
@@ -22,7 +24,12 @@ func PrintCerts(certs []*x509.Certificate, format string) {
 func printCertsInTable(certs []*x509.Certificate) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tFingerprint\tNot Before\tNot After")
-	defer w.Flush()
+	defer func() {
+		err := w.Flush()
+		if err != nil {
+			fmt.Printf("error flushing output table - %s\n", err)
+		}
+	}()
 
 	rows := make([]string, len(certs))
 	for i := range certs {

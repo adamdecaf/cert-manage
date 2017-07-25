@@ -3,7 +3,7 @@
 default: test
 
 vet:
-	go vet ./...
+	gometalinter . | sort
 
 test: vet
 	go test -v ./...

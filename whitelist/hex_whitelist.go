@@ -7,20 +7,22 @@ import (
 )
 
 const (
-	MinimumSignatureLength = 8
+	minimumSignatureLength = 8
 )
 
-// HexFingerprintWhitelistItem matches an incoming signature (encoded in hex) against that of a certificate.
-type HexFingerprintWhitelistItem struct {
+// HexFingerprintItem matches an incoming signature (encoded in hex) against that of a certificate.
+type HexFingerprintItem struct {
 	Signature string // hex encoded
 
-	WhitelistItem
+	Item
 }
-func (w HexFingerprintWhitelistItem) Matches(c x509.Certificate) bool {
+
+// Matches will check a given certificate against a hex signate to verify if they match or not
+func (w HexFingerprintItem) Matches(c x509.Certificate) bool {
 	fingerprint := _x509.GetHexSHA256Fingerprint(c)
 
 	// Check some constraints
-	if len(w.Signature) < MinimumSignatureLength {
+	if len(w.Signature) < minimumSignatureLength {
 		return false
 	}
 

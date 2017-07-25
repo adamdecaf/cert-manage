@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -38,7 +39,12 @@ func httpGetToBytes(url string) []byte {
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		e := resp.Body.Close()
+		if e != nil {
+			fmt.Printf("error closing http GET - %s\n", e)
+		}
+	}()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
