@@ -9,3 +9,4 @@ Links
 - [Mozilla Wiki page of all issues](https://wiki.mozilla.org/CA:WoSign_Issues)
 - [WoSign Response part 1](https://docs.google.com/document/d/1C6BlmbeQfn4a9zydVi2UvjBGv6szuSB4sMYUcVrR8vQ/preview)
 - [WoSign Incidnet report](https://www.wosign.com/report/WoSign_Incident_Report_Update_07102016.pdf)
+- [WoSign renames to WoTrus](https://www.wosign.com/english/News/English_name_change_to_WoTrus_2017.htm)
