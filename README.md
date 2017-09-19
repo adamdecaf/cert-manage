@@ -62,6 +62,9 @@ Whitelists are stored in json files. There is a basic structure to them which al
 
 TODO(adam): more detail & better explained
 
+- explain that users need choices and assurance in what they're trusting
+- some CA's are better than others, some are really bad (negligent)
+
 There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys.
 
 <details>
@@ -76,6 +79,10 @@ Comodo issued certs for invalid domains. In specific, `www.sb` which should not 
 OCR is a process in which algorithms try to find and understand human/computer writing in digital documents. This process is far from perfect and should only be used as a means of creating faster processes prior to human validation steps. It was found that [OCR algorithms could lead to bogus (and fradulent)](https://bugzilla.mozilla.org/show_bug.cgi?id=1311713) certificates being generated.
 
 </details>
+
+[CNNIC](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/)
+
+[DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
 
 <details>
 <summary>GlobalSign Issues</summary>
@@ -106,16 +113,15 @@ GlobalSign accidently revoked an intermediate certificates in a policy error.
 
 > US +1 603-570-7060 | UK +44 1622 766 766 | EU +32 16 89 1900
 > www.globalsign.com/en
+</details>
 
+<details>
+<summary>GoDaddy</summary>
 
-- [CNNIC](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/)
-- [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
-- [Globalsign](globalsign.md)
-- [GoDaddy](https://groups.google.com/forum/?hl=en#!msg/mozilla.dev.security.policy/Htujoyq-pO8/uRBcS2TmBQAJ)
-- [Government Root Cert Authority](government-root-cert-authority.md)
-- [Startcom](startcom.md)
-- [Symantec](symantec.md)
-- [Wosign](wosign.md)
+TODO(adam): explain
+
+https://groups.google.com/forum/?hl=en#!msg/mozilla.dev.security.policy/Htujoyq-pO8/uRBcS2TmBQAJ
+
 </details>
 
 <details>
@@ -128,6 +134,14 @@ http://grca.nat.gov.tw/GRCAeng/htdocs/index.html  <-- Is it this cert?, todo: ch
 https://www.idmanagement.gov/IDM/s/article_content_old?tag=a0Gt0000000SfwP
 https://https.cio.gov/certificates/#does-the-us-government-operate-a-publicly-trusted-certificate-authority?
 </details>
+
+Let's Encrypt
+
+- [CAA Checks](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/SrAhO4ye4G8)
+- [DNSSEC](https://groups.google.com/d/msg/mozilla.dev.security.policy/r9QM8tNqxx0/ZmnWwTXoAQAJ)
+- [Debian Weak Key](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/WL_-9pVhZf8)
+
+[PROCERT](https://wiki.mozilla.org/CA:PROCERT_Issues)
 
 <details>
 <summary>StartCom Issues</summary>
@@ -147,36 +161,12 @@ Quickly after launch, it was discovered that StartEncrypt had a severe vulnerabi
 Mozilla had a posting where [some issues with StartCom were found](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E).
 </details>
 
-<details>
-<summary>Symantec Issues</summary>
+[Symantec](https://wiki.mozilla.org/CA:Symantec_Issues)
 
-#### 2017-01-23 108 Certificates
+[WoSign and WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
 
-Link: http://arstechnica.com/security/2017/01/already-on-probation-symantec-issues-more-illegit-https-certificates/
+[Visa](https://groups.google.com/d/msg/mozilla.dev.security.policy/NNV3zvX43vE/rae9kNkWAgAJ)
 
-The CA's impacted: Symantec Trust Network, GeoTrust Inc., and Thawte Inc
-
-#### Invalid domains issued certificates for
-
-Link: https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/fyJ3EK2YOP8
-</details>
-
-
-<details>
-<summary>WoSign Issues</summary>
-
-#### Mozilla Multi-Issue
-
-WoSign was recently suspended from Mozilla's Firefox browser after numerous issues many of which are in direct violation of the CA forum. I've included linkes below.
-
-Links
-- [Mozilla discussion](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/BV5XyFJLnQM)
-- [Mozilla Wiki page of all issues](https://wiki.mozilla.org/CA:WoSign_Issues)
-- [WoSign Response part 1](https://docs.google.com/document/d/1C6BlmbeQfn4a9zydVi2UvjBGv6szuSB4sMYUcVrR8vQ/preview)
-- [WoSign Incidnet report](https://www.wosign.com/report/WoSign_Incident_Report_Update_07102016.pdf)
-- [WoSign renames to WoTrus](https://www.wosign.com/english/News/English_name_change_to_WoTrus_2017.htm)
-
-</details>
 
 ## Building / Developing
 
