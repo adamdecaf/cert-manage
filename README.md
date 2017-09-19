@@ -24,11 +24,46 @@
 
 You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
 
+## Whitelists
+
+TODO(adam): needs updates...
+
+### Configuration
+
+Whitelists are stored in json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
+
+```json
+{
+  "Signatures": {
+    "Hex": [
+      "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
+    ]
+  },
+  "Issuers": [
+    {
+      "CommonName": "WoSign"
+    }
+  ],
+  "Time": {
+    "NotAfter": "2016-01-01 12:34:56"
+  }
+}
+```
+
+**Fields**
+
+- `Signatures.Hex`: The hex encoded signature on the certificate.
+- `Issuers.CommonName`: An exact match to the Issuer's CommonName on the certificate. (e.g. "Go Daddy")
+- `Issuers.Organization`: An exact match to the Issuers's Organization field on the certificate.
+- `Time.NotAfter`: The NotAfter field on the certificate. (Useful for only allowing certs with long expirations. e.g. 2030)
+
+
 ## Background
 
 There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys. I've setup some [links and details](docs/why/).
 
-### Comodo Issues
+<details>
+<summary>Comodo Issues</summary>
 
 #### Invalid domains
 
@@ -38,7 +73,10 @@ Comodo issued certs for invalid domains. In specific, `www.sb` which should not 
 
 OCR is a process in which algorithms try to find and understand human/computer writing in digital documents. This process is far from perfect and should only be used as a means of creating faster processes prior to human validation steps. It was found that [OCR algorithms could lead to bogus (and fradulent)](https://bugzilla.mozilla.org/show_bug.cgi?id=1311713) certificates being generated.
 
-### GlobalSign Issues
+</details>
+
+<details>
+<summary>GlobalSign Issues</summary>
 
 #### Accidental cross-signing
 
@@ -46,8 +84,6 @@ GlobalSign accidently revoked an intermediate certificates in a policy error.
 
 [Customer release](https://downloads.globalsign.com/acton/fs/blocks/showLandingPage/a/2674/p/p-008f/t/page/fm/0)
 
-<details>
-<summary>**Full Release** (This is a copy incase that link dies.)</summary>
 > Dear Valued GlobalSign Customer,
 
 > As most of you are aware, we are experiencing an internal process issue (details below) that is impacting your business. While we have identified the root-cause, we deeply apologize for the problems this is causing you and wanted to ensure you that we are actively resolving the issue.
@@ -80,7 +116,8 @@ GlobalSign accidently revoked an intermediate certificates in a policy error.
 - [Wosign](wosign.md)
 </details>
 
-### Government Root Certification Authority
+<details>
+<summary>Government Root Certification Authority</summary>
 
 My phone has a "Government Root Certification Authority" CA installed
 
@@ -88,8 +125,10 @@ http://grca.nat.gov.tw/GRCAeng/htdocs/index.html  <-- Is it this cert?, todo: ch
 
 https://www.idmanagement.gov/IDM/s/article_content_old?tag=a0Gt0000000SfwP
 https://https.cio.gov/certificates/#does-the-us-government-operate-a-publicly-trusted-certificate-authority?
+</details>
 
-### StartCom Issues
+<details>
+<summary>StartCom Issues</summary>
 
 #### StartEncrypt
 
@@ -104,8 +143,10 @@ Quickly after launch, it was discovered that StartEncrypt had a severe vulnerabi
 #### StartCom & Qihoo Incidents
 
 Mozilla had a posting where [some issues with StartCom were found](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E).
+</details>
 
-### Symantec Issues
+<details>
+<summary>Symantec Issues</summary>
 
 #### 2017-01-23 108 Certificates
 
@@ -116,8 +157,11 @@ The CA's impacted: Symantec Trust Network, GeoTrust Inc., and Thawte Inc
 #### Invalid domains issued certificates for
 
 Link: https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/fyJ3EK2YOP8
+</details>
 
-### WoSign Issues
+
+<details>
+<summary>WoSign Issues</summary>
 
 #### Mozilla Multi-Issue
 
@@ -129,3 +173,13 @@ Links
 - [WoSign Response part 1](https://docs.google.com/document/d/1C6BlmbeQfn4a9zydVi2UvjBGv6szuSB4sMYUcVrR8vQ/preview)
 - [WoSign Incidnet report](https://www.wosign.com/report/WoSign_Incident_Report_Update_07102016.pdf)
 - [WoSign renames to WoTrus](https://www.wosign.com/english/News/English_name_change_to_WoTrus_2017.htm)
+
+</details>
+
+## Building / Developing
+
+TODO: these are wrong/out of date
+
+You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
+
+You can test out a specific platform with commands like `make run platform=alpine-35 flags='-find'`. They're based on docker containers and I'm working to add support under there for all platforms.
