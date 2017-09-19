@@ -1,4 +1,6 @@
-package ca
+// +build darwin
+
+package fetch
 
 import (
 	"crypto/x509"
@@ -14,7 +16,7 @@ import (
 // TODO(adam): Error if we're running this on non-darwin?
 
 // Darwin returns a slice of the certificates trusted by a running instance of OSX/darwin
-func Darwin() ([]*x509.Certificate, error) {
+func Platform() ([]*x509.Certificate, error) {
 	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
 	if err != nil {
 		return nil, err

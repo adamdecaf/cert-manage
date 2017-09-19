@@ -1,7 +1,0 @@
-# TODO
-
-# migrate linter rules from
-# github.com/zmap/zlint/lints
-# https://github.com/awslabs/certlint
-# https://github.com/globalsign/certlint
-# https://github.com/kroeckx/x509lint

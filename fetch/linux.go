@@ -1,4 +1,6 @@
-package ca
+// +build linux
+
+package fetch
 
 import (
 	"crypto/x509"
@@ -17,10 +19,8 @@ var certFiles = []string {
 	"/etc/pki/tls/cacert.pem",                           // OpenELEC
 }
 
-// TODO(adam): Error if we're running this on non-linux?
-
 // Linux returns the trusted root certificates trusted on the running machine
-func Linux() ([]*x509.Certificate, error) {
+func Platform() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])
 		if err != nil && tools.FileExists(path) {

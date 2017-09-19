@@ -1,10 +1,7 @@
-package old
-
-// package cmd
+package cmd
 
 // import (
 // 	"fmt"
-// 	"github.com/adamdecaf/cert-manage/certs"
 // )
 
 // // todo: make a backup file, timestamped so we can make multiple if the latest isn't the same

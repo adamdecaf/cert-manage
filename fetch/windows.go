@@ -1,4 +1,6 @@
-package ca
+// +build windows
+
+package fetch
 
 import (
 	"crypto/x509"
@@ -9,12 +11,8 @@ import (
 // call into
 // https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
 
-// To list certs, run `certmgr.msc` in a prompt..so os/exec ?
-
-// TODO(adam): Error if we're running this on non-windows?
-
-// Windows returns a slice of certificates installed on the running machine
-func Windows() ([]*x509.Certificate, error) {
+// Platform returns a slice of certificates installed on the running machine
+func Platform() ([]*x509.Certificate, error) {
 	stores := []string{"My", "AuthRoot", "Root", "Trust", "CA", "Disallowed"}
 	for i := range stores {
 		fmt.Println(stores[i])

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestStringSorting(t *testing.T) {
+func TestPrint__Sorting(t *testing.T) {
 	strings := []string{"b", "A", "C", "a", " ", ""}
 	sort.Sort(iStringSlice(strings))
 	answer := []string{"", " ", "A", "a", "b", "C"}
