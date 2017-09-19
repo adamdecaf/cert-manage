@@ -21,10 +21,10 @@ func Filter(incoming []*x509.Certificate, whitelisted []Item) []*x509.Certificat
 	// Pretty bad search right now.
 	var removable []*x509.Certificate
 
-	for _,inc := range incoming {
+	for _, inc := range incoming {
 		remove := true
 		// If the whitelist matches on something then don't remove it
-		for _,wh := range whitelisted {
+		for _, wh := range whitelisted {
 			if inc != nil && wh.Matches(*inc) {
 				remove = false
 			}

@@ -2,8 +2,8 @@ package whitelist
 
 import (
 	"crypto/x509"
-	"strings"
 	"github.com/adamdecaf/cert-manage/tools/_x509"
+	"strings"
 )
 
 const (

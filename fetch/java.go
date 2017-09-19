@@ -16,20 +16,19 @@ import (
 var (
 	// These paths are all to be joined with JAVA_HOME
 	cacertsFile = []string{
-		"/lib/security/cacerts",	// Linux and OSX
-		"/jre/lib/security/cacerts",	// OSX 10.10.1
+		"/lib/security/cacerts",     // Linux and OSX
+		"/jre/lib/security/cacerts", // OSX 10.10.1
 
 	}
 	cacertsPassword = "changeit"
 
 	// Find java install paths
 	javaInstallPaths = []string{
-		`C:\Program Files\Java`,		// Windows
-		"/Library/Java/JavaVirtualMachines/",	// OSX
-		"/usr/lib/jvm/",			// Linux
-		"/usr/java/",				// RHEL6
+		`C:\Program Files\Java`,              // Windows
+		"/Library/Java/JavaVirtualMachines/", // OSX
+		"/usr/lib/jvm/",                      // Linux
+		"/usr/java/",                         // RHEL6
 	}
-
 )
 
 // Java returns a slice of the certificates trusted by the installed

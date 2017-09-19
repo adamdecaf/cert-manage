@@ -3,9 +3,9 @@ package cmd
 import (
 	"crypto/x509"
 	"fmt"
+	"github.com/adamdecaf/cert-manage/fetch"
 	"os"
 	"strings"
-	"github.com/adamdecaf/cert-manage/fetch"
 )
 
 // ListCertsForPlatform finds certs for the given platform.
