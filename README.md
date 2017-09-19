@@ -17,9 +17,8 @@
 
 `cert-manage` aims to help you with:
 
-- removing insecure root certs from applications and systems
+- removing improperly trusted root certs from applications and systems
 - updating cert stores based on public verifiable data
-- linting certificates to ensure spec compatability
 
 ## Install
 
