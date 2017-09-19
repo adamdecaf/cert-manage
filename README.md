@@ -60,7 +60,9 @@ Whitelists are stored in json files. There is a basic structure to them which al
 
 ## Background
 
-There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys. I've setup some [links and details](docs/why/).
+TODO(adam): more detail & better explained
+
+There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys.
 
 <details>
 <summary>Comodo Issues</summary>
