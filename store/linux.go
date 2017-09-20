@@ -1,6 +1,6 @@
 // +build linux
 
-package fetch
+package store
 
 import (
 	"crypto/x509"
@@ -39,3 +39,13 @@ func Platform() ([]*x509.Certificate, error) {
 	}
 	return nil, nil
 }
+
+// package certs
+
+// import (
+// 	"crypto/x509"
+// )
+
+// func removeCert(cert x509.Certificate) *error {
+// 	return nil
+// }

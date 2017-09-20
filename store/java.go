@@ -1,4 +1,4 @@
-package fetch
+package store
 
 import (
 	"crypto/x509"
@@ -100,3 +100,14 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
+
+// package certs
+
+// import (
+// 	"crypto/x509"
+// )
+
+// // tood: docs
+// func RemoveCertsJava(certs []x509.Certificate) []error {
+// 	return nil
+// }
