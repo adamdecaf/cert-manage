@@ -30,6 +30,8 @@ func ListCertsForApp(app string, format string) {
 	switch strings.ToLower(app) {
 	case "chrome":
 		certificates, err = store.NssStore().List()
+	case "firefox":
+		certificates, err = store.NssStore().List()
 	case "java":
 		certificates, err = store.JavaStore().List()
 	default:
