@@ -2,27 +2,33 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-`cert-manage` is a tool to manage, and lint all [x509 Certificates](https://en.wikipedia.org/wiki/X.509) certificate stores on your machines. This tool many operating systems for desktops and servers along with many applications.
+The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust is in disarray. `cert-manage` is a tool to manage and limit trust (via [x509 Certificates](https://en.wikipedia.org/wiki/X.509) stores) on your machines and applications.
 
+`cert-manage` allows you to
 
-|  OS  | Version Range | System Store? | Applications |
-|------|-----------|------|--------------|
-| Windows | todo | todo | Firefox, Chrome, Microsoft Edge |
-| OSX / macOS | todo | todo | Firefox, Chrome, Safari |
-| Linux Desktops (Debian, Ubuntu) | todo | todo | Firefox, Chrome, golang |
-| Linux Servers (Debian, Ubuntu) | todo | todo | golang |
-
-
-## Features
-
-`cert-manage` aims to help you with:
-
-- removing improperly trusted root certs from applications and systems
-- updating cert stores based on public verifiable data
+- Remove improperly trusted root/intermediate certs from applications and systems
+- ~~Find the minimum set of CA's you need to trust (based on browsing habits).~~ (Soon)
 
 ## Install
 
 You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
+
+#### Platforms
+
+| Platform | Version(s) |
+|----|----|
+| Alpine | 3.5, 3.6 |
+| CentOS | 6,7 |
+| Debian | 8,9 |
+| Ubuntu | 14.04, 16.04, 17.04 |
+
+#### Applications
+
+| Application | Version(s) | Supported Platforms |
+|----|----|----|
+| Google Chrome | All | Linux, OSX/macOS, Windows |
+| Firefox | All | Linux, OSX/macOS, Windows |
+| Java | 7,8 | Linux, OSX/macOS, Windows |
 
 ## Whitelists
 
