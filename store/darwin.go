@@ -11,12 +11,13 @@ import (
 // Docs
 // - https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html
 
-// todo: find and show each cert's trust status
+type darwinStore struct{}
 
-// TODO(adam): Error if we're running this on non-darwin?
+func platform() Store {
+	return darwinStore{}
+}
 
-// Darwin returns a slice of the certificates trusted by a running instance of OSX/darwin
-func Platform() ([]*x509.Certificate, error) {
+func (s darwinStore) List() ([]*x509.Certificate, error) {
 	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
 	if err != nil {
 		return nil, err
@@ -28,6 +29,8 @@ func Platform() ([]*x509.Certificate, error) {
 	}
 	return certs, nil
 }
+
+// TODO(adam): find and show each cert's trust status
 
 // // security remove-trusted-cert <crt-file>
 // // exit code 1 and stderr of:
@@ -45,13 +48,3 @@ func Platform() ([]*x509.Certificate, error) {
 // // Is there a way to disable a cert? aka mark it as "Never Trust"?
 // // Otherwise, we'll need to make a full backup of all certs before touching anything.
 // // ^ Then offer a way to mass-import all of them.
-
-// package certs
-
-// import (
-// 	"crypto/x509"
-// )
-
-// func removeCert(cert x509.Certificate) *error {
-// 	return nil
-// }

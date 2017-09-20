@@ -31,9 +31,13 @@ var (
 	}
 )
 
-// Java returns a slice of the certificates trusted by the installed
-// java keystore on the running machine
-func Java() ([]*x509.Certificate, error) {
+type javaStore struct{}
+
+func JavaStore() Store {
+	return javaStore{}
+}
+
+func (s javaStore) List() ([]*x509.Certificate, error) {
 	certs := make([]*x509.Certificate, 0, 50)
 	paths := findJavaInstallPaths()
 
@@ -100,14 +104,3 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
-
-// package certs
-
-// import (
-// 	"crypto/x509"
-// )
-
-// // tood: docs
-// func RemoveCertsJava(certs []x509.Certificate) []error {
-// 	return nil
-// }

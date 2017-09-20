@@ -19,8 +19,13 @@ var certFiles = []string{
 	"/etc/pki/tls/cacert.pem",                           // OpenELEC
 }
 
-// Linux returns the trusted root certificates trusted on the running machine
-func Platform() ([]*x509.Certificate, error) {
+type linuxStore struct{}
+
+func platform() Store {
+	return linuxStore{}
+}
+
+func (s linuxStore) List() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])
 		if err != nil && tools.FileExists(path) {
@@ -39,13 +44,3 @@ func Platform() ([]*x509.Certificate, error) {
 	}
 	return nil, nil
 }
-
-// package certs
-
-// import (
-// 	"crypto/x509"
-// )
-
-// func removeCert(cert x509.Certificate) *error {
-// 	return nil
-// }

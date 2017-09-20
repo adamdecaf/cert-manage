@@ -3,7 +3,7 @@ package cmd
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/adamdecaf/cert-manage/fetch"
+	"github.com/adamdecaf/cert-manage/store"
 	"os"
 	"strings"
 )
@@ -12,7 +12,7 @@ import (
 // The supported platforms can be found in the readme. They're compiled in
 // with build flags in the `certs/find_*.go` files.
 func ListCertsForPlatform(format string) {
-	certificates, err := fetch.Platform()
+	certificates, err := store.Platform().List()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -31,7 +31,7 @@ func ListCertsForApp(app string, format string) {
 	// case "chrome":
 	// 	certificates, err = certs.FindCertsNSS()
 	case "java":
-		certificates, err = fetch.Java()
+		certificates, err = store.JavaStore().List()
 	default:
 		err = fmt.Errorf("application '%s' not found", app)
 	}

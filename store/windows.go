@@ -8,11 +8,16 @@ import (
 	"os/exec"
 )
 
-// call into
-// https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
+// Docs:
+// - https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
 
-// Platform returns a slice of certificates installed on the running machine
-func Platform() ([]*x509.Certificate, error) {
+type windowsStore struct{}
+
+func platform() Store {
+	return windowsStore{}
+}
+
+func (s windowsStore) List() ([]*x509.Certificate, error) {
 	stores := []string{"My", "AuthRoot", "Root", "Trust", "CA", "Disallowed"}
 	for i := range stores {
 		fmt.Println(stores[i])
@@ -26,13 +31,3 @@ func Platform() ([]*x509.Certificate, error) {
 
 	return nil, nil
 }
-
-// package certs
-
-// import (
-// 	"crypto/x509"
-// )
-
-// func removeCert(cert x509.Certificate) *error {
-// 	return nil
-// }
