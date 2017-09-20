@@ -67,7 +67,7 @@ TODO(adam): more detail & better explained
 
 There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys.
 
-- Comodo Issues
+- Comodo
   - Invalid domains
     Comodo issued certs for invalid domains. In specific, `www.sb` which should not have been generated. It has since [been revoked](https://crt.sh/?id=34242572).
   - OCR to validate documents
@@ -91,7 +91,7 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
   - [DNSSEC](https://groups.google.com/d/msg/mozilla.dev.security.policy/r9QM8tNqxx0/ZmnWwTXoAQAJ)
   - [Debian Weak Key](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/WL_-9pVhZf8)
 - [PROCERT](https://wiki.mozilla.org/CA:PROCERT_Issues)
-- StartCom Issues
+- StartCom
   - [StartEncrypt](https://www.computest.nl/blog/startencrypt-considered-harmful-today/)
   - [StartCom & Qihoo Incidents](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E)
   - [Re-inclusion request into Mozilla](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/hNOJJrN6WfE)
