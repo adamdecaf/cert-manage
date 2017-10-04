@@ -8,7 +8,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/adamdecaf/cert-manage/tools"
+	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 )
 
 // From Go's source, src/crypto/x509/root_linux.go
@@ -29,14 +30,14 @@ func platform() Store {
 func (s linuxStore) List() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])
-		if err != nil && tools.FileExists(path) {
+		if err != nil && file.Exists(path) {
 			fmt.Printf("checking %s\n", certFiles[i])
 
 			bytes, err := ioutil.ReadFile(path)
 			if err != nil {
 				return nil, err
 			}
-			certs, err := tools.ParsePEMIntoCerts(bytes)
+			certs, err := pem.Parse(bytes)
 			if err != nil {
 				return nil, err
 			}
