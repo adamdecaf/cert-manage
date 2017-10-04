@@ -14,8 +14,6 @@ const (
 // fingerprint matches an incoming signature (encoded in hex) against that of a certificate.
 type fingerprint struct {
 	Signature string // hex encoded
-
-	Item
 }
 
 // Matches will check a given certificate against a hex signate to verify if they match or not

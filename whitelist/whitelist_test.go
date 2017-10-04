@@ -7,7 +7,7 @@ import (
 )
 
 func TestWhitelist_nocerts(t *testing.T) {
-	wh := []Item{fingerprint{Signature: "a"}}
+	wh := []item{fingerprint{Signature: "a"}}
 
 	if removable := findRemovable(nil, nil); len(removable) != 0 {
 		t.Fatalf("found %d removable certs, expected 0", len(removable))
@@ -36,7 +36,7 @@ func TestWhitelist_remove(t *testing.T) {
 
 	signature := "96940d991419151450d1e75f66218f6f2594e1df4af31a5ad673c9a8746817ce"
 
-	wh := []Item{fingerprint{Signature: signature}}
+	wh := []item{fingerprint{Signature: signature}}
 
 	if removable := findRemovable(certificates, wh); len(removable) != 0 {
 		t.Fatalf("found %d removable certs, expected 0", len(removable))

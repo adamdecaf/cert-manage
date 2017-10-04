@@ -15,20 +15,20 @@ import (
 // https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html
 
 // todo: dedup certs already added by one whitelist item
-// e.g. If my []Item contains a signature and Issuer.CommonName match
+// e.g. If my []item contains a signature and Issuer.CommonName match
 // don't add the cert twice
 
-// Item can be compared against an x509 Certificate to see if the cert represents
+// item can be compared against an x509 Certificate to see if the cert represents
 // some value presented by the whitelist item. This is useful in comparing specific fields of
 // Certificate against multiple whitelist candidates.
-type Item interface {
+type item interface {
 	Matches(x509.Certificate) bool
 }
 
 // findRemovable a list of x509 Certificates against whitelist items to
 // retain only the certificates that are disallowed by our whitelist.
 // An empty slice of certificates is a possible (and valid) output.
-func findRemovable(incoming []*x509.Certificate, whitelisted []Item) []*x509.Certificate {
+func findRemovable(incoming []*x509.Certificate, whitelisted []item) []*x509.Certificate {
 	// Pretty bad search right now.
 	var removable []*x509.Certificate
 
@@ -56,8 +56,8 @@ type jsonSignatures struct {
 	Hex []string `json:"Hex"`
 }
 
-// loadFromFile reads a whitelist file and parses it into Items
-func loadFromFile(path string) ([]Item, error) {
+// loadFromFile reads a whitelist file and parses it into items
+func loadFromFile(path string) ([]item, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}
@@ -75,7 +75,7 @@ func loadFromFile(path string) ([]Item, error) {
 	}
 
 	// Read parsed format into structs
-	var items []Item
+	var items []item
 	for _, s := range parsed.Signatures.Hex {
 		items = append(items, fingerprint{Signature: s})
 	}
