@@ -24,7 +24,7 @@ var (
 	app = fs.String("app", "", "Specify an application (see -list)")
 
 	// Output
-	format = fs.String("format", "table", "Specify the output format")
+	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
 )
 
 func main() {

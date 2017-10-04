@@ -12,6 +12,10 @@ import (
 	"github.com/adamdecaf/cert-manage/tools/_x509"
 )
 
+const (
+	fingerprintPreviewLength = 16
+)
+
 // PrintCerts outputs the slice of certificates in `format` to stdout
 // Format can be 'table' and any other value will output them in more detail
 func printCerts(certs []*x509.Certificate, format string) {
@@ -41,7 +45,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 		c1 := certs[i].Subject.CommonName
 		c2 := certs[i].Issuer.CommonName
 		c3 := _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm)
-		c4 := fingerprint[:16]
+		c4 := fingerprint[:fingerprintPreviewLength]
 
 		c5 := certs[i].NotBefore.Format("2006-01-02")
 		c6 := certs[i].NotAfter.Format("2006-01-02")
