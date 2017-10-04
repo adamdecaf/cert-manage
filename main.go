@@ -2,6 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/adamdecaf/cert-manage/cmd"
 )
 
@@ -10,16 +14,21 @@ const (
 )
 
 var (
+	fs = flag.NewFlagSet("flags", flag.ExitOnError)
+
 	// Commands
-	list = flag.Bool("list", false, "List certificates (by default on the system, see -app)")
-	app  = flag.String("app", "", "Specify an application (see -list)")
+	list      = fs.Bool("list", false, "List certificates (by default on the system, see -app)")
+	whitelist = fs.String("whitelist", "", "Filter certificates according to the provided whitelist")
+
+	// Filters
+	app = fs.String("app", "", "Specify an application (see -list)")
 
 	// Output
-	format = flag.String("format", "table", "Specify the output format")
+	format = fs.String("format", "table", "Specify the output format")
 )
 
 func main() {
-	flag.Parse()
+	fs.Parse(os.Args[1:])
 
 	if list != nil && *list {
 		if app != nil && *app != "" {
@@ -27,6 +36,12 @@ func main() {
 			return
 		}
 		cmd.ListCertsForPlatform(*format)
+		return
+	}
+
+	wh := strings.TrimSpace(*whitelist)
+	if whitelist != nil && wh != "" {
+		fmt.Println(wh)
 		return
 	}
 }
