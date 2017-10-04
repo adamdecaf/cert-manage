@@ -5,9 +5,10 @@ package store
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/adamdecaf/cert-manage/tools"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/adamdecaf/cert-manage/tools"
 )
 
 // From Go's source, src/crypto/x509/root_linux.go

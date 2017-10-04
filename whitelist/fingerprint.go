@@ -2,23 +2,24 @@ package whitelist
 
 import (
 	"crypto/x509"
-	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"strings"
+
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 )
 
 const (
 	minimumSignatureLength = 8
 )
 
-// HexFingerprintItem matches an incoming signature (encoded in hex) against that of a certificate.
-type HexFingerprintItem struct {
+// fingerprint matches an incoming signature (encoded in hex) against that of a certificate.
+type fingerprint struct {
 	Signature string // hex encoded
 
 	Item
 }
 
 // Matches will check a given certificate against a hex signate to verify if they match or not
-func (w HexFingerprintItem) Matches(c x509.Certificate) bool {
+func (w fingerprint) Matches(c x509.Certificate) bool {
 	fingerprint := _x509.GetHexSHA256Fingerprint(c)
 
 	// Check some constraints

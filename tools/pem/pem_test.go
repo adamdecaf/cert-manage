@@ -1,11 +1,14 @@
-package tools
+package pem
 
 import (
 	"testing"
 )
 
-func TestReadSinglePEMBlock(t *testing.T) {
-	certificates := ReadPemFileForTest(t, "../testdata/example.crt")
+func TestPEM__single(t *testing.T) {
+	certificates, err := FromFile("../../testdata/example.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(certificates) != 1 {
 		t.Fatal("Found != 1 certs in example.crt")
 	}
@@ -20,8 +23,11 @@ func TestReadSinglePEMBlock(t *testing.T) {
 	}
 }
 
-func TestReadLotsOfPEMBlock(t *testing.T) {
-	certificates := ReadPemFileForTest(t, "../testdata/lots.crt")
+func TestPEM__multiple(t *testing.T) {
+	certificates, err := FromFile("../../testdata/lots.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(certificates) != 5 {
 		t.Fatal("Found != 5 certs in example.crt")
 	}

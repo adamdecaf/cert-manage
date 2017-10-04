@@ -2,11 +2,13 @@ package store
 
 import (
 	"crypto/x509"
-	"github.com/adamdecaf/cert-manage/tools"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 )
 
 // Docs:
@@ -45,7 +47,7 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 	for _, p := range paths {
 		for _, f := range cacertsFile {
 			fp := filepath.Join(p, f)
-			if tools.FileExists(fp) {
+			if file.Exists(fp) {
 				certs = append(certs, readCerts(fp)...)
 			}
 		}
@@ -65,7 +67,7 @@ func readCerts(p string) []*x509.Certificate {
 		return nil
 	}
 
-	certs, err := tools.ParsePEMIntoCerts(b)
+	certs, err := pem.Parse(b)
 	if err != nil {
 		return nil
 	}
@@ -78,14 +80,14 @@ func findJavaInstallPaths() []string {
 
 	// Add whatever is under JAVA_HOME
 	if jh := os.Getenv("JAVA_HOME"); jh != "" {
-		if !contains(paths, jh) && tools.FileExists(jh) {
+		if !contains(paths, jh) && file.Exists(jh) {
 			paths = append(paths, jh)
 		}
 	}
 
 	// Find path under default paths
 	for _, p := range javaInstallPaths {
-		if tools.FileExists(p) && !contains(paths, p) {
+		if file.Exists(p) && !contains(paths, p) {
 			paths = append(paths, p)
 		}
 	}

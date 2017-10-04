@@ -3,11 +3,12 @@ package cmd
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"os"
 	"sort"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 )
 
 // PrintCerts outputs the slice of certificates in `format` to stdout

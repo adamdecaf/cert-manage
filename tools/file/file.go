@@ -1,4 +1,4 @@
-package tools
+package file
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 )
 
 // FileExists expands the given path and verifies a file located at the given path.
-func FileExists(path string) bool {
+func Exists(path string) bool {
 	path, err := filepath.Abs(strings.TrimSpace(path))
 	if err != nil {
 		return false

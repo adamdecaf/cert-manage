@@ -4,8 +4,9 @@ package store
 
 import (
 	"crypto/x509"
-	"github.com/adamdecaf/cert-manage/tools"
 	"os/exec"
+
+	"github.com/adamdecaf/cert-manage/tools/pem"
 )
 
 // Docs
@@ -23,7 +24,7 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	certs, err := tools.ParsePEMIntoCerts(b)
+	certs, err := pem.Parse(b)
 	if err != nil {
 		return nil, err
 	}
