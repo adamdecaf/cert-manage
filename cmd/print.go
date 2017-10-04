@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"sort"
@@ -62,6 +63,7 @@ func printCertsToStdout(certs []*x509.Certificate) {
 
 		fmt.Printf("Certificate\n")
 		fmt.Printf("  SHA256 Fingerprint - %s\n", fingerprint)
+		fmt.Printf("  Signature - %s\n", hex.EncodeToString(certs[i].Signature))
 		fmt.Printf("  Signature Algorithm: %s\n", certs[i].SignatureAlgorithm.String())
 		fmt.Printf("  Public Key Algorithm - %v\n", _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm))
 		fmt.Printf("  Issuer CommonName - %s, SerialNumber - %s\n", certs[i].Issuer.CommonName, certs[i].Issuer.SerialNumber)
