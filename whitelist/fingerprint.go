@@ -8,27 +8,29 @@ import (
 )
 
 const (
-	minimumSignatureLength = 8
+	minimumFingerprintLength = 8
 )
 
-// fingerprint matches an incoming signature (encoded in hex) against that of a certificate.
-type fingerprint struct {
-	Signature string // hex encoded
+// fingerprint matches an incoming certificate's fingerprint (in hex)
+type fingerprint string
+
+func (f fingerprint) String() string {
+	return string(f)
 }
 
-// Matches will check a given certificate against a hex signate to verify if they match or not
-func (w fingerprint) Matches(c x509.Certificate) bool {
-	fingerprint := _x509.GetHexSHA256Fingerprint(c)
+// Matches will check a given certificate against a hex encoded fingerprint
+func (f fingerprint) Matches(c x509.Certificate) bool {
+	fp := _x509.GetHexSHA256Fingerprint(c)
 
 	// Check some constraints
-	if len(w.Signature) < minimumSignatureLength {
+	if len(f) < minimumFingerprintLength {
 		return false
 	}
 
 	// If the whitelist has a shortened fingerprint use it as a prefix
 	// Otherwise, compare their full contents
-	if len(w.Signature) < len(fingerprint) {
-		return strings.HasPrefix(fingerprint, w.Signature)
+	if len(f) < len(fp) {
+		return strings.HasPrefix(fp, f.String())
 	}
-	return w.Signature == fingerprint
+	return f.String() == fp
 }

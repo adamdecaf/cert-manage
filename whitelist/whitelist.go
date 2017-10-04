@@ -14,9 +14,7 @@ import (
 // TOOD(adam): Read and review this code
 // https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html
 
-// todo: dedup certs already added by one whitelist item
-// e.g. If my []item contains a signature and Issuer.CommonName match
-// don't add the cert twice
+// TODO(adam): dedup certs already added by one whitelist item
 
 // item can be compared against an x509 Certificate to see if the cert represents
 // some value presented by the whitelist item. This is useful in comparing specific fields of
@@ -50,9 +48,9 @@ func findRemovable(incoming []*x509.Certificate, whitelisted []item) []*x509.Cer
 
 // Json structure in struct form
 type jsonWhitelist struct {
-	Signatures jsonSignatures `json:"Signatures,omitempty"`
+	Fingerprints jsonFingerprints `json:"Fingerprints,omitempty"`
 }
-type jsonSignatures struct {
+type jsonFingerprints struct {
 	Hex []string `json:"Hex"`
 }
 
@@ -76,8 +74,8 @@ func loadFromFile(path string) ([]item, error) {
 
 	// Read parsed format into structs
 	var items []item
-	for _, s := range parsed.Signatures.Hex {
-		items = append(items, fingerprint{Signature: s})
+	for _, v := range parsed.Fingerprints.Hex {
+		items = append(items, fingerprint(v))
 	}
 
 	return items, nil
