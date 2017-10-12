@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"crypto/x509"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/adamdecaf/cert-manage/store"
 )
@@ -25,18 +23,16 @@ func ListCertsForPlatform(format string) {
 // The supported applications are listed in the readme. This includes
 // non-traditional applications like NSS.
 func ListCertsForApp(app string, format string) {
-	var certificates []*x509.Certificate
-	var err error
+	st, err := store.ForApp(app)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	switch strings.ToLower(app) {
-	case "chrome":
-		certificates, err = store.NssStore().List()
-	case "firefox":
-		certificates, err = store.NssStore().List()
-	case "java":
-		certificates, err = store.JavaStore().List()
-	default:
-		err = fmt.Errorf("application '%s' not found", app)
+	certificates, err := st.List()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	// Break if we had some error
