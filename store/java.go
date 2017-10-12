@@ -56,6 +56,11 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
+// TODO(adam): impl
+func (s javaStore) Remove([]*x509.Certificate) error {
+	return nil
+}
+
 func readCerts(p string) []*x509.Certificate {
 	p, err := filepath.Abs(p)
 	if err != nil {

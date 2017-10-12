@@ -46,3 +46,8 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 	}
 	return nil, nil
 }
+
+// TODO(adam): impl
+func (s linuxStore) Remove([]*x509.Certificate) error {
+	return nil
+}

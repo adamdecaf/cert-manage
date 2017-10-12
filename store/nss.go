@@ -48,6 +48,11 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	return convertObjectsToCertificates(objects)
 }
 
+// TODO(adam): impl
+func (s nssStore) Remove([]*x509.Certificate) error {
+	return nil
+}
+
 // ====
 // This code is ported from the below repo. It has been modified to work inside cert-manage
 // https://github.com/agl/extract-nss-root-certs

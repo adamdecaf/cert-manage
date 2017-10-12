@@ -31,3 +31,8 @@ func (s windowsStore) List() ([]*x509.Certificate, error) {
 
 	return nil, nil
 }
+
+// TODO(adam): impl
+func (s windowsStore) Remove([]*x509.Certificate) error {
+	return nil
+}
