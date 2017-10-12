@@ -30,7 +30,7 @@ func platform() Store {
 func (s linuxStore) List() ([]*x509.Certificate, error) {
 	for i := range certFiles {
 		path, err := filepath.Abs(certFiles[i])
-		if err != nil && file.Exists(path) {
+		if err == nil && file.Exists(path) {
 			fmt.Printf("checking %s\n", certFiles[i])
 
 			bytes, err := ioutil.ReadFile(path)
