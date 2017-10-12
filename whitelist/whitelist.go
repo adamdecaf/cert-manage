@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	// "time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 )
