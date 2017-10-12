@@ -8,9 +8,7 @@ osx: osx_amd64
 osx_amd64:
 	GOOS=darwin GOARCH=amd64 go build -o bin/cert-manage-osx-amd64 github.com/adamdecaf/cert-manage
 
-win: win_32 win_64
-win_32:
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o bin/cert-manage-386.exe github.com/adamdecaf/cert-manage
+win: win_64
 win_64:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
 

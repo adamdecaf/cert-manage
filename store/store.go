@@ -2,7 +2,6 @@ package store
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"strings"
 )
