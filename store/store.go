@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-)
-
 // Store represents a certificate store (often called 'pool') and has
 // operations on it which mutate the underlying state (e.g. a file or
 // directory).
