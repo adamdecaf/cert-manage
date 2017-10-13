@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os/exec"
+
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 // Docs:
@@ -33,6 +35,6 @@ func (s windowsStore) List() ([]*x509.Certificate, error) {
 }
 
 // TODO(adam): impl
-func (s windowsStore) Remove([]*x509.Certificate) error {
+func (s windowsStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }

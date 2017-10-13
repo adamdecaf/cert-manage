@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/adamdecaf/cert-manage/tools/pem"
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 // Docs
@@ -32,7 +33,7 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 }
 
 // TODO(adam): impl
-func (s darwinStore) Remove([]*x509.Certificate) error {
+func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 // Docs:
@@ -49,7 +51,7 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 }
 
 // TODO(adam): impl
-func (s nssStore) Remove([]*x509.Certificate) error {
+func (s nssStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 

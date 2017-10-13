@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 var (
@@ -29,7 +31,7 @@ type Store interface {
 	// the store such that the certificate is no longer trusted.
 	// This is done when possible to limit the actual deletions to
 	// preserve restore capabilities
-	Remove([]*x509.Certificate) error
+	Remove(whitelist.Whitelist) error
 }
 
 // Platform returns a new instance of Store for the running os/platform

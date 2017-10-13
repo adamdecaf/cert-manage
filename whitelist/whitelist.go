@@ -20,31 +20,25 @@ type item interface {
 	Matches(x509.Certificate) bool
 }
 
-// Removable a list of x509 Certificates against whitelist items to
-// retain only the certificates that are disallowed by our whitelist.
-// An empty slice of certificates is a possible (and valid) output.
-//
-// TODO(adam): This should really accept some sort of structure which has
-// []item per cert. That way we don't have duplicate removal entries in the
-// end result.
-func Removable(incoming []*x509.Certificate, whitelisted []item) []*x509.Certificate {
-	// Pretty bad search right now.
-	var removable []*x509.Certificate
+// Whitelist is the structure holding various `item` types that match against
+// x509 certificates
+type Whitelist struct {
+	fingerprints []item
+}
 
-	for _, inc := range incoming {
-		remove := true
-		// If the whitelist matches on something then don't remove it
-		for _, wh := range whitelisted {
-			if inc != nil && wh.Matches(*inc) {
-				remove = false
-			}
-		}
-		if remove {
-			removable = append(removable, inc)
-		}
+// Matches checks a given x509 certificate against the criteria and
+// returns if it's matched by an item in the whitelist
+func (w Whitelist) Matches(inc *x509.Certificate) bool {
+	if inc == nil {
+		return false
 	}
 
-	return removable
+	for _, f := range w.fingerprints {
+		if f.Matches(*inc) {
+			return true
+		}
+	}
+	return false
 }
 
 // Json structure in struct form
@@ -56,30 +50,31 @@ type jsonFingerprints struct {
 }
 
 // FromFile reads a whitelist file and parses it into items
-func FromFile(path string) ([]item, error) {
+func FromFile(path string) (Whitelist, error) {
+	wh := Whitelist{}
+
 	if !validWhitelistPath(path) {
-		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
+		return wh, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}
 
 	// read file
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return wh, err
 	}
 
 	var parsed jsonWhitelist
 	err = json.Unmarshal(b, &parsed)
 	if err != nil {
-		return nil, err
+		return wh, err
 	}
 
 	// Read parsed format into structs
-	var items []item
 	for _, v := range parsed.Fingerprints.Hex {
-		items = append(items, fingerprint(v))
+		wh.fingerprints = append(wh.fingerprints, fingerprint(v))
 	}
 
-	return items, nil
+	return wh, nil
 }
 
 // validWhitelistPath verifies that the given whitelist filepath is properly defined

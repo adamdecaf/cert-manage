@@ -11,9 +11,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 type cadir struct {
@@ -89,7 +89,7 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 // Steps
 // 1. Walk through the dir (/etc/ssl/certs/) and chmod 000 the certs we aren't trusting
 // 2. Run `update-ca-certificates` to re-create the ca-certificates.crt file
-func (s linuxStore) Remove(removable []*x509.Certificate) error {
+func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 	// Check each CA cert file and optionally disable
 	walk := func(path string, info os.FileInfo, err error) error {
 		// Ignore SkipDir and directories
@@ -105,22 +105,12 @@ func (s linuxStore) Remove(removable []*x509.Certificate) error {
 		if err != nil {
 			return err
 		}
-		// TODO(adam): This is pretty similar to _just_ another round of
-		// whitelist calls...
 		for i := 0; i < len(read); i++ {
-			for k := range removable {
-				// fmt.Printf("i=%d, len(read)=%d, k=%d, len(removable)=%d\n", i, len(read), k, len(removable))
-				if read[i] == nil || removable[k] == nil {
-					return fmt.Errorf("either read[i]='%v' or removable[k]='%v' is nil", read[i], removable[k])
-				}
-
-				// match, so remove
-				if _x509.GetHexSHA256Fingerprint(*read[i]) == _x509.GetHexSHA256Fingerprint(*removable[k]) {
-					// remove cert from `read`
-					read = append(read[:i], read[i+1:]...)
-					if len(read) == 0 {
-						break
-					}
+			// Remove the cert if we don't match
+			if !wh.Matches(read[i]) {
+				read = append(read[:i], read[i+1:]...)
+				if len(read) == 0 {
+					break
 				}
 			}
 		}
@@ -160,5 +150,4 @@ func (s linuxStore) Remove(removable []*x509.Certificate) error {
 	return nil
 }
 
-// TOOD(adam): `restore` would be to `rwxrwxrwx` them...really?
-// actually, use `dpkg-reconfigure ca-certificates`
+// TOOD(adam): `restore` would be `dpkg-reconfigure ca-certificates`

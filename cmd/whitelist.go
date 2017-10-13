@@ -15,25 +15,18 @@ import (
 )
 
 func WhitelistForApp(app, whpath, format string) error {
-	// grab existing
-	st, err := store.ForApp(app)
-	if err != nil {
-		return err
-	}
-	certs, err := st.List()
-	if err != nil {
-		return err
-	}
-
 	// load whitelist
-	items, err := whitelist.FromFile(whpath)
+	wh, err := whitelist.FromFile(whpath)
 	if err != nil {
 		return err
 	}
 
 	// diff
-	removable := whitelist.Removable(certs, items)
-	err = st.Remove(removable)
+	st, err := store.ForApp(app)
+	if err != nil {
+		return err
+	}
+	err = st.Remove(wh)
 	if err != nil {
 		return err
 	}
@@ -42,22 +35,15 @@ func WhitelistForApp(app, whpath, format string) error {
 }
 
 func WhitelistForPlatform(whpath, format string) error {
-	// grab existing
-	st := store.Platform()
-	certs, err := st.List()
-	if err != nil {
-		return err
-	}
-
 	// load whitelist
-	items, err := whitelist.FromFile(whpath)
+	wh, err := whitelist.FromFile(whpath)
 	if err != nil {
 		return err
 	}
 
 	// diff
-	removable := whitelist.Removable(certs, items)
-	err = st.Remove(removable)
+	st := store.Platform()
+	err = st.Remove(wh)
 	if err != nil {
 		return err
 	}

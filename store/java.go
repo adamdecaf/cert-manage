@@ -9,6 +9,7 @@ import (
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
+	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
 // Docs:
@@ -57,7 +58,7 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 }
 
 // TODO(adam): impl
-func (s javaStore) Remove([]*x509.Certificate) error {
+func (s javaStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
