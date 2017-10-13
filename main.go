@@ -27,6 +27,7 @@ var (
 	app = fs.String("app", "", "Specify an application (see -list)")
 
 	// Output
+	// -count: Just output the count of trusted certs
 	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
 )
 
