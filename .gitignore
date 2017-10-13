@@ -30,6 +30,7 @@ bin/*.exe
 cert-manage
 cert-manage-*
 gen-whitelist-*
+build/*/whitelist.json
 
 # log files
 *.log
