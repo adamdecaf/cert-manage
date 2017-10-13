@@ -97,8 +97,6 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 			return nil
 		}
 
-		// TODO(adam): ignore backup files, or those w/ info.Mode == 000
-
 		// read the cert(s) contained at the file and only keep those
 		// that aren't removable
 		read, err := pem.FromFile(path)
@@ -114,13 +112,6 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 				}
 			}
 		}
-
-		// // chmod 000 the file if it's going to be empty
-		// if len(read) == 0 {
-		// 	// disable the file
-		// 	// fmt.Println("A")
-		// 	return os.Remove(path, 0000)
-		// }
 
 		// otherwise, write kept certs from `read` back
 		err = pem.ToFile(path, read)
