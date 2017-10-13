@@ -65,6 +65,10 @@ func platform() Store {
 	}
 }
 
+func (s linuxStore) Backup() error {
+	return nil
+}
+
 func (s linuxStore) List() ([]*x509.Certificate, error) {
 	if s.ca.empty() {
 		return nil, nil
@@ -142,3 +146,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 }
 
 // TOOD(adam): `restore` would be `dpkg-reconfigure ca-certificates`
+
+func (s linuxStore) Restore() error {
+	return nil
+}

@@ -40,6 +40,10 @@ func JavaStore() Store {
 	return javaStore{}
 }
 
+func (s javaStore) Backup() error {
+	return nil
+}
+
 func (s javaStore) List() ([]*x509.Certificate, error) {
 	certs := make([]*x509.Certificate, 0, 50)
 	paths := findJavaInstallPaths()
@@ -59,6 +63,10 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 
 // TODO(adam): impl
 func (s javaStore) Remove(wh whitelist.Whitelist) error {
+	return nil
+}
+
+func (s javaStore) Restore() error {
 	return nil
 }
 

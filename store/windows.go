@@ -19,6 +19,10 @@ func platform() Store {
 	return windowsStore{}
 }
 
+func (s windowsStore) Backup() error {
+	return nil
+}
+
 func (s windowsStore) List() ([]*x509.Certificate, error) {
 	stores := []string{"My", "AuthRoot", "Root", "Trust", "CA", "Disallowed"}
 	for i := range stores {
@@ -36,5 +40,9 @@ func (s windowsStore) List() ([]*x509.Certificate, error) {
 
 // TODO(adam): impl
 func (s windowsStore) Remove(wh whitelist.Whitelist) error {
+	return nil
+}
+
+func (s windowsStore) Restore() error {
 	return nil
 }

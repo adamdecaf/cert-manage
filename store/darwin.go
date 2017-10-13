@@ -19,6 +19,10 @@ func platform() Store {
 	return darwinStore{}
 }
 
+func (s darwinStore) Backup() error {
+	return nil
+}
+
 func (s darwinStore) List() ([]*x509.Certificate, error) {
 	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
 	if err != nil {
@@ -34,6 +38,10 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 
 // TODO(adam): impl
 func (s darwinStore) Remove(wh whitelist.Whitelist) error {
+	return nil
+}
+
+func (s darwinStore) Restore() error {
 	return nil
 }
 

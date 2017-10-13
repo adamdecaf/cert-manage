@@ -30,6 +30,10 @@ func NssStore() Store {
 	return nssStore{}
 }
 
+func (s nssStore) Backup() error {
+	return nil
+}
+
 func (s nssStore) List() ([]*x509.Certificate, error) {
 	resp, err := http.DefaultClient.Get(nssPublicURL)
 	if err != nil {
@@ -52,6 +56,10 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 
 // TODO(adam): impl
 func (s nssStore) Remove(wh whitelist.Whitelist) error {
+	return nil
+}
+
+func (s nssStore) Restore() error {
 	return nil
 }
 

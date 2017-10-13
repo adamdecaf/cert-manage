@@ -19,7 +19,7 @@ var (
 type Store interface {
 	// Backup will attempt to save a backup of the certificate store
 	// on the local system
-	// Backup() error
+	Backup() error
 
 	// List returns the currently trusted X509 certificates contained
 	// within the cert store
@@ -32,6 +32,11 @@ type Store interface {
 	// This is done when possible to limit the actual deletions to
 	// preserve restore capabilities
 	Remove(whitelist.Whitelist) error
+
+	// Restore will bring the system back to it's previous state
+	// if a backup exists, otherwise it will attempt to bring the
+	// cert trust status to the system's default state
+	Restore() error
 }
 
 // Platform returns a new instance of Store for the running os/platform
