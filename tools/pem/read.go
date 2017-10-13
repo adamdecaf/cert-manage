@@ -27,9 +27,6 @@ func Parse(blob []byte) ([]*x509.Certificate, error) {
 			certs = append(certs, cert)
 		}
 	}
-	if len(certs) == 0 {
-		return nil, fmt.Errorf("unable to find certs in PEM blob")
-	}
 	return certs, nil
 }
 

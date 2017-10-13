@@ -31,6 +31,11 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
+// TODO(adam): impl
+func (s darwinStore) Remove([]*x509.Certificate) error {
+	return nil
+}
+
 // TODO(adam): find and show each cert's trust status
 
 // // security remove-trusted-cert <crt-file>

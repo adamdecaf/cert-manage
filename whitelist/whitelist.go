@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	// "time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 )
 
 // TOOD(adam): Read and review this code
 // https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html
-
-// TODO(adam): dedup certs already added by one whitelist item
 
 // item can be compared against an x509 Certificate to see if the cert represents
 // some value presented by the whitelist item. This is useful in comparing specific fields of
@@ -23,10 +20,14 @@ type item interface {
 	Matches(x509.Certificate) bool
 }
 
-// findRemovable a list of x509 Certificates against whitelist items to
+// Removable a list of x509 Certificates against whitelist items to
 // retain only the certificates that are disallowed by our whitelist.
 // An empty slice of certificates is a possible (and valid) output.
-func findRemovable(incoming []*x509.Certificate, whitelisted []item) []*x509.Certificate {
+//
+// TODO(adam): This should really accept some sort of structure which has
+// []item per cert. That way we don't have duplicate removal entries in the
+// end result.
+func Removable(incoming []*x509.Certificate, whitelisted []item) []*x509.Certificate {
 	// Pretty bad search right now.
 	var removable []*x509.Certificate
 
@@ -54,8 +55,8 @@ type jsonFingerprints struct {
 	Hex []string `json:"Hex"`
 }
 
-// loadFromFile reads a whitelist file and parses it into items
-func loadFromFile(path string) ([]item, error) {
+// FromFile reads a whitelist file and parses it into items
+func FromFile(path string) ([]item, error) {
 	if !validWhitelistPath(path) {
 		return nil, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
 	}

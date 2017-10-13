@@ -1,24 +1,70 @@
 package cmd
 
-// import (
-// 	"fmt"
-// )
+// Whitelist steps
+// 1. Make a backup
+// 2. Diff to find removable certs
+// 3. Remove removable certs
+// 4. Print some summary/status of certificates?
 
-// // todo: make a backup file, timestamped so we can make multiple if the latest isn't the same
-// // .backup.20161020HHMMSS
-// // .backup.20161025HHMMSS
-// // - compare hash of existing file to latest, if not equal make a new backup
+// TODO(adam): -dry-run flag
+// TOOD(adam): print certs in whitelist not found
 
-// // todo / idea
-// // Does it make sense to create a `Manager` struct for each type of cert?
-// // Platforms would need a manage specific to them.
+import (
+	"github.com/adamdecaf/cert-manage/store"
+	"github.com/adamdecaf/cert-manage/whitelist"
+)
 
-// // todo: use dryRun flag
-// // todo: print certs in whitelist not found
-// // after diff, remove certs that aren't whitelisted
-// // `whitelist` performs the diffing of a given set of certs and
+func WhitelistForApp(app, whpath, format string) error {
+	// grab existing
+	st, err := store.ForApp(app)
+	if err != nil {
+		return err
+	}
+	certs, err := st.List()
+	if err != nil {
+		return err
+	}
 
-// //
+	// load whitelist
+	items, err := whitelist.FromFile(whpath)
+	if err != nil {
+		return err
+	}
+
+	// diff
+	removable := whitelist.Removable(certs, items)
+	err = st.Remove(removable)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func WhitelistForPlatform(whpath, format string) error {
+	// grab existing
+	st := store.Platform()
+	certs, err := st.List()
+	if err != nil {
+		return err
+	}
+
+	// load whitelist
+	items, err := whitelist.FromFile(whpath)
+	if err != nil {
+		return err
+	}
+
+	// diff
+	removable := whitelist.Removable(certs, items)
+	err = st.Remove(removable)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // func WhitelistCertsForPlatform(whitelist string, dryRun bool, format string) error {
 // 	wh, err := certs.FromFile(whitelist)
 // 	if err != nil {
@@ -50,7 +96,6 @@ package cmd
 // 	return nil
 // }
 
-// //
 // func WhitelistCertsForApp(whitelist, app string, dryRun bool, format string) error {
 // 	// if !validWhitelistPath(whitelist) {
 // 	// 	return fmt.Errorf("Whitelist filepath '%s' doesn't seem valid.", whitelist)

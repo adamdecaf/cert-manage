@@ -1,13 +1,5 @@
 {
   "Fingerprints": {
     "Hex": ["a"]
-  },
-  "Issuers": [
-    {
-      "CommonName": "b"
-    }
-  ],
-  "Time": {
-    "NotAfter": "2016-01-01 12:34:56"
   }
 }
