@@ -3,11 +3,15 @@
 package store
 
 import (
+	"bytes"
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
 )
@@ -66,7 +70,6 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	fmt.Printf("checking %s\n", s.ca.all)
 	bytes, err := ioutil.ReadFile(s.ca.all)
 	if err != nil {
 		return nil, err
@@ -86,10 +89,76 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 // Steps
 // 1. Walk through the dir (/etc/ssl/certs/) and chmod 000 the certs we aren't trusting
 // 2. Run `update-ca-certificates` to re-create the ca-certificates.crt file
-func (s linuxStore) Remove([]*x509.Certificate) error {
+func (s linuxStore) Remove(removable []*x509.Certificate) error {
+	// Check each CA cert file and optionally disable
+	walk := func(path string, info os.FileInfo, err error) error {
+		// Ignore SkipDir and directories
+		if (err != nil && err != filepath.SkipDir) || info.IsDir() {
+			return nil
+		}
+
+		// TODO(adam): ignore backup files, or those w/ info.Mode == 000
+
+		// read the cert(s) contained at the file and only keep those
+		// that aren't removable
+		read, err := pem.FromFile(path)
+		if err != nil {
+			return err
+		}
+		// TODO(adam): This is pretty similar to _just_ another round of
+		// whitelist calls...
+		for i := 0; i < len(read); i++ {
+			for k := range removable {
+				// fmt.Printf("i=%d, len(read)=%d, k=%d, len(removable)=%d\n", i, len(read), k, len(removable))
+				if read[i] == nil || removable[k] == nil {
+					return fmt.Errorf("either read[i]='%v' or removable[k]='%v' is nil", read[i], removable[k])
+				}
+
+				// match, so remove
+				if _x509.GetHexSHA256Fingerprint(*read[i]) == _x509.GetHexSHA256Fingerprint(*removable[k]) {
+					// remove cert from `read`
+					read = append(read[:i], read[i+1:]...)
+					if len(read) == 0 {
+						break
+					}
+				}
+			}
+		}
+
+		// // chmod 000 the file if it's going to be empty
+		// if len(read) == 0 {
+		// 	// disable the file
+		// 	// fmt.Println("A")
+		// 	return os.Remove(path, 0000)
+		// }
+
+		// otherwise, write kept certs from `read` back
+		err = pem.ToFile(path, read)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Walk the fs and deactivate each cert
+	err := filepath.Walk(s.ca.dir, walk)
+	if err != nil {
+		return err
+	}
+
+	// Update the certs trust system-wide
+	var out bytes.Buffer
+	cmd := exec.Command("/usr/sbin/update-ca-certificates")
+	cmd.Stdout = &out
+
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("error updating trust status: err=%v, out=%s", err, out.String())
+	}
+
 	return nil
 }
 
-// chmod 000 them
-// - `restore` would be to `rwxrwxrwx` them...really?
-// run update-ca-certificates
+// TOOD(adam): `restore` would be to `rwxrwxrwx` them...really?
+// actually, use `dpkg-reconfigure ca-certificates`
