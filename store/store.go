@@ -36,6 +36,10 @@ type Store interface {
 	// Restore will bring the system back to it's previous state
 	// if a backup exists, otherwise it will attempt to bring the
 	// cert trust status to the system's default state
+	//
+	// Note: It is strongly advised that any additional certs installed
+	// be verified are still properly installed and working after
+	// Restore() is called.
 	Restore() error
 }
 
