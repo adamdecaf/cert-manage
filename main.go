@@ -33,15 +33,6 @@ var (
 func main() {
 	fs.Parse(os.Args[1:])
 
-	if list != nil && *list {
-		if app != nil && *app != "" {
-			cmd.ListCertsForApp(*app, *format)
-			return
-		}
-		cmd.ListCertsForPlatform(*format)
-		return
-	}
-
 	wh := strings.TrimSpace(*whitelist)
 	if whitelist != nil && wh != "" {
 		if app != nil && *app != "" {
@@ -50,13 +41,20 @@ func main() {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			return
 		}
 		err := cmd.WhitelistForPlatform(*whitelist, *format)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+	}
+
+	if list != nil && *list {
+		if app != nil && *app != "" {
+			cmd.ListCertsForApp(*app, *format)
+			return
+		}
+		cmd.ListCertsForPlatform(*format)
 		return
 	}
 }
