@@ -3,6 +3,7 @@ package file
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -61,6 +62,78 @@ func TestFile__existsDir(t *testing.T) {
 	}
 }
 
+func TestFile__MirrorDir(t *testing.T) {
+	// copy ../../tools structure
+	src := "../../tools"
+	dst := "../../mirror"
+
+	// Throw in a symlink for fun
+	err := os.Symlink("file.go", "f")
+	if err != nil {
+		t.Fatal(err.(*os.LinkError).Err)
+	}
+	defer os.Remove("f")
+
+	// mirror
+	err = MirrorDir(src, dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dst)
+
+	// Verify the structure is valid
+	checks := []struct {
+		rel string // relative path after `src` or `dst`
+	}{
+		// dirs
+		{"pem"},
+		// symlinks
+		{"file/f"},
+		//files
+		{"file/file.go"},
+		{"_x509/x509.go"},
+	}
+	for _, c := range checks {
+		sp := filepath.Join(src, c.rel)
+		s, _ := os.Stat(sp)
+		dp := filepath.Join(dst, c.rel)
+		d, _ := os.Stat(dp)
+
+		// compare them as dirs
+		if s.IsDir() && d.IsDir() {
+			if s.Name() != d.Name() {
+				t.Fatalf("%s != %s", s.Name(), d.Name())
+			}
+			if s.Mode() != d.Mode() {
+				t.Fatalf("%s(%v) != %s(%v)", s.Name(), s.Mode(), d.Name(), d.Mode())
+			}
+			continue
+		}
+		// compare as symlinks
+		if f1, e1 := os.Readlink(sp); e1 == nil && s.Mode()&os.ModeSymlink == 0 && d.Mode()&os.ModeSymlink == 0 {
+			// f1, e1 := os.Readlink(sp)
+			f2, e2 := os.Readlink(dp)
+			if e1 != nil || e2 != nil {
+				t.Fatalf("s=%s, e1=%v, d=%s, e2=%v", sp, e1, dp, e2)
+			}
+			if f1 != f2 {
+				t.Fatalf("f1=%s, f2=%s", f1, f2)
+			}
+			continue
+		}
+		// compare them as files
+		if s.Mode().IsRegular() && s.Mode().IsRegular() {
+			// compare them as files
+			if s.Size() != d.Size() || s.Mode() != d.Mode() {
+				t.Fatalf("%s and %s aren't the same", s.Name(), d.Name())
+			}
+			continue
+		}
+
+		// no check done
+		t.Fatalf("no checking done on %s, %s pair", sp, dp)
+	}
+}
 
 func TestFile__CopyFile(t *testing.T) {
 	src := "file_test.go"
