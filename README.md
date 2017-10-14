@@ -2,12 +2,25 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust is in disarray. `cert-manage` is a tool to manage and limit trust (via [x509 Certificates](https://en.wikipedia.org/wiki/X.509) stores) on your machines and applications.
+The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust isn't great. Any system you buy will come pre-loaded with trust of 50+ CA's. This means that your connections (and privay) are at risk if even one of them creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
 
-`cert-manage` allows you to
+`cert-manage` is a tool to manage and limit trust of [x509 Certificates](https://en.wikipedia.org/wiki/X.509) stores on your machines and applications.
 
-- Remove improperly trusted root/intermediate certs from applications and systems
-- ~~Find the minimum set of CA's you need to trust (based on browsing habits).~~ (Soon)
+## Usage
+
+```
+# List certificates trusted on your system (or app)
+$ cert-manage -list
+# cert-manage -list -app chrome
+
+# Trim down what CA's are trusted on your system
+$ cert-manage -whitelist digicert.json
+$ cert-manage -app chrome -whitelist digicert.json
+
+# Backup and Restore the current trust
+$ cert-manage -backup
+$ cert-manage -restore
+```
 
 ## Install
 
@@ -22,6 +35,8 @@ You can download prebuilt binaries [on the releases tab](https://github.com/adam
 | Ubuntu | 16.04, 17.04 |
 
 #### Applications
+
+TODO: These apps aren't _actually_ supported yet.
 
 | Application | Version(s) | Supported Platforms |
 |----|----|----|
@@ -96,7 +111,7 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 
 ## Building / Developing
 
-TODO: these are wrong/out of date
+TODO(adam): these are wrong/out of date
 
 You can build the sources with `make build`. You can build only a platform with something like `make osx`. Please check the `makefile` for more details.
 
