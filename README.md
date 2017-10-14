@@ -11,7 +11,7 @@ The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_a
 ```
 # List certificates trusted on your system (or app)
 $ cert-manage -list
-# cert-manage -list -app chrome
+$ cert-manage -list -app chrome
 
 # Trim down what CA's are trusted on your system
 $ cert-manage -whitelist digicert.json
