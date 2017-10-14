@@ -5,7 +5,7 @@ cd build/debian-8/
 cp ../../bin/cert-manage-linux-amd64 cert-manage
 cp ../../testdata/globalsign-whitelist.json whitelist.json
 
-total=179
+total=175
 after=6
 cat > main <<EOF
 #!/bin/sh
@@ -18,8 +18,8 @@ set -e
 /bin/cert-manage -backup
 
 # Quick check
-ls -l /usr/share/ca-certificates/* | wc -l | grep $total
-ls -l /usr/share/ca-certificates.backup/* | wc -l | grep $total
+ls -l /usr/share/ca-certificates/* | wc -l | grep 179
+ls -l /usr/share/ca-certificates.backup/* | wc -l | grep 179
 
 # Whitelist and verify
 /bin/cert-manage -whitelist /whitelist.json
