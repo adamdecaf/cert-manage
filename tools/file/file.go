@@ -83,8 +83,7 @@ func MirrorDir(src, dst string) error {
 	return nil
 }
 
-// CopyFile duplicates the contents of `src` and writes it to a file at `dst` with
-// the same permissions and owner/group.
+// CopyFile duplicates the contents of `src` and writes it to a file at `dst` with the same permissions
 // The parent dirs of `dst` are assumed to exist.
 // Adapted From: https://gist.github.com/r0l1/92462b38df26839a3ca324697c8cba04
 func CopyFile(src, dst string) error {
