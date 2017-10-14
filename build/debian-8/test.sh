@@ -26,6 +26,8 @@ ls -l /usr/share/ca-certificates.backup/* | wc -l | grep 179
 /bin/cert-manage -list | wc -l | grep $after
 
 # Restore
+/bin/cert-manage -restore
+/bin/cert-manage -list | wc -l | grep $total
 EOF
 
 chmod +x main
