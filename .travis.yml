@@ -5,4 +5,4 @@ go:
   - 1.9
 
 script:
-  - make build test
+  - make ci

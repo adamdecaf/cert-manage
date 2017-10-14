@@ -21,13 +21,9 @@ check:
 test:
 	go test -v ./...
 
+ci: dist test
+	./build/test.sh
+
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage
 	@chmod +x cert-manage
-
-whitelist := "testdata/globalsign-whitelist.json"
-run:
-	@cp ./bin/cert-manage-linux-amd64 ./build/$(platform)/cert-manage
-	@cp $(whitelist) ./build/$(platform)/whitelist.json
-	@cd ./build/$(platform) && docker build -t cert-manage-$(platform):latest . > run.log
-	@docker run -it cert-manage-$(platform):latest $(flags)
