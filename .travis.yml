@@ -1,8 +1,12 @@
 language: go
+sudo: required
 
 go:
   - 1.8
   - 1.9
 
 script:
-  - make build test
+  - make ci
+
+services:
+  - docker

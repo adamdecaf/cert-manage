@@ -31,6 +31,7 @@ cert-manage
 cert-manage-*
 gen-whitelist-*
 build/*/whitelist.json
+build/*/main
 
 # log files
 *.log
