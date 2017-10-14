@@ -2,7 +2,7 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust isn't great. Any system you buy will come pre-loaded with trust of 50+ CA's. This means that your connections (and privay) are at risk if even one of them creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
+The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust isn't great. Any system you buy will come pre-loaded with trust of 50+ CA's. This means that your connections (and privacy) are at risk if even one of them creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
 
 `cert-manage` is a tool to manage and limit trust of [x509 Certificates](https://en.wikipedia.org/wiki/X.509) stores on your machines and applications.
 
