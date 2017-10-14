@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// Take a backup
-	// Note: This always needs to be done first
+	// Note: This always needs to be done before -whitelist
 	if backup != nil && *backup {
 		err := appChoice(app,
 			func(a string) error {
