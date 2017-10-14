@@ -65,6 +65,7 @@ func platform() Store {
 	}
 }
 
+// TODO(adam): Try to make a backup directory of the certs
 func (s linuxStore) Backup() error {
 	return nil
 }
@@ -145,7 +146,9 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-// TOOD(adam): `restore` would be `dpkg-reconfigure ca-certificates`
+// TOOD(adam):
+// 1. Check if there's a backup available
+// 2. `restore` would be `dpkg-reconfigure ca-certificates`
 
 func (s linuxStore) Restore() error {
 	return nil
