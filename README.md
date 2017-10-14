@@ -4,7 +4,7 @@
 
 The state of [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) trust isn't great. Any system you buy will come pre-loaded with trust of 50+ CA's. This means that your connections (and privacy) are at risk if even one of them creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
 
-`cert-manage` is a tool to manage and limit trust of [x509 Certificates](https://en.wikipedia.org/wiki/X.509) stores on your machines and applications.
+Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users straightfoward control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
 
 ## Usage
 
@@ -73,7 +73,7 @@ TODO(adam): more detail & better explained
 - explain that users need choices and assurance in what they're trusting
 - some CA's are better than others, some are really bad (negligent)
 
-There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every machine which trusts communications signed with their keys.
+There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every system which trusts communications signed with their keys.
 
 - Comodo
   - Invalid domains
