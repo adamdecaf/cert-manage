@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// FileExists expands the given path and verifies a file located at the given path.
+// Exists returns true if the give path represents a file or directory
 func Exists(path string) bool {
 	path, err := filepath.Abs(strings.TrimSpace(path))
 	if err != nil {
