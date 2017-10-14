@@ -19,8 +19,12 @@ import (
 type cadir struct {
 	// base dir for all ca certs
 	dir string
+
 	// the filepath containing all certs (optional)
 	all string
+
+	// where to save a backup of all certs
+	backup string
 }
 
 func (ca *cadir) empty() bool {
@@ -36,8 +40,9 @@ var (
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
 		cadir{
-			dir: "/etc/ssl/certs",
-			all: "/etc/ssl/certs/ca-certificates.crt",
+			dir:    "/usr/share/ca-certificates",
+			all:    "/etc/ssl/certs/ca-certificates.crt",
+			backup: "/usr/share/ca-certificates.backup",
 		},
 		// TODO(adam): These paths aren't supported, _yet_
 		// "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
@@ -65,9 +70,10 @@ func platform() Store {
 	}
 }
 
-// TODO(adam): Try to make a backup directory of the certs
+// Backup takes a snapshot of the current set of CA certificates and
+// saves them to another location. It will overwrite any previous backup.
 func (s linuxStore) Backup() error {
-	return nil
+	return file.MirrorDir(s.ca.dir, s.ca.backup)
 }
 
 func (s linuxStore) List() ([]*x509.Certificate, error) {
