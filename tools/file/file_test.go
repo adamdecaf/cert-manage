@@ -1,6 +1,7 @@
 package file
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -57,5 +58,31 @@ func TestFile__existsDir(t *testing.T) {
 	}
 	if Exists(loc) {
 		t.Fatalf("%s doesn't exist anymore", loc)
+	}
+}
+
+
+func TestFile__CopyFile(t *testing.T) {
+	src := "file_test.go"
+	dst := "copyfile-test"
+
+	// copy
+	err := CopyFile(src, dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(dst)
+
+	// compare contents
+	c1, err := ioutil.ReadFile(src)
+	if err != nil {
+		t.Fatalf("reading %s failed, err=%v", src, err)
+	}
+	c2, err := ioutil.ReadFile(dst)
+	if err != nil {
+		t.Fatalf("reading %s failed, err=%v", dst, err)
+	}
+	if string(c1) != string(c2) {
+		t.Fatalf("%s and %s didn't match", src, dst)
 	}
 }
