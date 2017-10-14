@@ -5,6 +5,7 @@ package store
 import (
 	"bytes"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -139,23 +140,38 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	// Update the certs trust system-wide
+	return bundleCerts()
+}
+
+func (s linuxStore) Restore() error {
+	if !file.Exists(s.ca.backup) {
+		return errors.New("No backup directory exists")
+	}
+	// Remove the current dir
+	if file.Exists(s.ca.dir) {
+		err := os.RemoveAll(s.ca.dir)
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	// Restore
+	err := file.MirrorDir(s.ca.backup, s.ca.dir)
+	if err != nil {
+		return err
+	}
+	return bundleCerts()
+}
+
+// Update the certs trust system-wide
+func bundleCerts() error {
 	var out bytes.Buffer
 	cmd := exec.Command("/usr/sbin/update-ca-certificates")
 	cmd.Stdout = &out
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("error updating trust status: err=%v, out=%s", err, out.String())
 	}
-
-	return nil
-}
-
-// TOOD(adam):
-// 1. Check if there's a backup available
-// 2. `restore` would be `dpkg-reconfigure ca-certificates`
-
-func (s linuxStore) Restore() error {
 	return nil
 }

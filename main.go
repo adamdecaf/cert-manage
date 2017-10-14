@@ -19,8 +19,8 @@ var (
 	// Commands
 	backup    = fs.Bool("backup", false, "Make a backup")
 	list      = fs.Bool("list", false, "List certificates (by default on the system, see -app)")
+	restore   = fs.Bool("restore", false, "Restore from a given backup, if it exists")
 	whitelist = fs.String("whitelist", "", "Filter certificates according to the provided whitelist")
-	// TODO(adam): restore
 
 	// Filters
 	app = fs.String("app", "", "Specify an application (see -list)")
@@ -32,6 +32,19 @@ var (
 
 func main() {
 	fs.Parse(os.Args[1:])
+
+	// Perform a restore
+	// Note: This always needs to happen before -whitelist and before -backup
+	if restore != nil && *restore {
+		err := appChoice(app,
+			func(a string) error {
+				return cmd.RestoreForApp(a)
+			},
+			func() error {
+				return cmd.RestoreForPlatform()
+			})
+		exit("Restore completed successfully", err)
+	}
 
 	// Take a backup
 	// Note: This always needs to be done first
