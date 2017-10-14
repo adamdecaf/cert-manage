@@ -17,10 +17,9 @@ You can download prebuilt binaries [on the releases tab](https://github.com/adam
 
 | Platform | Version(s) |
 |----|----|
-| Alpine | 3.5, 3.6 |
-| CentOS | 6,7 |
-| Debian | 8,9 |
-| Ubuntu | 14.04, 16.04, 17.04 |
+| Alpine | 3.6 |
+| Debian | 8, 9 |
+| Ubuntu | 16.04, 17.04 |
 
 #### Applications
 
