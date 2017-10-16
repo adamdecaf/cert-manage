@@ -84,6 +84,7 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 - DigiCert
   - [Certificate with invalid dnsName issued from Baltimore intermediate](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/5bpr9yBgaYo)
 - [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
+- [Equifax](https://www.consumerreports.org/privacy/what-consumers-need-to-know-about-the-equifax-data-breach/)
 - GlobalSign
   - [Accidental cross-signing intermediate certificate](https://downloads.globalsign.com/acton/fs/blocks/showLandingPage/a/2674/p/p-008f/t/page/fm/0)
 - GoDaddy
