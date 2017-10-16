@@ -5,6 +5,9 @@ package store
 import (
 	"crypto/x509"
 	"os/exec"
+	"os/user"
+	"path/filepath"
+	"reflect"
 
 	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/whitelist"
@@ -12,6 +15,25 @@ import (
 
 // Docs
 // - https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html
+
+var (
+	systemDirs = []string{
+		"/System/Library/Keychains/SystemRootCertificates.keychain",
+		"/Library/Keychains/System.keychain",
+	}
+)
+
+func getUserDirs() ([]string, error) {
+	u, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+
+	return []string{
+		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain"),
+		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain-db"),
+	}, nil
+}
 
 type darwinStore struct{}
 
@@ -23,17 +45,47 @@ func (s darwinStore) Backup() error {
 	return nil
 }
 
+// List
+//
+// Note: Currently we are ignoring the login keychain. This is done because those certs are
+// typically modified by the user (or an application the user trusts).
 func (s darwinStore) List() ([]*x509.Certificate, error) {
-	b, err := exec.Command("/usr/bin/security", "find-certificate", "-a", "-p").Output()
+	return readDarwinCerts(systemDirs...)
+}
+
+func readDarwinCerts(paths ...string) ([]*x509.Certificate, error) {
+	// key: fingerprint
+	res := make([]*x509.Certificate, 0)
+
+	args := []string{"find-certificate", "-a", "-p"}
+	args = append(args, paths...)
+
+	b, err := exec.Command("/usr/bin/security", args...).Output()
 	if err != nil {
 		return nil, err
 	}
 
-	certs, err := pem.Parse(b)
+	cs, err := pem.Parse(b)
 	if err != nil {
 		return nil, err
 	}
-	return certs, nil
+	for _, c := range cs {
+		if c == nil {
+			continue
+		}
+		add := true
+		for i := range res {
+			if reflect.DeepEqual(c.Signature, res[i].Signature) {
+				add = false
+				break
+			}
+		}
+		if add {
+			res = append(res, c)
+		}
+	}
+
+	return res, nil
 }
 
 // TODO(adam): impl
