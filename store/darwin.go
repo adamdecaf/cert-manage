@@ -4,8 +4,10 @@ package store
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
+	// stdpem "encoding/pem"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -143,6 +145,75 @@ type plist struct {
 	Version                  string     `xml:"version,attr"`
 }
 
+type certificate struct {
+	TBSCertificate     tbsCertificate
+	// SignatureAlgorithm algorithmIdentifier
+	// SignatureValue     asn1.BitString
+}
+
+type tbsCertificate struct {
+	Version            int `asn1:"optional,explicit,default:0,tag:0"`
+	// SerialNumber       asn1.RawValue
+	// SignatureAlgorithm algorithmIdentifier
+	Issuer             rdnSequence
+	// Validity           validity
+	// Subject            rdnSequence
+	// PublicKey          publicKeyInfo
+}
+
+type algorithmIdentifier struct {
+	Algorithm asn1.ObjectIdentifier
+}
+
+type rdnSequence []relativeDistinguishedNameSET
+type relativeDistinguishedNameSET []attributeTypeAndValue
+type attributeTypeAndValue struct {
+	Type  asn1.ObjectIdentifier
+	Value interface{}
+}
+
+type validity struct {
+	NotBefore, NotAfter time.Time
+}
+
+type publicKeyInfo struct {
+	Algorithm algorithmIdentifier
+	PublicKey asn1.BitString
+}
+
+// SEQUENCE(7 elem)
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.6countryName(X.520 DN component)
+//         PrintableStringUS
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.8stateOrProvinceName(X.520 DN component)
+//         UTF8StringIowa
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.7localityName(X.520 DN component)
+//         UTF8StringCedar Falls
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.10organizationName(X.520 DN component)
+//         UTF8StringBanno
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.11organizationalUnitName(X.520 DN component)
+//         UTF8StringSecrets
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER2.5.4.3commonName(X.520 DN component)
+//         UTF8StringBanno CA
+//   SET(1 elem)
+//     SEQUENCE(2 elem)
+//       OBJECT IDENTIFIER1.2.840.113549.1.9.1emailAddress(PKCS #9. Deprecated, use an altName extension instead)
+//         IA5Stringnoreply@banno.com
+
+
+type yo []pkix.AttributeTypeAndValueSET
+
 func (p plist) convertToTrustItems() []trustItem {
 	out := make([]trustItem, 0)
 
@@ -186,16 +257,37 @@ func (p plist) convertToTrustItems() []trustItem {
 		bytes := make([]uint8, l)
 		l, err := base64.StdEncoding.Decode(bytes, []byte(str))
 
-		var final asn1.RawValue
-		_, err = asn1.Unmarshal(bytes, &final)
+		// block, bytes := stdpem.Decode(bytes)
+		// fmt.Println(block)
+		// fmt.Println(bytes)
+
+		// var issuer certificate
+		// var issuer tbsCertificate
+		// var issuer rdnSequence
+		var issuer pkix.RDNSequence // best so far
+		// var issuer yo
+		// var issuer asn1.BitString
+		// var issuer pkix.RelativeDistinguishedNameSET
+		// _, err = asn1.Unmarshal(bytes, &issuer)
+		_, err = asn1.UnmarshalWithParams(bytes, &issuer, "optional")
 		// fmt.Println(string(other))
 		// fmt.Println(string(final.Bytes))
 		// fmt.Println(err)
 
-		if err == nil {
-			// item.issuerName = string(final)
+		if err != nil {
+			// asn1: structure error: tags don't match (16 vs {class:0 tag:1 length:0 isCompound:false})
+			// {optional:false explicit:false application:false defaultValue:<nil> tag:<nil> stringType:0 timeType:0 set:false omitEmpty:false} rdnSequence @2
+			fmt.Println(err)
+		}
 
-			item.issuerName = string(final.Bytes)
+		if err == nil {
+			name := pkix.Name{}
+			name.FillFromRDNSequence(&issuer)
+			fmt.Printf("key=%s, issuer=%v\n", item.key, name)
+			// fmt.Printf("key=%s, issuer=%s\n", item.key, issuer)
+
+			// item.issuerName = string(final)
+			// item.issuerName = string(final.Bytes)
 			// fmt.Printf("item.issuerName = '%s'\n", item.issuerName)
 		}
 
@@ -204,10 +296,13 @@ func (p plist) convertToTrustItems() []trustItem {
 			item.modDate = t
 		}
 
-		bs, err := base64.StdEncoding.DecodeString(p.Data[i+1][0])
-		if err == nil {
-			item.serialNumber = bs
-		}
+		// TODO(adam): Decode serial number w/ asn1.RawValue ?
+		//  Then re-encode to...?
+		//
+		// bs, err := base64.StdEncoding.DecodeString(p.Data[i+1][0])
+		// if err == nil {
+		// 	item.serialNumber = bs
+		// }
 
 		// TODO(adam): optional
 
