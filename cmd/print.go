@@ -63,12 +63,12 @@ func printCertsInTable(certs []*x509.Certificate) {
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 func printCertsToStdout(certs []*x509.Certificate) {
 	for i := range certs {
-		fingerprint := _x509.GetHexSHA256Fingerprint(*certs[i])
-
 		fmt.Printf("Certificate\n")
-		fmt.Printf("  SHA256 Fingerprint - %s\n", fingerprint)
+		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
+		fmt.Printf("  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
 		fmt.Printf("  Signature - %s\n", hex.EncodeToString(certs[i].Signature))
 		fmt.Printf("  Signature Algorithm: %s\n", certs[i].SignatureAlgorithm.String())
+		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
 		fmt.Printf("  Public Key Algorithm - %v\n", _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm))
 		fmt.Printf("  Issuer CommonName - %s, SerialNumber - %s\n", certs[i].Issuer.CommonName, certs[i].Issuer.SerialNumber)
 		fmt.Printf("  Subject CommonName - %s, SerialNumber - %s\n", certs[i].Subject.CommonName, certs[i].Subject.SerialNumber)
