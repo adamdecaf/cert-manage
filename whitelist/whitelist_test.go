@@ -41,7 +41,7 @@ func TestWhitelist_remove(t *testing.T) {
 	}
 
 	wh := Whitelist{
-		fingerprints: []item{fingerprint("96940d991419151450d1e75f66218f6f2594e1df4af31a5ad673c9a8746817ce")},
+		fingerprints: []item{fingerprint("05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030")},
 	}
 
 	for i := range certs {

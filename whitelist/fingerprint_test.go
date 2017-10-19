@@ -19,23 +19,34 @@ func TestWhitelist_fingerprint(t *testing.T) {
 		t.Fatal("Unable to read cert")
 	}
 
-	wh1 := fingerprint("")
-	if wh1.Matches(*certificates[0]) {
-		t.Fatal("wh1 and cert shouldn't match")
+	fp:= fingerprint("")
+	if fp.Matches(*certificates[0]) {
+		t.Fatal("fp and cert shouldn't match")
 	}
 
-	wh2 := fingerprint("abc")
-	if wh2.Matches(*certificates[0]) {
-		t.Fatal("wh2 and cert shouldn't match")
+	fp = fingerprint("abc")
+	if fp.Matches(*certificates[0]) {
+		t.Fatal("fp and cert shouldn't match")
 	}
 
-	wh3 := fingerprint("96940d99")
-	if !wh3.Matches(*certificates[0]) {
-		t.Fatalf("wh3='%s' and cert='%s' don't match, but should", wh3, _x509.GetHexSHA256Fingerprint(*certificates[0]))
+	fp = fingerprint("05a6db38939")
+	if !fp.Matches(*certificates[0]) {
+		t.Fatalf("fp='%s' and cert='%s' don't match, but should", fp, _x509.GetHexSHA256Fingerprint(*certificates[0]))
 	}
 
-	wh4 := fingerprint("96940d991419151450d1e75f66218f6f2594e1df4af31a5ad673c9a8746817ce")
-	if !wh4.Matches(*certificates[0]) {
-		t.Fatal("wh4 and cert don't match, but should")
+	// TODO(adam): Support sha1 and sha256 fingerprints
+	// fp = fingerprint("7e1874a98f")
+	// if !fp.Matches(*certificates[0]) {
+	// 	t.Fatalf("fp='%s' and cert='%s' don't match, but should", fp, _x509.GetHexSHA1Fingerprint(*certificates[0]))
+	// }
+
+	fp = fingerprint("05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030")
+	if !fp.Matches(*certificates[0]) {
+		t.Fatal("fp and cert don't match, but should")
 	}
+
+	// fp = fingerprint("7e1874a98faa5d6d2f506a8920ff22fbd16652d9")
+	// if !fp.Matches(*certificates[0]) {
+	// 	t.Fatal("fingerprint and cert don't match, but should")
+	// }
 }
