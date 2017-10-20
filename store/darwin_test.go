@@ -3,7 +3,6 @@
 package store
 
 import (
-	"crypto/x509"
 	"fmt"
 	"os"
 	"runtime"
@@ -56,14 +55,3 @@ func TestStoreDarwin__locations(t *testing.T) {
 		}
 	}
 }
-
-func TestStoreDarwin__test(t *testing.T) {
-	t.Skip("skipping sys cert pool init")
-	fmt.Println(os.Getenv("CGO_ENABLED"))
-	pool, _ := x509.SystemCertPool()
-	fmt.Printf("%d trusted", len(pool.Subjects()))
-}
-
-// TODO(adam): write up a test that finds what CA google.com is trusted by
-// and remove that trust, then verify the conn fails, restore trust and
-// verify connection succeeds

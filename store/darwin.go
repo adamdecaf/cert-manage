@@ -48,6 +48,8 @@ func platform() Store {
 	return darwinStore{}
 }
 
+// TODO(adam): impl
+// - Capture `trust-settings-export` to another file
 func (s darwinStore) Backup() error {
 	return nil
 }
@@ -97,10 +99,13 @@ func readDarwinCerts(paths ...string) ([]*x509.Certificate, error) {
 }
 
 // TODO(adam): impl
+// /usr/bin/security trust-settings-export
+// - Can this shell out and let the OS prompt? Otherwise we'd need to print out the command
 func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
+// TODO(adam): impl
 func (s darwinStore) Restore() error {
 	// /usr/bin/security trust-settings-import
 	// ^ will prompt users, so I think the 'Restore' should just be
@@ -108,18 +113,8 @@ func (s darwinStore) Restore() error {
 	return nil
 }
 
-// security remove-trusted-cert <crt-file>
-// What does ^ do, exactly?
-// How does restore look?
-
-// /usr/bin/security trust-settings-export
-// /usr/bin/security trust-settings-import
-// Could this be used in as a big batch operation?
-
-// Is there a way to disable a cert? aka mark it as "Never Trust"?
-// Otherwise, we'll need to make a full backup of all certs before touching anything.
-
-// The human readable struct
+// trustItem represents an entry from the plist (xml) files produced by
+// the /usr/bin/security cli tool
 type trustItem struct {
 	// required
 	sha1Fingerprint string
