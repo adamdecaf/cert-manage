@@ -30,7 +30,7 @@ func printCerts(certs []*x509.Certificate, format string) {
 // native text/tabwriter package to align based on the rows given to it.
 func printCertsInTable(certs []*x509.Certificate) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tFingerprint\tNot Before\tNot After")
+	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tSHA256 Fingerprint\tNot Before\tNot After")
 	defer func() {
 		err := w.Flush()
 		if err != nil {
