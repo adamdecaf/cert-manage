@@ -4,15 +4,12 @@ package store
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
-)
 
-var (
-	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
+	"github.com/adamdecaf/cert-manage/tools/file"
 )
 
 // There are various locations for certificates across OSX
@@ -31,9 +28,12 @@ func TestStoreDarwin__locations(t *testing.T) {
 	paths = append(paths, userDirs...)
 
 	for _, p := range paths {
-		certs, err := readDarwinCerts(p)
+		certs, err := readInstalledCerts(p)
 		if err != nil {
 			t.Errorf("%s - err=%v", p, err)
+		}
+		if len(certs) == 0 && file.Exists(p) {
+			t.Error("didn't find any certs")
 		}
 		if debug {
 			fmt.Printf("%d certs from %s\n", len(certs), p)
@@ -53,5 +53,15 @@ func TestStoreDarwin__locations(t *testing.T) {
 			sort.Strings(out)
 			fmt.Printf("%s\n", strings.Join(out, "\n"))
 		}
+	}
+}
+
+func TestStoreDarwin__trust(t *testing.T) {
+	withPolicy, err := getCertsWithTrustPolicy()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(withPolicy) == 0 {
+		t.Error("didn't find any trust policies")
 	}
 }

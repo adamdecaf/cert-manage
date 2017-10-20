@@ -61,7 +61,7 @@ type chiInteger struct {
 	Text bool `xml:",chardata" json:",omitempty"`
 }
 
-func (p chiPlist) convertToTrustItems() []trustItem {
+func (p chiPlist) convertToTrustItems() trustItems {
 	out := make([]trustItem, 0)
 
 	// TODO(adam): Add checks to make sure we're on target, and if not panic
@@ -104,5 +104,5 @@ func (p chiPlist) convertToTrustItems() []trustItem {
 		out = append(out, item)
 	}
 
-	return out
+	return trustItems(out)
 }

@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
@@ -28,6 +31,9 @@ var (
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
+
+	// internal options
+	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
 func getUserDirs() ([]string, error) {
@@ -56,15 +62,37 @@ func (s darwinStore) Backup() error {
 
 // List
 //
-// Note: Currently we are ignoring the login sha1Fingerprintchain. This is done because those certs are
+// Note: Currently we are ignoring the login keychain. This is done because those certs are
 // typically modified by the user (or an application the user trusts).
 func (s darwinStore) List() ([]*x509.Certificate, error) {
-	// TODO(adam): Should we call `x509.SystemCertPool()` instead?
-	// We need to apply the trust settings anyway..
-	return readDarwinCerts(systemDirs...)
+	installed, err := readInstalledCerts(systemDirs...)
+	if err != nil {
+		return nil, err
+	}
+	trustItems, err := getCertsWithTrustPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	if debug {
+		fmt.Printf("%d installed, %d with policy\n", len(installed), len(trustItems))
+	}
+
+	kept := make([]*x509.Certificate, 0)
+	for i := range installed {
+		if installed[i] == nil {
+			continue
+		}
+		if trustItems.contains(installed[i]) {
+			kept = append(kept, installed[i])
+			continue
+		}
+	}
+
+	return kept, nil
 }
 
-func readDarwinCerts(paths ...string) ([]*x509.Certificate, error) {
+func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	res := make([]*x509.Certificate, 0)
 
 	args := []string{"find-certificate", "-a", "-p"}
@@ -98,6 +126,44 @@ func readDarwinCerts(paths ...string) ([]*x509.Certificate, error) {
 	return res, nil
 }
 
+func getCertsWithTrustPolicy() (trustItems, error) {
+	fd, err := trustSettingsExport()
+	defer os.Remove(fd.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	plist, err := parsePlist(fd)
+	if err != nil {
+		return nil, err
+	}
+
+	return plist.convertToTrustItems(), nil
+}
+
+// returns an os.File for the plist file written
+// Note: Callers are expected to cleanup the file handler
+func trustSettingsExport(args ...string) (*os.File, error) {
+	// Create temp file for plist output
+	fd, err := ioutil.TempFile("", "trust-settings")
+	if err != nil {
+		return nil, err
+	}
+
+	// build up args
+	args = append([]string{
+		"trust-settings-export", "-s", fd.Name(),
+	}, args...)
+
+	// run command
+	_, err = exec.Command("/usr/bin/security", args...).Output()
+	if err != nil {
+		return nil, err
+	}
+
+	return fd, nil
+}
+
 // TODO(adam): impl
 // /usr/bin/security trust-settings-export
 // - Can this shell out and let the OS prompt? Otherwise we'd need to print out the command
@@ -111,6 +177,22 @@ func (s darwinStore) Restore() error {
 	// ^ will prompt users, so I think the 'Restore' should just be
 	// outputting what command to run and telling users to run it
 	return nil
+}
+
+type trustItems []trustItem
+
+func (t trustItems) contains(cert *x509.Certificate) bool {
+	if cert == nil {
+		// we don't want to say we've got a nil cert
+		return true
+	}
+	fp := _x509.GetHexSHA1Fingerprint(*cert)
+	for i := range t {
+		if fp == t[i].sha1Fingerprint {
+			return true
+		}
+	}
+	return false
 }
 
 // trustItem represents an entry from the plist (xml) files produced by
