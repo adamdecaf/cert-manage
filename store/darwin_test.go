@@ -70,7 +70,7 @@ func TestStoreDarwin__test(t *testing.T) {
 // TODO(adam): Upstream fix for actually inspecting trust settings?
 
 func TestStoreDarwin__plistParsing(t *testing.T) {
-	f, err := os.Open("testdata/darwin_plist.xml")
+	f, err := os.Open("../testdata/darwin_plist.xml")
 	if err != nil {
 		t.Fatal(err)
 	}
