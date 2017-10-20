@@ -59,7 +59,7 @@ func (s darwinStore) Backup() error {
 
 // List
 //
-// Note: Currently we are ignoring the login keychain. This is done because those certs are
+// Note: Currently we are ignoring the login sha1Fingerprintchain. This is done because those certs are
 // typically modified by the user (or an application the user trusts).
 func (s darwinStore) List() ([]*x509.Certificate, error) {
 	// TODO(adam): Should we call `x509.SystemCertPool()` instead?
@@ -168,8 +168,7 @@ func (p chiPlist) convertToTrustItems() []trustItem {
 	for i := 0; i < max; i += 2 {
 		item := trustItem{}
 
-		// TODO(adam): rename, sha1Fingerprint
-		item.key = strings.ToLower(p.ChiDict.ChiDict.ChiKey[i/2].Text)
+		item.sha1Fingerprint = strings.ToLower(p.ChiDict.ChiDict.ChiKey[i/2].Text)
 
 		// trim whitespace
 		r := regexp.MustCompile(`[^a-zA-Z0-9\+\/=]*`)
@@ -216,10 +215,10 @@ func parsePlist(in io.Reader) (chiPlist, error) {
 // The human readable struct
 type trustItem struct {
 	// required
-	key          string
-	issuerName   pkix.Name
-	modDate      time.Time
-	serialNumber []byte
+	sha1Fingerprint string
+	issuerName      pkix.Name
+	modDate         time.Time
+	serialNumber    []byte
 
 	// optional
 	kSecTrustSettingsResult int32
@@ -241,5 +240,5 @@ func (t trustItem) String() string {
 
 	country := strings.Join(t.issuerName.Country, " ")
 
-	return fmt.Sprintf("SHA1 Fingerprint: %s\n %s (%s)\n modDate: %s\n serialNumber: %d", t.key, name, country, modDate, t.Serial())
+	return fmt.Sprintf("SHA1 Fingerprint: %s\n %s (%s)\n modDate: %s\n serialNumber: %d", t.sha1Fingerprint, name, country, modDate, t.Serial())
 }
