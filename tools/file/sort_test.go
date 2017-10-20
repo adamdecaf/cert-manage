@@ -1,4 +1,4 @@
-package cmd
+package file
 
 import (
 	"reflect"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPrint__Sorting(t *testing.T) {
+func TestFile__sortStrings(t *testing.T) {
 	strings := []string{"b", "A", "C", "a", " ", ""}
 	sort.Sort(iStringSlice(strings))
 	answer := []string{"", " ", "A", "a", "b", "C"}

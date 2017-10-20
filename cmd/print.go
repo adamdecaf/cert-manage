@@ -5,11 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/adamdecaf/cert-manage/tools/_x509"
+	"github.com/adamdecaf/cert-manage/tools/file"
 )
 
 const (
@@ -53,7 +52,7 @@ func printCertsInTable(certs []*x509.Certificate) {
 		rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", c1, c2, c3, c4, c5, c6)
 	}
 
-	sort.Sort(iStringSlice(rows))
+	file.SortNames(rows)
 	for i := range rows {
 		fmt.Fprintln(w, rows[i])
 	}
@@ -102,10 +101,3 @@ func printCertsToStdout(certs []*x509.Certificate) {
 		}
 	}
 }
-
-// IStringSlice is a case-insensitive string sorting implementation
-type iStringSlice []string
-
-func (p iStringSlice) Len() int           { return len(p) }
-func (p iStringSlice) Less(i, j int) bool { return strings.ToLower(p[i]) < strings.ToLower(p[j]) }
-func (p iStringSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }

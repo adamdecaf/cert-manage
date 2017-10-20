@@ -4,6 +4,8 @@ package store
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -11,6 +13,47 @@ import (
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 )
+
+func TestStoreDarwin__Backup(t *testing.T) {
+	dir, err := getCertManageDir()
+	if err != nil {
+		t.Error(err)
+	}
+	namesBefore, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	s := platform()
+	err = s.Backup()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// check we added one backup file
+	namesAfter, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(namesAfter)-len(namesBefore) != 1 {
+		t.Errorf("before=%d, after=%d", len(namesBefore), len(namesAfter))
+	}
+
+	// make sure backup file is non-empty
+	latest, err := getLatestBackupFile()
+	defer os.Remove(latest)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fi, err := os.Stat(latest)
+	if err != nil {
+		t.Error(err)
+	}
+	if fi.Size() == 0 {
+		t.Errorf("backup file %s is empty", latest)
+	}
+}
 
 // There are various locations for certificates across OSX
 // Mostly the Keychain groups the certificates (and trust policies)

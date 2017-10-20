@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/_x509"
+	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
@@ -36,6 +37,10 @@ var (
 	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
+const (
+	backupDirPerms = 0744
+)
+
 func getUserDirs() ([]string, error) {
 	u, err := user.Current()
 	if err != nil {
@@ -48,16 +53,62 @@ func getUserDirs() ([]string, error) {
 	}, nil
 }
 
+func getCertManageDir() (string, error) {
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(u.HomeDir, "/Library/cert-manage"), nil
+}
+
+func getLatestBackupFile() (string, error) {
+	dir, err := getCertManageDir()
+	if err != nil {
+		return "", err
+	}
+	fis, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	if len(fis) == 0 {
+		return "", nil
+	}
+
+	// get largest
+	file.SortFileInfos(fis)
+	latest := fis[len(fis)-1]
+	return filepath.Join(dir, latest.Name()), nil
+}
+
 type darwinStore struct{}
 
 func platform() Store {
 	return darwinStore{}
 }
 
-// TODO(adam): impl
-// - Capture `trust-settings-export` to another file
+// Backup will save off a copy of the existing trust policy
 func (s darwinStore) Backup() error {
-	return nil
+	fd, err := trustSettingsExport()
+	defer os.Remove(fd.Name())
+	if err != nil {
+		return err
+	}
+
+	// Copy the temp file somewhere safer
+	outDir, err := getCertManageDir()
+	if err != nil {
+		return err
+	}
+	filename := fmt.Sprintf("trust-backup-%d.xml", time.Now().Unix())
+	out := filepath.Join(outDir, filename)
+
+	// Copy file
+	err = os.MkdirAll(outDir, backupDirPerms)
+	if err != nil {
+		return err
+	}
+	err = file.CopyFile(fd.Name(), out)
+	return err
 }
 
 // List
@@ -92,6 +143,8 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
+// readInstalledCerts pulls certificates from the `security` cli tool that's
+// installed. This will return certificates, but not their trust status.
 func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	res := make([]*x509.Certificate, 0)
 
