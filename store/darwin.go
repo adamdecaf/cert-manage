@@ -29,7 +29,7 @@ import (
 
 var (
 	plistModDateFormat = "2006-01-02T15:04:05Z"
-	systemDirs = []string{
+	systemDirs         = []string{
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
@@ -136,11 +136,11 @@ type chiPlist struct {
 }
 
 type chiDict struct {
-	ChiData []*chiData `xml:" data,omitempty" json:"data,omitempty"`
-	ChiDate []*chiDate `xml:" date,omitempty" json:"date,omitempty"`
-	ChiDict *chiDict `xml:" dict,omitempty" json:"dict,omitempty"`
+	ChiData    []*chiData  `xml:" data,omitempty" json:"data,omitempty"`
+	ChiDate    []*chiDate  `xml:" date,omitempty" json:"date,omitempty"`
+	ChiDict    *chiDict    `xml:" dict,omitempty" json:"dict,omitempty"`
 	ChiInteger *chiInteger `xml:" integer,omitempty" json:"integer,omitempty"`
-	ChiKey []*chiKey `xml:" key,omitempty" json:"key,omitempty"`
+	ChiKey     []*chiKey   `xml:" key,omitempty" json:"key,omitempty"`
 }
 
 type chiKey struct {
