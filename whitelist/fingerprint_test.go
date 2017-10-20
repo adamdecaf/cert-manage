@@ -19,7 +19,7 @@ func TestWhitelist_fingerprint(t *testing.T) {
 		t.Fatal("Unable to read cert")
 	}
 
-	fp:= fingerprint("")
+	fp := fingerprint("")
 	if fp.Matches(*certificates[0]) {
 		t.Fatal("fp and cert shouldn't match")
 	}
