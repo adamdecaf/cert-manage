@@ -20,6 +20,7 @@ func TestWhitelist_fingerprint(t *testing.T) {
 	}
 
 	fp := fingerprint("")
+
 	if fp.Matches(*certificates[0]) {
 		t.Fatal("fp and cert shouldn't match")
 	}
