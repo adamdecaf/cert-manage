@@ -1,6 +1,10 @@
 language: go
 sudo: required
 
+os:
+  - linux
+  - osx
+
 go:
   - 1.8
   - 1.9
