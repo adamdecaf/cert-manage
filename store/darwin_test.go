@@ -20,7 +20,7 @@ func TestStoreDarwin__Backup(t *testing.T) {
 		t.Error(err)
 	}
 	namesBefore, err := ioutil.ReadDir(dir)
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		t.Error(err)
 	}
 
