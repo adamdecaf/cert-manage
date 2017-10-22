@@ -133,7 +133,7 @@ func appChoice(app *string, appfn appfn, fn fn) error {
 func exit(msg string, err error) {
 	if err != nil {
 		fmt.Println(err)
-		fs.PrintDefaults()
+		fs.Usage()
 		os.Exit(1)
 	}
 	if msg != "" {
