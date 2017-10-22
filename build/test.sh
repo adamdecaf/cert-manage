@@ -1,4 +1,27 @@
 #!/bin/bash
+set -e
+
+# Run OSX ci tests if we're on darwin
+if [[ `uname -s` == 'Darwin' ]];
+then
+    echo "== START OSX"
+    version=$(./bin/cert-manage-osx-amd64 -version)
+    echo "cert-manage ($version)"
+
+    ./bin/cert-manage-osx-amd64 -list | wc -l
+    ./bin/cert-manage-osx-amd64 -backup
+
+    # Whitelist
+    mkdir -p build/osx && cp ./testdata/globalsign-whitelist.json build/osx/whitelist.json
+    ./bin/cert-manage-osx-amd64 -whitelist -file build/osx/whitelist.json
+    ./bin/cert-manage-osx-amd64 -list | wc -l # | grep $n
+
+    # Restore
+    # TODO(adam): how to test this on travis-ci ??
+    # ./bin/cert-manage-osx-amd64 -restore
+    # ./bin/cert-manage-osx-amd64 -list | wc -l # | grep $n
+    echo "== END OSX"
+fi
 
 # Travis-ci doesn't support docker..
 # https://docs.travis-ci.com/user/docker/
