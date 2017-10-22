@@ -21,6 +21,7 @@ var (
 	list      = fs.Bool("list", false, "List certificates (by default on the system, see -app)")
 	restore   = fs.Bool("restore", false, "Restore from a given backup file, if it exists (and supported)")
 	whitelist = fs.Bool("whitelist", false, "Filter certificates according to the provided whitelist")
+	ver       = fs.Bool("version", false, "Show the version of cert-manage")
 
 	// Qualifiers
 	file = fs.String("file", "", "File to use for operation (restore, whitelist)")
@@ -40,6 +41,7 @@ COMMANDS
   -backup   Take a backup of the specified certificatestore
   -list     List the currently installed and trusted certificates
   -restore  Revert the certificate trust back to, optionally takes -file <path>
+  -version  Show the version of cert-manage
 
   Commands which require a file (via -file)
   -whitelist -file <path> Remove trust from certificates which do not match the whitelist in <path>
@@ -56,6 +58,11 @@ OUTPUT
 
 func main() {
 	fs.Parse(os.Args[1:])
+
+	// Show the version
+	if ver != nil && *ver {
+		fmt.Printf("%s\n", version)
+	}
 
 	// Perform a restore
 	// Note: This always needs to happen before -whitelist and before -backup
