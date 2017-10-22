@@ -8,20 +8,25 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strings"
 	"time"
+)
+
+const (
+	plistFilePerms = 0644
 )
 
 // parsePlist takes a reader of the xml output produced by the darwin
 // `/usr/bin/security trust-settings-export`
 // cli tool and converts it into a series of structs to then read
 //
-// After getting a `chiPlist` callers will typically want to convert into
+// After getting a `plist` callers will typically want to convert into
 // a []trustItem by calling convertToTrustItems()
-func parsePlist(in io.Reader) (chiPlist, error) {
+func parsePlist(in io.Reader) (plist, error) {
 	dec := xml.NewDecoder(in)
-	var out chiPlist
+	var out plist
 	err := dec.Decode(&out)
 	return out, err
 }
@@ -32,36 +37,36 @@ func parsePlist(in io.Reader) (chiPlist, error) {
 // 2. remove outermost ChiChidleyRoot314159 wrapper as parsing fails with it
 // 3. make `date []*date` rather than `date *date`
 
-type chiPlist struct {
+type plist struct {
 	// AttrVersion string `xml:" version,attr"  json:",omitempty"`
-	ChiDict *chiDict `xml:" dict,omitempty" json:"dict,omitempty"`
+	ChiDict *chiDict `xml:"dict,omitempty"`
 }
 
 type chiDict struct {
-	ChiData    []*chiData  `xml:" data,omitempty" json:"data,omitempty"`
-	ChiDate    []*chiDate  `xml:" date,omitempty" json:"date,omitempty"`
-	ChiDict    *chiDict    `xml:" dict,omitempty" json:"dict,omitempty"`
-	ChiInteger *chiInteger `xml:" integer,omitempty" json:"integer,omitempty"`
-	ChiKey     []*chiKey   `xml:" key,omitempty" json:"key,omitempty"`
+	ChiData    []*chiData  `xml:"data,omitempty"`
+	ChiDate    []*chiDate  `xml:"date,omitempty"`
+	ChiDict    *chiDict    `xml:"dict,omitempty"`
+	ChiInteger *chiInteger `xml:"integer,omitempty"`
+	ChiKey     []*chiKey   `xml:"key,omitempty"`
 }
 
 type chiKey struct {
-	Text string `xml:",chardata" json:",omitempty"`
+	Text string `xml:",chardata"`
 }
 
 type chiData struct {
-	Text string `xml:",chardata" json:",omitempty"`
+	Text string `xml:",chardata"`
 }
 
 type chiDate struct {
-	Text string `xml:",chardata" json:",omitempty"`
+	Text string `xml:",chardata"`
 }
 
 type chiInteger struct {
-	Text bool `xml:",chardata" json:",omitempty"`
+	Text bool `xml:",chardata"`
 }
 
-func (p chiPlist) convertToTrustItems() trustItems {
+func (p plist) convertToTrustItems() trustItems {
 	out := make([]trustItem, 0)
 
 	// TODO(adam): Add checks to make sure we're on target, and if not panic
@@ -105,4 +110,15 @@ func (p chiPlist) convertToTrustItems() trustItems {
 	}
 
 	return trustItems(out)
+}
+
+// TODO(adam): we probably need to create this manually, encoding/xml isn't
+// respecting the ordering
+// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
+func (p plist) toXmlFile(where string) error {
+	bs, err := xml.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(where, bs, plistFilePerms)
 }

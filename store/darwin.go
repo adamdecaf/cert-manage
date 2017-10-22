@@ -5,6 +5,8 @@ package store
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -218,18 +220,53 @@ func trustSettingsExport(args ...string) (*os.File, error) {
 	return fd, nil
 }
 
-// TODO(adam): impl
-// /usr/bin/security trust-settings-export
-// - Can this shell out and let the OS prompt? Otherwise we'd need to print out the command
 func (s darwinStore) Remove(wh whitelist.Whitelist) error {
+	certs, err := s.List()
+	if err != nil {
+		return err
+	}
+
+	// Keep what's whitelisted
+	kept := make([]*x509.Certificate, 0)
+	for i := range certs {
+		if wh.Matches(certs[i]) {
+			kept = append(kept, certs[i])
+		}
+	}
+
+	// Build plist xml file and restore on the system
+	trustItems := make(trustItems, 0)
+	for i := range kept {
+		if kept[i] == nil {
+			continue
+		}
+		trustItems = append(trustItems, trustItemFromCertificate(*kept[i]))
+	}
+
+	// Create temporary output file
+	f, err := ioutil.TempFile("", "cert-manage")
+	// defer os.Remove(f.Name())
+	if err != nil {
+		return err
+	}
+
+	// Write out plist file
+	err = trustItems.toPlist().toXmlFile(f.Name())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(f.Name())
 	return nil
+
+	// return s.Restore(f.Name())
 }
 
 func (s darwinStore) Restore(where string) error {
 	// Setup file to use as restore point
-	latest, _ := getLatestBackupFile()
 	if where == "" {
 		// Ignore any errors and try to set a file
+		latest, _ := getLatestBackupFile()
 		where = latest
 	}
 	if where == "" {
@@ -263,6 +300,45 @@ func (t trustItems) contains(cert *x509.Certificate) bool {
 	return false
 }
 
+func (t trustItems) toPlist() plist {
+	out := plist{}
+	// Set defaults
+	out.ChiDict = &chiDict{ChiDict: &chiDict{ChiDict: &chiDict{}}}
+	out.ChiDict.ChiKey = make([]*chiKey, 1)
+	out.ChiDict.ChiKey[0] = &chiKey{Text: "trustList"}
+
+	// TODO(adam): Need to add ?
+	// <key>trustVersion</key>
+        // <integer>1</integer>
+
+	// Add each cert, the reverse of `chiPlist.convertToTrustItems()`
+	keys := make([]*chiKey, len(t))
+	dates := make([]*chiDate, len(t))
+	max := len(t) * 2
+	data := make([]*chiData, max) // twice as many <data></data> elements
+	for i := 0; i < max; i += 2 {
+		keys[i/2] = &chiKey{Text: strings.ToUpper(t[i/2].sha1Fingerprint)}
+
+		// issuer
+		rdn := t[i/2].issuerName.ToRDNSequence()
+		bs, _ := asn1.Marshal(&rdn)
+		data[i/2] = &chiData{Text: base64.StdEncoding.EncodeToString(bs)}
+
+		// modDate
+		dates[i/2] = &chiDate{Text: t[i/2].modDate.Format(plistModDateFormat)}
+
+		// serial number
+		data[i] = &chiData{Text: base64.StdEncoding.EncodeToString(t[i/2].serialNumber)}
+	}
+
+	// Build the final result
+	out.ChiDict.ChiDict.ChiDict.ChiData = data
+	out.ChiDict.ChiDict.ChiDict.ChiDate = dates
+	out.ChiDict.ChiDict.ChiKey = keys
+
+	return out
+}
+
 // trustItem represents an entry from the plist (xml) files produced by
 // the /usr/bin/security cli tool
 type trustItem struct {
@@ -273,7 +349,17 @@ type trustItem struct {
 	serialNumber    []byte
 
 	// optional
+	// TODO(adam): needs picked up?
 	kSecTrustSettingsResult int32
+}
+
+func trustItemFromCertificate(cert x509.Certificate) trustItem {
+	return trustItem{
+		sha1Fingerprint: _x509.GetHexSHA1Fingerprint(cert),
+		issuerName:      cert.Issuer,
+		modDate:         time.Now(),
+		serialNumber:    cert.SerialNumber.Bytes(),
+	}
 }
 
 func (t trustItem) Serial() *big.Int {
