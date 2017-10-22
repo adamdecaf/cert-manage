@@ -22,14 +22,37 @@ var (
 	restore   = fs.Bool("restore", false, "Restore from a given backup file, if it exists (and supported)")
 	whitelist = fs.Bool("whitelist", false, "Filter certificates according to the provided whitelist")
 
-	// Filters
-	app  = fs.String("app", "", "Specify an application (see -list)")
+	// Qualifiers
 	file = fs.String("file", "", "File to use for operation (restore, whitelist)")
+
+	// Filters
+	app = fs.String("app", "", "Specify an application (see -list)")
 
 	// Output
 	// -count: Just output the count of trusted certs
 	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
 )
+
+func init() {
+	fs.Usage = func() {
+		fmt.Printf(`Usage of cert-manage (version %s)
+COMMANDS
+  -backup   Take a backup of the specified certificatestore
+  -list     List the currently installed and trusted certificates
+  -restore  Revert the certificate trust back to, optionally takes -file <path>
+
+  Commands which require a file (via -file)
+  -whitelist -file <path> Remove trust from certificates which do not match the whitelist in <path>
+
+FILTERS
+  Filters can be applied to the following commands: -backup, -list, -restore, -whitelist
+  -app <name> The name of an application which to perform the given command on. (Examples: chrome, java)
+
+OUTPUT
+  -format Change the output format for a given command (default: table, options: table, raw)
+`, version)
+	}
+}
 
 func main() {
 	fs.Parse(os.Args[1:])
