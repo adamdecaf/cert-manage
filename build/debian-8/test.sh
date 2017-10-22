@@ -22,7 +22,7 @@ ls -l /usr/share/ca-certificates/* | wc -l | grep 179
 ls -l /usr/share/ca-certificates.backup/* | wc -l | grep 179
 
 # Whitelist and verify
-/bin/cert-manage -whitelist /whitelist.json
+/bin/cert-manage -whitelist -file /whitelist.json
 /bin/cert-manage -list | wc -l | grep $after
 
 # Restore

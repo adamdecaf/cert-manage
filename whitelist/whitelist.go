@@ -88,7 +88,7 @@ func validWhitelistPath(path string) bool {
 	if len(path) == 0 || isFlag {
 		fmt.Printf("The given whitelist file path '%s' doesn't look correct.\n", path)
 		if isFlag {
-			fmt.Println("The path looks like a cli flag, -whitelist requires a path to the whitelist file.")
+			fmt.Println("The path looks like a cli flag, but -whitelist requires -file to the whitelist file.")
 		} else {
 			fmt.Println("The given whitelist file path is empty.")
 		}

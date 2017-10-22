@@ -14,12 +14,12 @@ $ cert-manage -list
 $ cert-manage -list -app chrome
 
 # Trim down what CA's are trusted on your system
-$ cert-manage -whitelist digicert.json
-$ cert-manage -app chrome -whitelist digicert.json
+$ cert-manage -whitelist -file digicert.json
+$ cert-manage -app chrome -whitelist -file digicert.json
 
 # Backup and Restore the current trust
 $ cert-manage -backup
-$ cert-manage -restore
+$ cert-manage -restore [-file <path>]
 ```
 
 ## Install

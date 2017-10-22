@@ -43,6 +43,6 @@ func (s windowsStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-func (s windowsStore) Restore() error {
+func (s windowsStore) Restore(where string) error {
 	return nil
 }

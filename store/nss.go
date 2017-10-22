@@ -59,7 +59,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-func (s nssStore) Restore() error {
+func (s nssStore) Restore(where string) error {
 	return nil
 }
 

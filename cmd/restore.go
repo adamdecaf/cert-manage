@@ -4,14 +4,14 @@ import (
 	"github.com/adamdecaf/cert-manage/store"
 )
 
-func RestoreForApp(app string) error {
+func RestoreForApp(app, path string) error {
 	s, err := store.ForApp(app)
 	if err != nil {
 		return err
 	}
-	return s.Restore()
+	return s.Restore(path)
 }
 
-func RestoreForPlatform() error {
-	return store.Platform().Restore()
+func RestoreForPlatform(path string) error {
+	return store.Platform().Restore(path)
 }

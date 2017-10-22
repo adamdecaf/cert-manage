@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/adamdecaf/cert-manage/cmd"
 )
@@ -19,11 +19,12 @@ var (
 	// Commands
 	backup    = fs.Bool("backup", false, "Make a backup")
 	list      = fs.Bool("list", false, "List certificates (by default on the system, see -app)")
-	restore   = fs.Bool("restore", false, "Restore from a given backup, if it exists")
-	whitelist = fs.String("whitelist", "", "Filter certificates according to the provided whitelist")
+	restore   = fs.Bool("restore", false, "Restore from a given backup file, if it exists (and supported)")
+	whitelist = fs.Bool("whitelist", false, "Filter certificates according to the provided whitelist")
 
 	// Filters
-	app = fs.String("app", "", "Specify an application (see -list)")
+	app  = fs.String("app", "", "Specify an application (see -list)")
+	file = fs.String("file", "", "File to use for operation (restore, whitelist)")
 
 	// Output
 	// -count: Just output the count of trusted certs
@@ -38,10 +39,10 @@ func main() {
 	if restore != nil && *restore {
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.RestoreForApp(a)
+				return cmd.RestoreForApp(a, *file)
 			},
 			func() error {
-				return cmd.RestoreForPlatform()
+				return cmd.RestoreForPlatform(*file)
 			})
 		exit("Restore completed successfully", err)
 	}
@@ -60,14 +61,16 @@ func main() {
 	}
 
 	// Whitelist
-	wh := strings.TrimSpace(*whitelist)
-	if whitelist != nil && wh != "" {
+	if whitelist != nil && *whitelist {
+		if *file == "" {
+			exit("", errors.New("no -file specified"))
+		}
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.WhitelistForApp(a, *whitelist, *format)
+				return cmd.WhitelistForApp(a, *file, *format)
 			},
 			func() error {
-				return cmd.WhitelistForPlatform(*whitelist, *format)
+				return cmd.WhitelistForPlatform(*file, *format)
 			})
 		exit("Whitelist completed successfully", err)
 	}
@@ -100,6 +103,7 @@ func appChoice(app *string, appfn appfn, fn fn) error {
 func exit(msg string, err error) {
 	if err != nil {
 		fmt.Println(err)
+		fs.PrintDefaults()
 		os.Exit(1)
 	}
 	if msg != "" {

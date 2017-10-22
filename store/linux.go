@@ -143,7 +143,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 	return bundleCerts()
 }
 
-func (s linuxStore) Restore() error {
+func (s linuxStore) Restore(where string) error {
 	if !file.Exists(s.ca.backup) {
 		return errors.New("No backup directory exists")
 	}

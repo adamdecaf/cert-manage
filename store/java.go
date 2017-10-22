@@ -66,7 +66,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-func (s javaStore) Restore() error {
+func (s javaStore) Restore(where string) error {
 	return nil
 }
 

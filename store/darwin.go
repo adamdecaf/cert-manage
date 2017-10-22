@@ -225,7 +225,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 }
 
 // TODO(adam): impl
-func (s darwinStore) Restore() error {
+func (s darwinStore) Restore(where string) error {
 	// /usr/bin/security trust-settings-import
 	// ^ will prompt users, so I think the 'Restore' should just be
 	// outputting what command to run and telling users to run it

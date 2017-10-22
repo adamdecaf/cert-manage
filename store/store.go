@@ -37,10 +37,13 @@ type Store interface {
 	// if a backup exists, otherwise it will attempt to bring the
 	// cert trust status to the system's default state
 	//
+	// Optionally, this can take a specific filepath to use as the
+	// restore point. This may not be supported on all stores.
+	//
 	// Note: It is strongly advised that any additional certs installed
 	// be verified are still properly installed and working after
 	// Restore() is called.
-	Restore() error
+	Restore(where string) error
 }
 
 // Platform returns a new instance of Store for the running os/platform
