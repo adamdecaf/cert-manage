@@ -10,8 +10,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-
-	"github.com/adamdecaf/cert-manage/tools/file"
 )
 
 func TestStoreDarwin__Backup(t *testing.T) {
@@ -70,17 +68,21 @@ func TestStoreDarwin__locations(t *testing.T) {
 	userDirs, _ := getUserDirs()
 	paths = append(paths, userDirs...)
 
+	count := 0
+
 	for _, p := range paths {
 		certs, err := readInstalledCerts(p)
 		if err != nil {
 			t.Errorf("%s - err=%v", p, err)
 		}
-		if len(certs) == 0 && file.Exists(p) {
-			t.Error("didn't find any certs")
+		count += len(certs)
+
+		if !debug {
+			continue
 		}
-		if debug {
-			fmt.Printf("%d certs from %s\n", len(certs), p)
-		}
+
+		// Debug info
+		fmt.Printf("%d certs from %s\n", len(certs), p)
 		out := make([]string, 0)
 		for i := range certs {
 			if certs[i].Subject.CommonName != "" {
@@ -92,10 +94,12 @@ func TestStoreDarwin__locations(t *testing.T) {
 				continue
 			}
 		}
-		if debug {
-			sort.Strings(out)
-			fmt.Printf("%s\n", strings.Join(out, "\n"))
-		}
+		sort.Strings(out)
+		fmt.Printf("%s\n", strings.Join(out, "\n"))
+	}
+
+	if count == 0 {
+		t.Errorf("Didn't find any certs from all %d paths", len(paths))
 	}
 }
 
