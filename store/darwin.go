@@ -5,6 +5,7 @@ package store
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -224,12 +225,26 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-// TODO(adam): impl
 func (s darwinStore) Restore(where string) error {
-	// /usr/bin/security trust-settings-import
-	// ^ will prompt users, so I think the 'Restore' should just be
-	// outputting what command to run and telling users to run it
-	return nil
+	// Setup file to use as restore point
+	latest, _ := getLatestBackupFile()
+	if where == "" {
+		// Ignore any errors and try to set a file
+		where = latest
+	}
+	if where == "" {
+		// No backup dir (or backup files) and no -file specified
+		return errors.New("No backup file found and -file not specified")
+	}
+	if !file.Exists(where) {
+		return errors.New("Restore file doesn't exist")
+	}
+
+	// run restore
+	args := []string{"trust-settings-import", "-d", where}
+	_, err := exec.Command("/usr/bin/security", args...).Output()
+
+	return err
 }
 
 type trustItems []trustItem
