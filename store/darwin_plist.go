@@ -7,6 +7,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"regexp"
@@ -39,30 +40,30 @@ func parsePlist(in io.Reader) (plist, error) {
 
 type plist struct {
 	// AttrVersion string `xml:" version,attr"  json:",omitempty"`
-	ChiDict *chiDict `xml:"dict,omitempty"`
+	ChiDict *dict `xml:"dict,omitempty"`
 }
 
-type chiDict struct {
-	ChiData    []*chiData  `xml:"data,omitempty"`
-	ChiDate    []*chiDate  `xml:"date,omitempty"`
-	ChiDict    *chiDict    `xml:"dict,omitempty"`
-	ChiInteger *chiInteger `xml:"integer,omitempty"`
-	ChiKey     []*chiKey   `xml:"key,omitempty"`
+type dict struct {
+	ChiData    []*data  `xml:"data,omitempty"`
+	ChiDate    []*date  `xml:"date,omitempty"`
+	ChiDict    *dict    `xml:"dict,omitempty"`
+	ChiInteger *integer `xml:"integer,omitempty"`
+	ChiKey     []*key   `xml:"key,omitempty"`
 }
 
-type chiKey struct {
+type key struct {
 	Text string `xml:",chardata"`
 }
 
-type chiData struct {
+type data struct {
 	Text string `xml:",chardata"`
 }
 
-type chiDate struct {
+type date struct {
 	Text string `xml:",chardata"`
 }
 
-type chiInteger struct {
+type integer struct {
 	Text bool `xml:",chardata"`
 }
 
@@ -114,11 +115,43 @@ func (p plist) convertToTrustItems() trustItems {
 
 // TODO(adam): we probably need to create this manually, encoding/xml isn't
 // respecting the ordering
-// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
+
 func (p plist) toXmlFile(where string) error {
-	bs, err := xml.Marshal(p)
-	if err != nil {
-		return err
+	// Due to a known limitation of encoding/xml it often doesn't
+	// follow the ordering of slices. To work around this we've decided
+	// to build the xml in a more manual fashion.
+	// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
+
+	// Write the header
+	header := []byte(`<plist><dict><key>trustList</key><dict>`)
+	itemEnd := []byte("</dict>")
+	footer := []byte(`</dict>
+  <key>trustVersion</key>
+  <integer>1</integer>
+</dict></plist>`)
+
+	// Build up the inner contents
+	out := make([]byte, 0)
+	max := len(p.ChiDict.ChiDict.ChiDict.ChiData)
+	for i := 0; i < max; i += 2 {
+		// Build tags
+		key := []byte(fmt.Sprintf("<key>%s</key>", p.ChiDict.ChiDict.ChiKey[i/2].Text))
+		issuer := []byte(fmt.Sprintf("<key>issuerName</key><data>%s</data>", p.ChiDict.ChiDict.ChiDict.ChiData[i].Text))
+		modDate := []byte(fmt.Sprintf("<key>modDate</key><date>%s</date>", p.ChiDict.ChiDict.ChiDict.ChiDate[i/2].Text))
+		serial := []byte(fmt.Sprintf("<key>serialNumber</key><data>%s</data>", p.ChiDict.ChiDict.ChiDict.ChiData[i+1].Text))
+
+		// Build item
+		inner := append(key, []byte("<dict>")...)
+		inner = append(inner, issuer...)
+		inner = append(inner, modDate...)
+		inner = append(inner, serial...)
+		inner = append(inner, itemEnd...)
+
+		// Ugh, join them all together
+		out = append(out, inner...)
 	}
-	return ioutil.WriteFile(where, bs, plistFilePerms)
+
+	// write xml file out
+	content := append(header, append(out, footer...)...)
+	return ioutil.WriteFile(where, content, plistFilePerms)
 }

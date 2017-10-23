@@ -245,23 +245,23 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 
 	// Create temporary output file
 	f, err := ioutil.TempFile("", "cert-manage")
-	// defer os.Remove(f.Name())
+	defer os.Remove(f.Name())
 	if err != nil {
 		return err
 	}
 
 	// Write out plist file
+	// TODO(adam): This needs to have set the trust settings (to Never Trust), the <array> fields lower on
 	err = trustItems.toPlist().toXmlFile(f.Name())
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(f.Name())
-	return nil
-
-	// return s.Restore(f.Name())
+	return s.Restore(f.Name())
 }
 
+// TODO(adam): This should default trust to "Use System Trust", not "Always Trust"
+// Maybe this is a change for "Backup"...?
 func (s darwinStore) Restore(where string) error {
 	// Setup file to use as restore point
 	if where == "" {
@@ -278,8 +278,8 @@ func (s darwinStore) Restore(where string) error {
 	}
 
 	// run restore
-	args := []string{"trust-settings-import", "-d", where}
-	_, err := exec.Command("/usr/bin/security", args...).Output()
+	args := []string{"/usr/bin/security", "trust-settings-import", "-d", where}
+	_, err := exec.Command("sudo", args...).Output()
 
 	return err
 }
@@ -303,36 +303,36 @@ func (t trustItems) contains(cert *x509.Certificate) bool {
 func (t trustItems) toPlist() plist {
 	out := plist{}
 	// Set defaults
-	out.ChiDict = &chiDict{ChiDict: &chiDict{ChiDict: &chiDict{}}}
-	out.ChiDict.ChiKey = make([]*chiKey, 1)
-	out.ChiDict.ChiKey[0] = &chiKey{Text: "trustList"}
+	out.ChiDict = &dict{ChiDict: &dict{ChiDict: &dict{}}}
+	out.ChiDict.ChiKey = make([]*key, 1)
+	out.ChiDict.ChiKey[0] = &key{Text: "trustList"}
 
 	// TODO(adam): Need to add ?
 	// <key>trustVersion</key>
-        // <integer>1</integer>
+	// <integer>1</integer>
 
 	// Add each cert, the reverse of `chiPlist.convertToTrustItems()`
-	keys := make([]*chiKey, len(t))
-	dates := make([]*chiDate, len(t))
+	keys := make([]*key, len(t))
+	dates := make([]*date, len(t))
 	max := len(t) * 2
-	data := make([]*chiData, max) // twice as many <data></data> elements
+	datas := make([]*data, max) // twice as many <data></data> elements
 	for i := 0; i < max; i += 2 {
-		keys[i/2] = &chiKey{Text: strings.ToUpper(t[i/2].sha1Fingerprint)}
+		keys[i/2] = &key{Text: strings.ToUpper(t[i/2].sha1Fingerprint)}
 
 		// issuer
 		rdn := t[i/2].issuerName.ToRDNSequence()
-		bs, _ := asn1.Marshal(&rdn)
-		data[i/2] = &chiData{Text: base64.StdEncoding.EncodeToString(bs)}
+		bs, _ := asn1.Marshal(rdn)
+		datas[i] = &data{Text: base64.StdEncoding.EncodeToString(bs)}
 
 		// modDate
-		dates[i/2] = &chiDate{Text: t[i/2].modDate.Format(plistModDateFormat)}
+		dates[i/2] = &date{Text: t[i/2].modDate.Format(plistModDateFormat)}
 
 		// serial number
-		data[i] = &chiData{Text: base64.StdEncoding.EncodeToString(t[i/2].serialNumber)}
+		datas[i+1] = &data{Text: base64.StdEncoding.EncodeToString(t[i/2].serialNumber)}
 	}
 
 	// Build the final result
-	out.ChiDict.ChiDict.ChiDict.ChiData = data
+	out.ChiDict.ChiDict.ChiDict.ChiData = datas
 	out.ChiDict.ChiDict.ChiDict.ChiDate = dates
 	out.ChiDict.ChiDict.ChiKey = keys
 
