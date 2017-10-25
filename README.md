@@ -24,7 +24,9 @@ $ cert-manage -restore [-file <path>]
 
 ## Install
 
-You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.
+There's no released versions yet, but to use `cert-manage` you can pull down the source code and build with `make build`. There are no external packages pulled in.
+
+~~You can download prebuilt binaries [on the releases tab](https://github.com/adamdecaf/cert-manage/releases) or compile the source after a `go get` of the repo.~~
 
 #### Platforms
 
@@ -32,6 +34,7 @@ You can download prebuilt binaries [on the releases tab](https://github.com/adam
 |----|----|
 | Alpine | 3.6 |
 | Debian | 8, 9 |
+| OSX/macOS | 10.11 |
 | Ubuntu | 16.04, 17.04 |
 
 #### Applications
