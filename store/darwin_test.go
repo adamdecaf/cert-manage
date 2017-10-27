@@ -103,6 +103,26 @@ func TestStoreDarwin__locations(t *testing.T) {
 	}
 }
 
+func TestStoreDarwin__trustSettingsExport(t *testing.T) {
+	// there's no need to pass in specific keychain files
+	fd, err := trustSettingsExport()
+	if err != nil {
+		t.Error(err)
+	}
+	st, err := fd.Stat()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if st.Size() <= 0 {
+		t.Errorf("fd.Size()=%d, expected >= 0", st.Size())
+	}
+	// cleanup
+	if err = os.Remove(fd.Name()); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestStoreDarwin__trust(t *testing.T) {
 	withPolicy, err := getCertsWithTrustPolicy()
 	if err != nil {
@@ -110,6 +130,34 @@ func TestStoreDarwin__trust(t *testing.T) {
 	}
 	if len(withPolicy) == 0 {
 		t.Error("didn't find any trust policies")
+	}
+}
+
+func TestStoreDarwin__trustItemsContains(t *testing.T) {
+	installed, err := readInstalledCerts(systemDirs...)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(installed) == 0 {
+		t.Errorf("len(installed)=%d", len(installed),)
+	}
+
+	// just find a cert in the trust items
+	found := false
+	for i := range installed {
+		if installed[i] == nil {
+			continue
+		}
+
+		item := trustItemFromCertificate(*installed[i])
+		items := trustItems([]trustItem{item})
+		found = items.contains(installed[i])
+		if found {
+			break
+		}
+	}
+	if !found {
+		t.Error("no installed cert found in trust items")
 	}
 }
 
