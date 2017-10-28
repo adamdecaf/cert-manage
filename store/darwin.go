@@ -171,17 +171,18 @@ func getCertsWithTrustPolicy() (trustItems, error) {
 // returns an os.File for the plist file written
 //
 // Note: Callers are expected to cleanup the file handler
-func trustSettingsExport(args ...string) (*os.File, error) {
+func trustSettingsExport() (*os.File, error) {
 	// Create temp file for plist output
 	fd, err := ioutil.TempFile("", "trust-settings")
 	if err != nil {
 		return nil, err
 	}
 
-	// build up args
-	args = append([]string{
-		"trust-settings-export", "-s", fd.Name(),
-	}, args...)
+	// build up command arguments
+	args := append([]string{
+		"trust-settings-export",
+		"-d", fd.Name(),
+	})
 
 	// run command
 	_, err = exec.Command("/usr/bin/security", args...).Output()
@@ -390,9 +391,8 @@ func (t trustItem) String() string {
 	return fmt.Sprintf("SHA1 Fingerprint: %s\n %s (%s)\n modDate: %s\n serialNumber: %d", t.sha1Fingerprint, name, country, modDate, t.Serial())
 }
 
-// parsePlist takes a reader of the xml output produced by the darwin
-// `/usr/bin/security trust-settings-export`
-// cli tool and converts it into a series of structs to then read
+// parsePlist takes a reader of the xml output produced by trustSettingsExport()
+// and converts it into a series of structs to then read
 //
 // After getting a `plist` callers will typically want to convert into
 // a []trustItem by calling convertToTrustItems()
