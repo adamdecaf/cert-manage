@@ -60,7 +60,9 @@ func platform() Store {
 // Backup will save off a copy of the existing trust policy
 func (s darwinStore) Backup() error {
 	fd, err := trustSettingsExport()
-	defer os.Remove(fd.Name())
+	if fd != nil {
+		defer os.Remove(fd.Name())
+	}
 	if err != nil {
 		return err
 	}
