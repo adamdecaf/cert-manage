@@ -65,7 +65,7 @@ func TestStoreDarwin__locations(t *testing.T) {
 	paths := make([]string, 0)
 	paths = append(paths, systemDirs...)
 
-	userDirs, _ := getUserDirs()
+	userDirs, _ := getUserKeychainPaths()
 	paths = append(paths, userDirs...)
 
 	count := 0

@@ -257,8 +257,7 @@ func (s darwinStore) Restore(where string) error {
 	return err
 }
 
-// TODO(adam): In Go 1.9.2 the login keychains are loaded via SystemCertPool()
-func getUserDirs() ([]string, error) {
+func getUserKeychainPaths() ([]string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return nil, err
