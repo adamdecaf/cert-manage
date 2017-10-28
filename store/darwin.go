@@ -17,7 +17,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -30,7 +29,7 @@ import (
 
 var (
 	plistModDateFormat = "2006-01-02T15:04:05Z"
-	systemDirs         = []string{
+	systemKeychains    = []string{
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
@@ -60,11 +59,11 @@ func platform() Store {
 // Backup will save off a copy of the existing trust policy
 func (s darwinStore) Backup() error {
 	fd, err := trustSettingsExport()
-	if fd != nil {
-		defer os.Remove(fd.Name())
-	}
 	if err != nil {
 		return err
+	}
+	if fd != nil {
+		defer os.Remove(fd.Name())
 	}
 
 	// Copy the temp file somewhere safer
@@ -81,6 +80,7 @@ func (s darwinStore) Backup() error {
 		return err
 	}
 	err = file.CopyFile(fd.Name(), out)
+
 	return err
 }
 
@@ -89,7 +89,11 @@ func (s darwinStore) Backup() error {
 // Note: Currently we are ignoring the login keychain. This is done because those certs are
 // typically modified by the user (or an application the user trusts).
 func (s darwinStore) List() ([]*x509.Certificate, error) {
-	installed, err := readInstalledCerts(systemDirs...)
+	uchains, err := getUserKeychainPaths()
+	if err != nil {
+		return nil, err
+	}
+	installed, err := readInstalledCerts(append(systemKeychains, uchains...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,18 +106,54 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 		fmt.Printf("%d installed, %d with policy\n", len(installed), len(trustItems))
 	}
 
+	// If there's a trust policy verify it, otherwise don't bother.
 	kept := make([]*x509.Certificate, 0)
 	for i := range installed {
-		if installed[i] == nil {
-			continue
-		}
+		// If we've got a policy only keep cert if it's still trusted
 		if trustItems.contains(installed[i]) {
-			kept = append(kept, installed[i])
+			trusted := certTrustedWithSystem(installed[i])
+			if trusted {
+				kept = append(kept, installed[i])
+			}
+			if debug {
+				fmt.Printf("%s trust status after verify-cert: %v\n", _x509.GetHexSHA256Fingerprint(*installed[i]), trusted)
+			}
 			continue
+		} else {
+			// If there's no explicit policy assume it's trusted
+			kept = append(kept, installed[i])
 		}
 	}
-
 	return kept, nil
+}
+
+// certTrustedWithSystem calls out to `verify-cert` of the `security` cli tool
+// to check if a certificate is still trusted, this comes about when a custom policy
+// has been applied typically by the user.
+func certTrustedWithSystem(cert *x509.Certificate) bool {
+	if cert == nil {
+		return false
+	}
+	tmp, err := ioutil.TempFile("", "verify-cert")
+	if err != nil {
+		if debug {
+			fmt.Printf("error creating temp file for verify-cert: err=%v\n", err)
+		}
+		return false
+	}
+	defer os.Remove(tmp.Name())
+
+	// write pem block somewhere and shell out
+	err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
+	if err != nil {
+		if debug {
+			fmt.Printf("error writing cert to tempfile, err=%v\n", err)
+		}
+		return false
+	}
+
+	cmd := exec.Command("/usr/bin/security", "verify-cert", "-L", "-l", "-c", tmp.Name())
+	return nil == cmd.Run()
 }
 
 // readInstalledCerts pulls certificates from the `security` cli tool that's
@@ -138,8 +178,12 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 			continue
 		}
 		add := true
+		sig := _x509.GetHexSHA256Fingerprint(*c)
 		for i := range res {
-			if reflect.DeepEqual(c.Signature, res[i].Signature) {
+			if res[i] == nil {
+				continue
+			}
+			if sig == _x509.GetHexSHA256Fingerprint(*res[i]) {
 				add = false
 				break
 			}
@@ -175,7 +219,7 @@ func trustSettingsExport() (*os.File, error) {
 	// Create temp file for plist output
 	fd, err := ioutil.TempFile("", "trust-settings")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating trust-settings-export temp file: %v", err)
 	}
 
 	// build up command arguments
@@ -185,9 +229,13 @@ func trustSettingsExport() (*os.File, error) {
 	})
 
 	// run command
-	_, err = exec.Command("/usr/bin/security", args...).Output()
+	cmd := exec.Command("/usr/bin/security", args...)
+	_, err = cmd.Output()
 	if err != nil {
-		return nil, err
+		if debug {
+			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+		}
+		return nil, fmt.Errorf("error running `security trust-settings-export`: %v", err)
 	}
 
 	return fd, nil
@@ -218,9 +266,14 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 
 	// Create temporary output file
 	f, err := ioutil.TempFile("", "cert-manage")
-	defer os.Remove(f.Name())
 	if err != nil {
 		return err
+	}
+	// show plist file if we're in debug mode, otherwise cleanup
+	if debug {
+		fmt.Printf("darwin.Remove() plist file: %s\n", f.Name())
+	} else {
+		defer os.Remove(f.Name())
 	}
 
 	// Write out plist file
@@ -313,6 +366,75 @@ func (t trustItems) contains(cert *x509.Certificate) bool {
 	return false
 }
 
+var (
+	// TODO(adam): Filter this down to just the SSL setting, by default
+	dontTrustSettings = []byte(whitespaceReplacer.Replace(`<key>trustSettings</key><array>
+<dict>
+  <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+  <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAED</data>
+  <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147408896</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAED</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEI</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147408872</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEI</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEJ</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEL</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEM</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEO</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEP</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEQ</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEU</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEC</data>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict>
+<dict>
+ <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
+ <key>kSecTrustSettingsResult</key><integer>3</integer>
+</dict></array>`))
+)
+
 func (t trustItems) toXmlFile(where string) error {
 	// Due to a known limitation of encoding/xml it often doesn't
 	// follow the ordering of slices. To work around this we've decided
@@ -348,6 +470,7 @@ func (t trustItems) toXmlFile(where string) error {
 		inner = append(inner, issuer...)
 		inner = append(inner, modDate...)
 		inner = append(inner, serial...)
+		inner = append(inner, dontTrustSettings...)
 		inner = append(inner, itemEnd...)
 
 		// Ugh, join them all together
@@ -451,6 +574,11 @@ type integer struct {
 	Text bool `xml:",chardata"`
 }
 
+var (
+	nonContentRegex    = regexp.MustCompile(`[^a-zA-Z0-9\+\/=]*`)
+	whitespaceReplacer = strings.NewReplacer("\t", "", "\n", "", " ", "", "\r", "")
+)
+
 func (p plist) convertToTrustItems() trustItems {
 	out := make([]trustItem, 0)
 
@@ -461,11 +589,8 @@ func (p plist) convertToTrustItems() trustItems {
 		item.sha1Fingerprint = strings.ToLower(p.ChiDict.ChiDict.ChiKey[i/2].Text)
 
 		// trim whitespace
-		r := regexp.MustCompile(`[^a-zA-Z0-9\+\/=]*`)
-		r2 := strings.NewReplacer("\t", "", "\n", "", " ", "", "\r", "")
-
-		s1 := r2.Replace(r.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i].Text, ""))
-		s2 := r2.Replace(r.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i+1].Text, ""))
+		s1 := whitespaceReplacer.Replace(nonContentRegex.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i].Text, ""))
+		s2 := whitespaceReplacer.Replace(nonContentRegex.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i+1].Text, ""))
 
 		bs1, _ := base64.StdEncoding.DecodeString(s1)
 		bs2, _ := base64.StdEncoding.DecodeString(s2)

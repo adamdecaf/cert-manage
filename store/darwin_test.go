@@ -3,6 +3,7 @@
 package store
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,6 +12,18 @@ import (
 	"strings"
 	"testing"
 )
+
+func TestStoreDarwin__SystemCertPool(t *testing.T) {
+	if !debug {
+		t.Skip("skipping SystemCertPool() test")
+	}
+
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("%d from Go's SystemCertPool()\n", len(pool.Subjects()))
+}
 
 func TestStoreDarwin__Backup(t *testing.T) {
 	dir, err := getCertManageDir()
@@ -63,7 +76,7 @@ func TestStoreDarwin__locations(t *testing.T) {
 
 	// Show the difference between the various keychains
 	paths := make([]string, 0)
-	paths = append(paths, systemDirs...)
+	paths = append(paths, systemKeychains...)
 
 	userDirs, _ := getUserKeychainPaths()
 	paths = append(paths, userDirs...)
@@ -134,7 +147,7 @@ func TestStoreDarwin__trust(t *testing.T) {
 }
 
 func TestStoreDarwin__trustItemsContains(t *testing.T) {
-	installed, err := readInstalledCerts(systemDirs...)
+	installed, err := readInstalledCerts(systemKeychains...)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +186,7 @@ func TestStoreDarwin__plistParsing(t *testing.T) {
 	}
 
 	trustItems := pl.convertToTrustItems()
-	if len(trustItems) != 4 {
+	if len(trustItems) != 5 {
 		t.Errorf("got %d trust items parsed", len(trustItems))
 	}
 
@@ -202,6 +215,11 @@ func TestStoreDarwin__plistParsing(t *testing.T) {
  CN=DigiNotar Root CA (NL)
  modDate: 2015-12-05T01:31:48Z
  serialNumber: 122067666349187366727678587394970725697`, trustItems[3], t)
+
+	compare(`SHA1 Fingerprint: ccab0ea04c2301d6697bdd379fcd12eb24e3949d
+ CN=AddTrust Class 1 CA Root (SE)
+ modDate: 2017-10-27T15:10:39Z
+ serialNumber: 1`, trustItems[4], t)
 }
 
 func TestStoreDarwin__plistGeneration(t *testing.T) {
