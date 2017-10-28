@@ -38,7 +38,7 @@ func init() {
 	fs.Usage = func() {
 		fmt.Printf(`Usage of cert-manage (version %s)
 COMMANDS
-  -backup   Take a backup of the specified certificatestore
+  -backup   Take a backup of the specified certificate store
   -list     List the currently installed and trusted certificates
   -restore  Revert the certificate trust back to, optionally takes -file <path>
   -version  Show the version of cert-manage
