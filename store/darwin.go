@@ -225,7 +225,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 
 	// Write out plist file
 	// TODO(adam): This needs to have set the trust settings (to Never Trust), the <array> fields lower on
-	err = trustItems.toPlist().toXmlFile(f.Name())
+	err = trustItems.toXmlFile(f.Name())
 	if err != nil {
 		return err
 	}
@@ -313,39 +313,50 @@ func (t trustItems) contains(cert *x509.Certificate) bool {
 	return false
 }
 
-func (t trustItems) toPlist() plist {
-	out := plist{}
-	// Set defaults
-	out.ChiDict = &dict{ChiDict: &dict{ChiDict: &dict{}}}
-	out.ChiDict.ChiKey = make([]*key, 1)
-	out.ChiDict.ChiKey[0] = &key{Text: "trustList"}
+func (t trustItems) toXmlFile(where string) error {
+	// Due to a known limitation of encoding/xml it often doesn't
+	// follow the ordering of slices. To work around this we've decided
+	// to build the xml in a more manual fashion.
+	// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
 
-	// Add each cert, the reverse of `chiPlist.convertToTrustItems()`
-	keys := make([]*key, len(t))
-	dates := make([]*date, len(t))
-	max := len(t) * 2
-	datas := make([]*data, max) // twice as many <data></data> elements
-	for i := 0; i < max; i += 2 {
-		keys[i/2] = &key{Text: strings.ToUpper(t[i/2].sha1Fingerprint)}
+	// Write the header
+	header := []byte(`<plist><dict><key>trustList</key><dict>`)
+	itemEnd := []byte("</dict>")
+	footer := []byte(`</dict>
+  <key>trustVersion</key>
+  <integer>1</integer>
+</dict></plist>`)
 
-		// issuer
-		rdn := t[i/2].issuerName.ToRDNSequence()
+	// Build up the inner contents
+	out := make([]byte, 0)
+	for i := 0; i < len(t); i += 1 {
+		key := []byte(fmt.Sprintf("<key>%s</key>", strings.ToUpper(t[i].sha1Fingerprint)))
+
+		// issuerName
+		rdn := t[i].issuerName.ToRDNSequence()
 		bs, _ := asn1.Marshal(rdn)
-		datas[i] = &data{Text: base64.StdEncoding.EncodeToString(bs)}
+		issuer := []byte(fmt.Sprintf("<key>issuerName</key><data>%s</data>", base64.StdEncoding.EncodeToString(bs)))
 
 		// modDate
-		dates[i/2] = &date{Text: t[i/2].modDate.Format(plistModDateFormat)}
+		modDate := []byte(fmt.Sprintf("<key>modDate</key><date>%s</date>", t[i].modDate.Format(plistModDateFormat)))
 
-		// serial number
-		datas[i+1] = &data{Text: base64.StdEncoding.EncodeToString(t[i/2].serialNumber)}
+		// serialNumber
+		serial := []byte(fmt.Sprintf("<key>serialNumber</key><data>%s</data>", base64.StdEncoding.EncodeToString(t[i].serialNumber)))
+
+		// Build item
+		inner := append(key, []byte("<dict>")...)
+		inner = append(inner, issuer...)
+		inner = append(inner, modDate...)
+		inner = append(inner, serial...)
+		inner = append(inner, itemEnd...)
+
+		// Ugh, join them all together
+		out = append(out, inner...)
 	}
 
-	// Build the final result
-	out.ChiDict.ChiDict.ChiDict.ChiData = datas
-	out.ChiDict.ChiDict.ChiDict.ChiDate = dates
-	out.ChiDict.ChiDict.ChiKey = keys
-
-	return out
+	// write xml file out
+	content := append(header, append(out, footer...)...)
+	return ioutil.WriteFile(where, content, plistFilePerms)
 }
 
 // trustItem represents an entry from the plist (xml) files produced by
@@ -390,6 +401,10 @@ func (t trustItem) String() string {
 	return fmt.Sprintf("SHA1 Fingerprint: %s\n %s (%s)\n modDate: %s\n serialNumber: %d", t.sha1Fingerprint, name, country, modDate, t.Serial())
 }
 
+func (t trustItem) equal(other trustItem) bool {
+	return t.sha1Fingerprint == other.sha1Fingerprint
+}
+
 // parsePlist takes a reader of the xml output produced by trustSettingsExport()
 // and converts it into a series of structs to then read
 //
@@ -413,11 +428,11 @@ type plist struct {
 }
 
 type dict struct {
-	ChiData    []*data  `xml:"data,omitempty"`
-	ChiDate    []*date  `xml:"date,omitempty"`
-	ChiDict    *dict    `xml:"dict,omitempty"`
-	ChiInteger *integer `xml:"integer,omitempty"`
-	ChiKey     []*key   `xml:"key,omitempty"`
+	ChiData    []*data    `xml:"data,omitempty"`
+	ChiDate    []*date    `xml:"date,omitempty"`
+	ChiDict    *dict      `xml:"dict,omitempty"`
+	ChiInteger []*integer `xml:"integer,omitempty"`
+	ChiKey     []*key     `xml:"key,omitempty"`
 }
 
 type key struct {
@@ -478,44 +493,4 @@ func (p plist) convertToTrustItems() trustItems {
 	}
 
 	return trustItems(out)
-}
-
-func (p plist) toXmlFile(where string) error {
-	// Due to a known limitation of encoding/xml it often doesn't
-	// follow the ordering of slices. To work around this we've decided
-	// to build the xml in a more manual fashion.
-	// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
-
-	// Write the header
-	header := []byte(`<plist><dict><key>trustList</key><dict>`)
-	itemEnd := []byte("</dict>")
-	footer := []byte(`</dict>
-  <key>trustVersion</key>
-  <integer>1</integer>
-</dict></plist>`)
-
-	// Build up the inner contents
-	out := make([]byte, 0)
-	max := len(p.ChiDict.ChiDict.ChiDict.ChiData)
-	for i := 0; i < max; i += 2 {
-		// Build tags
-		key := []byte(fmt.Sprintf("<key>%s</key>", p.ChiDict.ChiDict.ChiKey[i/2].Text))
-		issuer := []byte(fmt.Sprintf("<key>issuerName</key><data>%s</data>", p.ChiDict.ChiDict.ChiDict.ChiData[i].Text))
-		modDate := []byte(fmt.Sprintf("<key>modDate</key><date>%s</date>", p.ChiDict.ChiDict.ChiDict.ChiDate[i/2].Text))
-		serial := []byte(fmt.Sprintf("<key>serialNumber</key><data>%s</data>", p.ChiDict.ChiDict.ChiDict.ChiData[i+1].Text))
-
-		// Build item
-		inner := append(key, []byte("<dict>")...)
-		inner = append(inner, issuer...)
-		inner = append(inner, modDate...)
-		inner = append(inner, serial...)
-		inner = append(inner, itemEnd...)
-
-		// Ugh, join them all together
-		out = append(out, inner...)
-	}
-
-	// write xml file out
-	content := append(header, append(out, footer...)...)
-	return ioutil.WriteFile(where, content, plistFilePerms)
 }

@@ -139,7 +139,7 @@ func TestStoreDarwin__trustItemsContains(t *testing.T) {
 		t.Error(err)
 	}
 	if len(installed) == 0 {
-		t.Errorf("len(installed)=%d", len(installed),)
+		t.Errorf("len(installed)=%d", len(installed))
 	}
 
 	// just find a cert in the trust items
@@ -164,21 +164,22 @@ func TestStoreDarwin__trustItemsContains(t *testing.T) {
 func TestStoreDarwin__plistParsing(t *testing.T) {
 	f, err := os.Open("../testdata/darwin_plist.xml")
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
+	defer f.Close()
 	pl, err := parsePlist(f)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	trustItems := pl.convertToTrustItems()
 	if len(trustItems) != 4 {
-		t.Fatalf("got %d trust items parsed", len(trustItems))
+		t.Errorf("got %d trust items parsed", len(trustItems))
 	}
 
 	compare := func(answer string, item trustItem, t *testing.T) {
 		if item.String() != answer {
-			t.Errorf("%d didn't match", item.Serial())
+			t.Errorf("%d didn't match\n%s", item.Serial(), item.String())
 		}
 	}
 
@@ -201,4 +202,54 @@ func TestStoreDarwin__plistParsing(t *testing.T) {
  CN=DigiNotar Root CA (NL)
  modDate: 2015-12-05T01:31:48Z
  serialNumber: 122067666349187366727678587394970725697`, trustItems[3], t)
+}
+
+func TestStoreDarwin__plistGeneration(t *testing.T) {
+	// read, parse and generate an identical plist file
+	f1, err := os.Open("../testdata/darwin_plist.xml")
+	if err != nil {
+		t.Error(err)
+	}
+	defer f1.Close()
+	pl1, err := parsePlist(f1)
+	if err != nil {
+		t.Error(err)
+	}
+	t1 := pl1.convertToTrustItems()
+
+	// generate the list back
+	tmp, err := ioutil.TempFile("", "plist-gen-cycle")
+	if err != nil {
+		t.Error(err)
+	}
+	err = t1.toXmlFile(tmp.Name())
+	if err != nil {
+		t.Error(err)
+	}
+
+	// load the generated xml
+	f2, err := os.Open(tmp.Name())
+	if err != nil {
+		t.Error(err)
+	}
+	defer f2.Close()
+	pl2, err := parsePlist(f2)
+	if err != nil {
+		t.Error(err)
+	}
+	t2 := pl2.convertToTrustItems()
+
+	// compare
+	if len(t1) != len(t2) {
+		t.Fatalf("len(t1)=%d, len(t2)=%d, t2=%s", len(t1), len(t2), tmp.Name())
+	}
+	// assume ordering is consistent
+	for i := range t1 {
+		if !t1[i].equal(t2[i]) {
+			t.Fatalf("t1[%d] != t2[%d]\n%s\n\n%s\n", i, i, t1[i].String(), t2[i].String())
+		}
+	}
+
+	// cleanup
+	os.Remove(tmp.Name())
 }
