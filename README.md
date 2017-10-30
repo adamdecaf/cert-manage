@@ -125,4 +125,10 @@ You can test out a specific platform with commands like `make run platform=alpin
 
 - [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
 - [MSylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
+- [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
+
+## Related Documentation / Websites
+
+- [CACert Wiki](http://wiki.cacert.org/CAcert)
+- [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
