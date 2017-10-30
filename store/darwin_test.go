@@ -28,23 +28,23 @@ func TestStoreDarwin__SystemCertPool(t *testing.T) {
 func TestStoreDarwin__Backup(t *testing.T) {
 	dir, err := getCertManageDir()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	namesBefore, err := ioutil.ReadDir(dir)
 	if err != nil && !os.IsNotExist(err) {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	s := platform()
 	err = s.Backup()
-	if err != nil {
-		t.Error(err)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
 	}
 
 	// check we added one backup file
 	namesAfter, err := ioutil.ReadDir(dir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(namesAfter)-len(namesBefore) != 1 {
 		t.Errorf("before=%d, after=%d", len(namesBefore), len(namesAfter))
@@ -54,12 +54,12 @@ func TestStoreDarwin__Backup(t *testing.T) {
 	latest, err := getLatestBackupFile()
 	defer os.Remove(latest)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	fi, err := os.Stat(latest)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if fi.Size() == 0 {
 		t.Errorf("backup file %s is empty", latest)
@@ -120,11 +120,11 @@ func TestStoreDarwin__trustSettingsExport(t *testing.T) {
 	// there's no need to pass in specific keychain files
 	fd, err := trustSettingsExport()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	st, err := fd.Stat()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if st.Size() <= 0 {
@@ -139,7 +139,7 @@ func TestStoreDarwin__trustSettingsExport(t *testing.T) {
 func TestStoreDarwin__trust(t *testing.T) {
 	withPolicy, err := getCertsWithTrustPolicy()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(withPolicy) == 0 {
 		t.Error("didn't find any trust policies")
@@ -149,7 +149,7 @@ func TestStoreDarwin__trust(t *testing.T) {
 func TestStoreDarwin__trustItemsContains(t *testing.T) {
 	installed, err := readInstalledCerts(systemKeychains...)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(installed) == 0 {
 		t.Errorf("len(installed)=%d", len(installed))
@@ -177,12 +177,12 @@ func TestStoreDarwin__trustItemsContains(t *testing.T) {
 func TestStoreDarwin__plistParsing(t *testing.T) {
 	f, err := os.Open("../testdata/darwin_plist.xml")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer f.Close()
 	pl, err := parsePlist(f)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	trustItems := pl.convertToTrustItems()
@@ -226,34 +226,34 @@ func TestStoreDarwin__plistGeneration(t *testing.T) {
 	// read, parse and generate an identical plist file
 	f1, err := os.Open("../testdata/darwin_plist.xml")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer f1.Close()
 	pl1, err := parsePlist(f1)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	t1 := pl1.convertToTrustItems()
 
 	// generate the list back
 	tmp, err := ioutil.TempFile("", "plist-gen-cycle")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	err = t1.toXmlFile(tmp.Name())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// load the generated xml
 	f2, err := os.Open(tmp.Name())
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	defer f2.Close()
 	pl2, err := parsePlist(f2)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	t2 := pl2.convertToTrustItems()
 
