@@ -11,7 +11,8 @@ import (
 )
 
 // Docs:
-// - https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
+// https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
+// https://social.technet.microsoft.com/wiki/contents/articles/31633.microsoft-trusted-root-program-requirements.aspx
 
 type windowsStore struct{}
 
