@@ -55,7 +55,7 @@ func Platform() Store {
 func ForApp(app string) (Store, error) {
 	switch strings.ToLower(app) {
 	case "chrome":
-		return NssStore(), nil
+		return ChromeStore(), nil
 	case "firefox":
 		return NssStore(), nil
 	case "java":
