@@ -43,6 +43,9 @@ const (
 	plistFilePerms = 0644
 )
 
+// Docs
+// https://www.apple.com/certificateauthority/ca_program.html
+
 // darwinStore represents the structure of a `store.Store`, but for the darwin (OSX and
 // macOS) platform.
 //
@@ -278,6 +281,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 
 	// Write out plist file
 	// TODO(adam): This needs to have set the trust settings (to Never Trust), the <array> fields lower on
+	// https://github.com/ntkme/security-trust-settings-tools/blob/master/security-trust-settings-blacklist/main.m#L10
 	err = trustItems.toXmlFile(f.Name())
 	if err != nil {
 		return err
