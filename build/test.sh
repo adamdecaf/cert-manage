@@ -13,7 +13,7 @@ then
 
     # Whitelist
     mkdir -p build/osx && cp ./testdata/globalsign-whitelist.json build/osx/whitelist.json
-    ./bin/cert-manage-osx-amd64 -whitelist -file build/osx/whitelist.json
+    # ./bin/cert-manage-osx-amd64 -whitelist -file build/osx/whitelist.json
     ./bin/cert-manage-osx-amd64 -list | wc -l # | grep $n
 
     # Restore
