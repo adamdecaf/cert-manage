@@ -26,10 +26,12 @@ import (
 //   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
 //   - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
 
-type nssStore struct{}
-
-func NssStore() Store {
-	return nssStore{}
+type nssStore struct {
+	// paths represent the fs locations where cert8.db are stored
+	// In the case of an app like Firefox this would be looking in the following locations:
+	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
+	// The expected result is a slice of directories that can be passed into certutil's -d option
+	paths []cert8db
 }
 
 func (s nssStore) Backup() error {
@@ -62,8 +64,11 @@ func (s nssStore) Backup() error {
 // Return one cert (PEM)
 // /usr/local/opt/nss/bin/certutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
 func (s nssStore) List() ([]*x509.Certificate, error) {
-	path := cert8db(`/Users/adam/Library/Application Support/Firefox/Profiles/rrdlhe7o.default`)
-	items, err := cutil.listCertsFromDB(path)
+	if len(s.paths) == 0 {
+		return nil, errors.New("no firefox (default) profile discovered")
+	}
+
+	items, err := cutil.listCertsFromDB(s.paths[0])
 	if err != nil {
 		return nil, err
 	}

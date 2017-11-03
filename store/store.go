@@ -61,7 +61,7 @@ func ForApp(app string) (Store, error) {
 	case "chrome":
 		return ChromeStore(), nil
 	case "firefox":
-		return NssStore(), nil
+		return FirefoxStore(), nil
 	case "java":
 		return JavaStore(), nil
 	default:
