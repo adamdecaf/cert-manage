@@ -33,9 +33,6 @@ var (
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
-
-	// internal options
-	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
 const (

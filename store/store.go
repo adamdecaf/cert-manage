@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/whitelist"
@@ -11,6 +12,9 @@ import (
 
 var (
 	ErrNoBackupMade = errors.New("unable to make backup of store")
+
+	// internal options
+	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
 // Store represents a certificate store (often called 'pool') and has
