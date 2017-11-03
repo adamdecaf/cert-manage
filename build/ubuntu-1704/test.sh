@@ -46,7 +46,7 @@ then
 fi
 echo "firefox was forced to quit, code=\$code"
 set -e
-/bin/cert-manage -list -app firefox | wc -l | grep 6
+/bin/cert-manage -list -app firefox | wc -l | grep -E [56]
 
 echo "Finished"
 EOF
