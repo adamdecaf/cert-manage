@@ -14,10 +14,6 @@ import (
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
-// Users of NSS
-// Chrome: Linux
-// Firefox: Darwin, Linux, Windows
-
 // Docs:
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/certutil
@@ -25,6 +21,14 @@ import (
 // - https://www.chromium.org/Home/chromium-security/root-ca-policy
 //   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
 //   - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
+
+var (
+	cutil = certutil{
+		execPaths: []string{
+			"/usr/local/opt/nss/bin/certutil", // darwin
+		},
+	}
+)
 
 type nssStore struct {
 	// paths represent the fs locations where cert8.db are stored
@@ -34,35 +38,18 @@ type nssStore struct {
 	paths []cert8db
 }
 
+// TODO(adam): impl
+// we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
 	return nil
 }
 
-// TODO(adam): this needs to accept an "nssType": firefox, thunderbird, etc
-// which will let it figure out how better to list the contents from cert8.db
+// List returns the installed (and trusted) certificates contained in a NSS cert8.db file
 //
-// TODO(adam): We'll need to discover the nss install (and bin/) location
-// for whatever platform we're on.
-//
-// dir='/Users/adam/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
-// $ /usr/local/opt/nss/bin/certutil -L -d "$dir" | grep banno
-// banno_ca                                                     CT,C,C
-//
-// Listing certs
+// To list certificates with the NSS `certutil` tool the following would be ran
 // $ /usr/local/opt/nss/bin/certutil -L -d "$dir"
 //
-// Certificate Nickname                                         Trust Attributes
-//                                                              SSL,S/MIME,JAR/XPI
-//
-// USERTrust RSA Certification Authority                        ,,
-// Microsoft IT SSL SHA2                                        ,,
-// SSL.com High Assurance CA                                    ,,
-// DigiCert SHA2 Extended Validation Server CA                  ,,
-// Amazon Root CA 1                                             ,,
-// ..
-//
-// Return one cert (PEM)
-// /usr/local/opt/nss/bin/certutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
+// Note: `dir` represents a directory path which contains a cert8.db file
 func (s nssStore) List() ([]*x509.Certificate, error) {
 	if len(s.paths) == 0 {
 		return nil, errors.New("no firefox (default) profile discovered")
@@ -72,17 +59,6 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// debug for now
-	// for i := range items {
-	// 	fmt.Printf("trust: %s\n", items[i].trustAttrs)
-	// 	for j := range items[i].certs {
-	// 		fmt.Printf(" %d, %s, %s\n",
-	// 			items[i].certs[j].SerialNumber,
-	// 			items[i].certs[j].Subject.Organization,
-	// 			items[i].certs[j].Subject.OrganizationalUnit)
-	// 	}
-	// }
 
 	kept := make([]*x509.Certificate, 0)
 	for i := range items {
@@ -103,17 +79,10 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
+// TODO(adam): impl
 func (s nssStore) Restore(where string) error {
 	return nil
 }
-
-var (
-	cutil = certutil{
-		execPaths: []string{
-			"/usr/local/opt/nss/bin/certutil", // darwin
-		},
-	}
-)
 
 // cert8db represents a fs path for a cert8.db file
 type cert8db string
