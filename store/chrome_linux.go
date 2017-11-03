@@ -2,9 +2,24 @@
 
 package store
 
-// TODO(adam): impl
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
 func chromeCert8Locations() []string {
-	return nil
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		if debug {
+			fmt.Println("unable to find user's home dir")
+		}
+		return nil
+	}
+
+	return []string{
+		filepath.Join(uhome, ".pki/nssdb"),
+	}
 }
 
 // On linux chrome uses NSS
