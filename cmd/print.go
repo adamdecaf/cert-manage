@@ -18,6 +18,11 @@ const (
 // PrintCerts outputs the slice of certificates in `format` to stdout
 // Format can be 'table' and any other value will output them in more detail
 func printCerts(certs []*x509.Certificate, format string) {
+	if len(certs) == 0 {
+		fmt.Println("No certififcates to display")
+		os.Exit(1)
+	}
+
 	if format == "table" {
 		printCertsInTable(certs)
 	} else {
