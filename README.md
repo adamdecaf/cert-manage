@@ -113,6 +113,10 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 - [WoSign and WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
 - [Visa](https://groups.google.com/d/msg/mozilla.dev.security.policy/NNV3zvX43vE/rae9kNkWAgAJ)
 
+There have also been crazy modifications done by other software components/vendors, which don't relate to secure x509 communication.
+
+- Savitech USB audio drivers [install a new root CA certificate](https://www.kb.cert.org/vuls/id/446847)
+
 ## Building / Developing
 
 TODO(adam): these are wrong/out of date
