@@ -30,6 +30,9 @@ var (
 			"/usr/local/opt/nss/bin/certutil", // darwin
 		},
 	}
+
+	// We're only going to support the current version (cert8.db)
+	// https://wiki.mozilla.org/NSS_Shared_DB#Where_we_are_today
 	cert8Filename = "cert8.db"
 )
 
