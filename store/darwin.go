@@ -65,9 +65,7 @@ func (s darwinStore) Backup() error {
 	if err != nil {
 		return err
 	}
-	if fd != nil {
-		defer os.Remove(fd.Name())
-	}
+	defer os.Remove(fd.Name())
 
 	// Copy the temp file somewhere safer
 	outDir, err := getCertManageDir()
@@ -201,10 +199,10 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 
 func getCertsWithTrustPolicy() (trustItems, error) {
 	fd, err := trustSettingsExport()
-	defer os.Remove(fd.Name())
 	if err != nil {
 		return nil, err
 	}
+	defer os.Remove(fd.Name())
 
 	plist, err := parsePlist(fd)
 	if err != nil {
