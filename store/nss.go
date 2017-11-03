@@ -69,11 +69,22 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	}
 
 	// debug for now
-	for i := range items {
-		fmt.Println(items[i])
-	}
+	// for i := range items {
+	// 	fmt.Printf("trust: %s\n", items[i].trustAttrs)
+	// 	for j := range items[i].certs {
+	// 		fmt.Printf(" %d, %s, %s\n",
+	// 			items[i].certs[j].SerialNumber,
+	// 			items[i].certs[j].Subject.Organization,
+	// 			items[i].certs[j].Subject.OrganizationalUnit)
+	// 	}
+	// }
 
-	return nil, nil
+	kept := make([]*x509.Certificate, 0)
+	for i := range items {
+		// TODO(adam): We should inspect the `items[i].trustAttrs` here
+		kept = append(kept, items[i].certs...)
+	}
+	return kept, nil
 }
 
 // TODO(adam): impl
@@ -133,10 +144,10 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 
 	args := []string{
 		"-L",
-		"-d", fmt.Sprintf(`'%s'`, string(path)),
+		"-d", string(path),
 	}
 	cmd := exec.Command(expath, args...)
-	fmt.Println(cmd.Args)
+
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -144,9 +155,9 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 
 	err = cmd.Run()
 	if err != nil {
-		// if debug {
-		fmt.Println(stderr.String())
-		// }
+		if debug {
+			fmt.Printf("Command was:\n %s", strings.Join(cmd.Args, " "))
+		}
 		return nil, err
 	}
 
@@ -167,7 +178,10 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 		// convert the line into a cert8Item
 		nick, trust := c.parseCert8Item(line)
 		if nick == "" || trust == "" {
-			break
+			if err == io.EOF {
+				break
+			}
+			continue // skip blank lines (headers are returned here as blank)
 		}
 		certs, err := c.readCertificatesForNick(path, nick)
 		if err != nil {
@@ -190,10 +204,9 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 func (c certutil) parseCert8Item(line string) (nick string, trust string) {
 	line = strings.TrimSpace(line)
 
-	if strings.Contains(line, "Certificate Nickname") {
-		return
-	}
-	if strings.Contains(line, "SSL,S/MIME,JAR/XPI") {
+	if len(line) == 0 ||
+		strings.Contains(line, "Certificate Nickname") ||
+		strings.Contains(line, "SSL,S/MIME,JAR/XPI") {
 		return
 	}
 
@@ -203,8 +216,8 @@ func (c certutil) parseCert8Item(line string) (nick string, trust string) {
 	// Symantec Class 3 Extended Validation SHA256 SSL CA           CT,C,C
 	split := strings.Split(line, " ")
 
-	nick = strings.Join(split[:len(split)-1], " ")
-	trust = split[len(split)-1:][0] // last
+	nick = strings.TrimSpace(strings.Join(split[:len(split)-1], " "))
+	trust = strings.TrimSpace(split[len(split)-1:][0]) // last
 
 	return
 }
@@ -218,17 +231,20 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 
 	args := []string{
 		"-L",
-		"-d", fmt.Sprintf(`'%s'`, string(path)),
-		"-n", fmt.Sprintf("'%s'", nick),
 		"-a",
+		"-d", string(path),
+		// "-n", fmt.Sprintf(`'%s'`, nick),
+		"-n", nick,
 	}
 	cmd := exec.Command(expath, args...)
-	fmt.Println(cmd.Args)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 
 	err = cmd.Run()
 	if err != nil {
+		if debug {
+			fmt.Printf("Command was:\n %s", strings.Join(cmd.Args, " "))
+		}
 		return nil, err
 	}
 
