@@ -20,16 +20,14 @@ func Exists(path string) bool {
 	return err == nil
 }
 
-// IsExecutable checks if a given path exists, is a file, not a symlink, and has its
-// executable bit set
-// TODO(adam): impl
+// IsExecutable checks if a given path exists, is a file, not a symlink, and has
+// its owner's executable bit set
 func IsExecutable(path string) bool {
-	// s, err := os.Stat(path)
-	// if err != nil {
-	// 	return false
-	// }
-	// s.Mode()
-	return true
+	s, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return s.Mode()&0100 == 0100
 }
 
 // MirrorDir will take a `src` directory and mirror it exactly under `dst` location.
