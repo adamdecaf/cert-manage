@@ -1,7 +1,8 @@
 package store
 
 import (
-	"os/user"
+	"fmt"
+	"os"
 	"path/filepath"
 )
 
@@ -9,13 +10,17 @@ import (
 // The idea of tihs slice is to generalize over randomly named directories
 // (how firefox names profiles) and handle user-specific filepaths
 func ffCert8Locations() []string {
-	u, err := user.Current()
-	if err != nil {
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		if debug {
+			fmt.Println("unable to find user's home dir")
+		}
 		return nil
 	}
 
 	return []string{
-		filepath.Join(u.HomeDir, "/Library/Application Support/Firefox/Profiles/*.default"), // darwin
+		filepath.Join(uhome, ".mozilla/firefox/*.default"),                              // Linux
+		filepath.Join(uhome, "/Library/Application Support/Firefox/Profiles/*.default"), // darwin
 	}
 }
 

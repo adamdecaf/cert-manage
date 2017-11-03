@@ -2,11 +2,11 @@
 
 linux: linux_amd64
 linux_amd64:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o bin/cert-manage-linux-amd64 github.com/adamdecaf/cert-manage
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/cert-manage-linux-amd64 github.com/adamdecaf/cert-manage
 
 osx: osx_amd64
 osx_amd64:
-	GOOS=darwin GOARCH=amd64 go build -o bin/cert-manage-osx-amd64 github.com/adamdecaf/cert-manage
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/cert-manage-osx-amd64 github.com/adamdecaf/cert-manage
 
 win: win_64
 win_64:

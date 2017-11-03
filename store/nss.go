@@ -27,7 +27,8 @@ import (
 var (
 	cutil = certutil{
 		execPaths: []string{
-			"/usr/local/opt/nss/bin/certutil", // darwin
+			"/usr/local/opt/nss/bin/certutil", // Darwin
+			"/usr/bin/certutil",               // Linux
 		},
 	}
 
@@ -45,6 +46,14 @@ type nssStore struct {
 }
 
 func collectNssSuggestions(sugs []string) []cert8db {
+	if debug {
+		if len(sugs) == 0 {
+			fmt.Println("no cert8.db paths suggested")
+			return nil
+		}
+		fmt.Printf("suggestions: %s\n", strings.Join(sugs, ", "))
+	}
+
 	kept := make([]cert8db, 0)
 	for i := range sugs {
 		// Glob and find a cert8.db file
@@ -67,7 +76,11 @@ func collectNssSuggestions(sugs []string) []cert8db {
 }
 
 func containsCert8db(p string) bool {
-	s, err := os.Stat(filepath.Join(p, cert8Filename))
+	where := filepath.Join(p, cert8Filename)
+	if debug {
+		fmt.Println(where)
+	}
+	s, err := os.Stat(where)
 	if err != nil {
 		if debug {
 			fmt.Println(err.Error())
@@ -91,7 +104,7 @@ func (s nssStore) Backup() error {
 // Note: `dir` represents a directory path which contains a cert8.db file
 func (s nssStore) List() ([]*x509.Certificate, error) {
 	if len(s.paths) == 0 {
-		return nil, errors.New("no firefox (default) profile discovered")
+		return nil, errors.New("unable to find NSS db directory")
 	}
 
 	items, err := cutil.listCertsFromDB(s.paths[0])

@@ -11,6 +11,7 @@ cat > main <<EOF
 #!/bin/sh
 set -e
 
+echo "Platform tests"
 # Verify we're starting with the correct number of certs
 /bin/cert-manage -list | wc -l | grep $total
 
@@ -28,6 +29,21 @@ ls -l /usr/share/ca-certificates.backup/* | wc -l | grep $total
 # Restore
 /bin/cert-manage -restore
 /bin/cert-manage -list | wc -l | grep $total
+
+## Firefox
+echo "Firefox tests"
+set +e
+timeout 10s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
+code=\$?
+if [ "\$code" -ne "124" ];
+then
+  exit \$code
+fi
+echo "firefox was forced to quit, code=\$code"
+set -e
+/bin/cert-manage -list -app firefox | wc -l | grep 6
+
+echo "Finished"
 EOF
 
 chmod +x main

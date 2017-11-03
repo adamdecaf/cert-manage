@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -312,23 +311,23 @@ func (s darwinStore) Restore(where string) error {
 }
 
 func getUserKeychainPaths() ([]string, error) {
-	u, err := user.Current()
-	if err != nil {
-		return nil, err
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		return nil, errors.New("unable to find user's home dir")
 	}
 
 	return []string{
-		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain"),
-		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain-db"),
+		filepath.Join(uhome, "/Library/Keychains/login.keychain"),
+		filepath.Join(uhome, "/Library/Keychains/login.keychain-db"),
 	}, nil
 }
 
 func getCertManageDir() (string, error) {
-	u, err := user.Current()
-	if err != nil {
-		return "", err
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		return "", errors.New("unable to find user's home dir")
 	}
-	return filepath.Join(u.HomeDir, "/Library/cert-manage"), nil
+	return filepath.Join(uhome, "/Library/cert-manage"), nil
 }
 
 func getLatestBackupFile() (string, error) {
