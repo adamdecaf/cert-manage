@@ -62,6 +62,17 @@ func (s nssStore) Backup() error {
 // Return one cert (PEM)
 // /usr/local/opt/nss/bin/certutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
 func (s nssStore) List() ([]*x509.Certificate, error) {
+	path := cert8db(`/Users/adam/Library/Application Support/Firefox/Profiles/rrdlhe7o.default`)
+	items, err := cutil.listCertsFromDB(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// debug for now
+	for i := range items {
+		fmt.Println(items[i])
+	}
+
 	return nil, nil
 }
 
@@ -83,7 +94,7 @@ func (s nssStore) Restore(where string) error {
 var (
 	cutil = certutil{
 		execPaths: []string{
-			"/usr/local/opt/nss/bin/certutil",
+			"/usr/local/opt/nss/bin/certutil", // darwin
 		},
 	}
 )
@@ -91,9 +102,10 @@ var (
 // cert8db represents a fs path for a cert8.db file
 type cert8db string
 
-// certWithTrust represents an x509 Certificate with the NSS trust attributes
-type certWithTrust struct {
-	cert        *x509.Certificate
+// cert8Item represents an x509 Certificate with the NSS trust attributes
+type cert8Item struct {
+	certs []*x509.Certificate
+	// TODO(adam): this will probably need better thought out
 	trustAttrs string
 }
 
@@ -113,20 +125,28 @@ func (c certutil) getExecPath() (string, error) {
 
 // Emulates the following
 // /usr/local/opt/nss/bin/certutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
-func (c certutil) readNssCertNicks(path cert8db) ([]string, error) {
+func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{"-L", "-d", string(path)}
-
+	args := []string{
+		"-L",
+		"-d", fmt.Sprintf(`'%s'`, string(path)),
+	}
 	cmd := exec.Command(expath, args...)
+	fmt.Println(cmd.Args)
 	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	err = cmd.Run()
 	if err != nil {
+		// if debug {
+		fmt.Println(stderr.String())
+		// }
 		return nil, err
 	}
 
@@ -136,68 +156,74 @@ func (c certutil) readNssCertNicks(path cert8db) ([]string, error) {
 	// Certificate Nickname                                         Trust Attributes
 	// SSL,S/MIME,JAR/XPI
 	//
-	var line string
-	nicks := make([]string, 0)
+	items := make([]cert8Item, 0)
 	for {
-		// Quit if the last error was io.EOF (we're done)
-		if err != nil && err == io.EOF {
+		// read next line
+		line, err := stdout.ReadString(byte('\n'))
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+
+		// convert the line into a cert8Item
+		nick, trust := c.parseCert8Item(line)
+		if nick == "" || trust == "" {
 			break
 		}
-
-		line, err = stdout.ReadString(byte('\n'))
-		if err != nil && err != io.EOF {
-			return nil, err // quit early if we ran into a non-EOF error
-		}
-
-		// TODO(adam): we actually need to split this apart into 'Certificate Nickname' and 'Trust Attributes'
-
-		line = strings.TrimSpace(line)
-		if strings.Contains(line, "Certificate Nickname") || strings.Contains(line, "SSL,S/MIME,JAR/XPI") {
-			continue
-		}
-
-		// Pull out the 'Certificate Nickname'
-		// Examples:
-		// DigiCert SHA2 Extended Validation Server CA                  ,,
-		// Symantec Class 3 Extended Validation SHA256 SSL CA           CT,C,C
-		//
-		split := strings.Split(line, " ")
-		nick := strings.Join(split[:len(split)-1], " ")
-		nicks = append(nicks, nick)
-	}
-
-	return nicks, nil
-}
-
-// readCertificatesWithTrust
-func (c certutil) readCertificatesWithTrust(path cert8db) ([]certWithTrust, error) {
-	nicks, err := c.readNssCertNicks(path)
-	if err != nil {
-		return nil, err
-	}
-
-	// todo(adam): Collect the
-	certs := make([]*x509.Certificate, 0)
-	for i := range nicks {
-		cs, err := c.readCertificates(path, nicks[i])
+		certs, err := c.readCertificatesForNick(path, nick)
 		if err != nil {
 			return nil, err
 		}
-		certs = append(certs, cs...)
+		items = append(items, cert8Item{
+			certs:      certs,
+			trustAttrs: trust,
+		})
+
+		// quit if we hit the end
+		if err == io.EOF {
+			break
+		}
 	}
 
-	return certs, nil
+	return items, nil
+}
+
+func (c certutil) parseCert8Item(line string) (nick string, trust string) {
+	line = strings.TrimSpace(line)
+
+	if strings.Contains(line, "Certificate Nickname") {
+		return
+	}
+	if strings.Contains(line, "SSL,S/MIME,JAR/XPI") {
+		return
+	}
+
+	// Pull out the 'Certificate Nickname'
+	// Examples:
+	// DigiCert SHA2 Extended Validation Server CA                  ,,
+	// Symantec Class 3 Extended Validation SHA256 SSL CA           CT,C,C
+	split := strings.Split(line, " ")
+
+	nick = strings.Join(split[:len(split)-1], " ")
+	trust = split[len(split)-1:][0] // last
+
+	return
 }
 
 // /usr/local/opt/nss/bin/certutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
-func (c certutil) readCertificates(path cert8db, nick string) ([]*x509.Certificate, error) {
+func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Certificate, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{"-L", "-d", string(path), "-n", fmt.Sprintf("'%s'", nick), "-a"}
+	args := []string{
+		"-L",
+		"-d", fmt.Sprintf(`'%s'`, string(path)),
+		"-n", fmt.Sprintf("'%s'", nick),
+		"-a",
+	}
 	cmd := exec.Command(expath, args...)
+	fmt.Println(cmd.Args)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 

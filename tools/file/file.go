@@ -24,7 +24,12 @@ func Exists(path string) bool {
 // executable bit set
 // TODO(adam): impl
 func IsExecutable(path string) bool {
-	return false
+	// s, err := os.Stat(path)
+	// if err != nil {
+	// 	return false
+	// }
+	// s.Mode()
+	return true
 }
 
 // MirrorDir will take a `src` directory and mirror it exactly under `dst` location.
