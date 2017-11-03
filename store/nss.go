@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
@@ -28,6 +30,7 @@ var (
 			"/usr/local/opt/nss/bin/certutil", // darwin
 		},
 	}
+	cert8Filename = "cert8.db"
 )
 
 type nssStore struct {
@@ -36,6 +39,39 @@ type nssStore struct {
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
 	// The expected result is a slice of directories that can be passed into certutil's -d option
 	paths []cert8db
+}
+
+func collectNssSuggestions(sugs []string) []cert8db {
+	kept := make([]cert8db, 0)
+	for i := range sugs {
+		// Glob and find a cert8.db file
+		matches, err := filepath.Glob(sugs[i])
+		if err != nil {
+			if debug {
+				fmt.Println(err.Error())
+			}
+			return nil
+		}
+
+		// Accumulate dirs with a cert8.db file
+		for j := range matches {
+			if containsCert8db(matches[j]) {
+				kept = append(kept, cert8db(matches[j]))
+			}
+		}
+	}
+	return kept
+}
+
+func containsCert8db(p string) bool {
+	s, err := os.Stat(filepath.Join(p, cert8Filename))
+	if err != nil {
+		if debug {
+			fmt.Println(err.Error())
+		}
+		return false
+	}
+	return s.Size() > 0
 }
 
 // TODO(adam): impl

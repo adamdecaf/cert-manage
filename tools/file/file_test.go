@@ -17,7 +17,7 @@ func TestFile__isExecutable(t *testing.T) {
 		t.Error(err)
 	}
 	if !IsExecutable(ex) {
-		t.Error("go should be executable: %s", ex)
+		t.Errorf("go should be executable: %s", ex)
 	}
 }
 
