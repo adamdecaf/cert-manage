@@ -110,14 +110,10 @@ func (s nssStore) Backup() error {
 		return errors.New("No NSS cert db paths found")
 	}
 
+	// Copy file into backup location
 	src := filepath.Join(string(s.paths[0]), cert8Filename)
 	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
-
-	err = file.CopyFile(src, dst)
-	if err != nil {
-		return err
-	}
-	return nil
+	return file.CopyFile(src, dst)
 }
 
 // List returns the installed (and trusted) certificates contained in a NSS cert8.db file
@@ -155,7 +151,23 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s nssStore) Restore(where string) error {
-	return nil
+	dir, err := getCertManageDir(s.nssType)
+	if err != nil {
+		return err
+	}
+	src, err := getLatestBackupFile(dir)
+	if err != nil {
+		return err
+	}
+
+	// Check we've got a restore point
+	if len(s.paths) == 0 {
+		return errors.New("No directory to restore NSS cert db into")
+	}
+
+	// Restore the latest backup file
+	dst := filepath.Join(string(s.paths[0]), cert8Filename)
+	return file.CopyFile(src, dst)
 }
 
 // cert8db represents a fs path for a cert8.db file

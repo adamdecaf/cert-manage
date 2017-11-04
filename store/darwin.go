@@ -303,8 +303,13 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 func (s darwinStore) Restore(where string) error {
 	// Setup file to use as restore point
 	if where == "" {
+		dir, err := getCertManageDir(darwinBackupDir)
+		if err != nil {
+			return err
+		}
+
 		// Ignore any errors and try to set a file
-		latest, _ := getLatestBackupFile()
+		latest, _ := getLatestBackupFile(dir)
 		where = latest
 	}
 	if where == "" {
@@ -338,25 +343,6 @@ func getUserKeychainPaths() ([]string, error) {
 		filepath.Join(uhome, "/Library/Keychains/login.keychain"),
 		filepath.Join(uhome, "/Library/Keychains/login.keychain-db"),
 	}, nil
-}
-
-func getLatestBackupFile() (string, error) {
-	dir, err := getCertManageDir(darwinBackupDir)
-	if err != nil {
-		return "", err
-	}
-	fis, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-	if len(fis) == 0 {
-		return "", nil
-	}
-
-	// get largest
-	file.SortFileInfos(fis)
-	latest := fis[len(fis)-1]
-	return filepath.Join(dir, latest.Name()), nil
 }
 
 // trustItems wraps up a collection of trustItems parsed from the `security` cli tool
