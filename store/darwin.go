@@ -250,7 +250,7 @@ func trustSettingsExport() (*os.File, error) {
 		// We are following what Go's source code does for building the x509.CertPool on darwin.
 		// In that code all errors stemming from the `security` cli are ignored, but here we will
 		// optionally log those (in debug) for analysis.
-		return nil, nil
+		return fd, nil
 	}
 	return fd, nil
 }
