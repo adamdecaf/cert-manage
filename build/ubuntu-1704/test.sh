@@ -53,6 +53,22 @@ set -e
 /bin/cert-manage -backup -app firefox
 ls -1 ~/.cert-manage/firefox | wc -l | grep 1
 
+# Restore that backup
+for db in \$(ls -1 ~/.mozilla/firefox/*.default/cert8.db | head -n1)
+do
+    # Force a difference we'd notice after a restore happens
+    echo a > "\$db"
+    /bin/cert-manage -restore -app firefox
+
+    # Check we actaully restored a file
+    size=\$(stat --printf="%s" ~/.mozilla/firefox/*.default/cert8.db)
+    if [ ! "\$size" -gt "2" ];
+    then
+        echo "failed to restore firefox cert8.db properly"
+        exit 1
+    fi
+done
+
 echo "Finished"
 EOF
 
