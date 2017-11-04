@@ -2,11 +2,11 @@
 
 **Note** This tool is still under its initial development. Expect things to break and change.
 
-Every computer connected to the internet today has a series of "certificte stores" contained within it. Those stores are crutial to encrypted communication everywhere. There's a problem however in that the state of these isn't great.
+Every computer connected to the internet today has a series of "certificate stores" contained within it. Those stores are crucial to encrypted communication everywhere. There's a problem however in that the state of these isn't great.
 
-The underlying [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) technology leaves a lot lacking in terms of management, proactive countermeasures and misuse. Any system you buy will come pre-loaded with trust of countless CA's, which means that your encrypted connections are at risk of evesdropping even if only one CA creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
+The underlying [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) technology leaves a lot lacking in terms of management, pro-active countermeasures and misuse. Any system you buy will come pre-loaded with trust of countless CA's, which means that your encrypted connections are at risk of eavesdropping even if only one CA creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
 
-Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users straightfoward control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
+Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users straightforward control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
 
 ## Install / Usage
 
@@ -70,7 +70,7 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
   - Invalid domains
     Comodo issued certs for invalid domains. In specific, `www.sb` which should not have been generated. It has since [been revoked](https://crt.sh/?id=34242572).
   - OCR to validate documents
-    OCR is a process in which algorithms try to find and understand human/computer writing in digital documents. This process is far from perfect and should only be used as a means of creating faster processes prior to human validation steps. It was found that [OCR algorithms could lead to bogus (and fradulent)](https://bugzilla.mozilla.org/show_bug.cgi?id=1311713) certificates being generated.
+    OCR is a process in which algorithms try to find and understand human/computer writing in digital documents. This process is far from perfect and should only be used as a means of creating faster processes prior to human validation steps. It was found that [OCR algorithms could lead to bogus (and fraudulent)](https://bugzilla.mozilla.org/show_bug.cgi?id=1311713) certificates being generated.
 - [CNNIC](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/)
 - DigiCert
   - [Certificate with invalid dnsName issued from Baltimore intermediate](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/5bpr9yBgaYo)
