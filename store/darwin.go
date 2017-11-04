@@ -267,12 +267,12 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	}
 
 	// Build plist xml file and restore on the system
-	trustItems := make(trustItems, 0)
+	items := make(trustItems, 0)
 	for i := range kept {
 		if kept[i] == nil {
 			continue
 		}
-		trustItems = append(trustItems, trustItemFromCertificate(*kept[i]))
+		items = append(items, trustItemFromCertificate(*kept[i]))
 	}
 
 	// Create temporary output file
@@ -290,7 +290,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// Write out plist file
 	// TODO(adam): This needs to have set the trust settings (to Never Trust), the <array> fields lower on
 	// https://github.com/ntkme/security-trust-settings-tools/blob/master/security-trust-settings-blacklist/main.m#L10
-	err = trustItems.toXmlFile(f.Name())
+	err = items.toXmlFile(f.Name())
 	if err != nil {
 		return err
 	}
