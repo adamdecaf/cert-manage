@@ -14,7 +14,9 @@ var (
 	ErrNoBackupMade = errors.New("unable to make backup of store")
 
 	// internal options
-	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
+	debug = len(os.Getenv("TRAVIS_OS_NAME")) > 0 ||
+		len(os.Getenv("DEBUG")) > 0 ||
+		strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
 // Store represents a certificate store (often called 'pool') and has
