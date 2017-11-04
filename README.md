@@ -38,11 +38,11 @@ $ cert-manage -restore [-file <path>]
 `cert-manage` offers a few features currently: List, Whitelisting and Backup/Restore. These are explained as follows:
 
 - [List](docs/features.md#List)
- - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
+  - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
 - [Whitelist](docs/features.md#Whitelisting)
- - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
+  - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
 - [Backup and Restore]()
- - Capture and revert the status of CA trust in a platform or application.
+  - Capture and revert the status of CA trust in a platform or application.
 
 #### Support
 
