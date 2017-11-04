@@ -27,6 +27,7 @@ func chromeCertdbLocations() []string {
 func ChromeStore() Store {
 	suggestions := collectNssSuggestions(chromeCertdbLocations())
 	return nssStore{
-		paths: suggestions,
+		nssType: "chrome",
+		paths:   suggestions,
 	}
 }

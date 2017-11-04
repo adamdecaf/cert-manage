@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
@@ -38,6 +39,13 @@ var (
 )
 
 type nssStore struct {
+	// nssType refers to the application using this nss cert8.db instance
+	// often multiple applications can share one db, or there are multiple
+	// cert8.db files on a system.
+	// This allows backups and restores to operate on the correct cert8.db file
+	// for a given application.
+	nssType string
+
 	// paths represent the fs locations where cert8.db are stored
 	// In the case of an app like Firefox this would be looking in the following locations:
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
@@ -92,6 +100,23 @@ func containsCert8db(p string) bool {
 
 // we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
+	dir, err := getCertManageDir(s.nssType)
+	if err != nil {
+		return err
+	}
+
+	// Only backup the first nss cert8.db path for now
+	if len(s.paths) == 0 {
+		return errors.New("No NSS cert db paths found")
+	}
+
+	src := filepath.Join(string(s.paths[0]), cert8Filename)
+	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
+
+	err = file.CopyFile(src, dst)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
