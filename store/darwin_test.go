@@ -52,10 +52,10 @@ func TestStoreDarwin__Backup(t *testing.T) {
 
 	// make sure backup file is non-empty
 	latest, err := getLatestBackupFile()
-	defer os.Remove(latest)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove(latest)
 
 	fi, err := os.Stat(latest)
 	if err != nil {
