@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+func TestFile__isExecutable(t *testing.T) {
+	if IsExecutable("testdata/example.crt") {
+		t.Error("file isn't executable")
+	}
+
+	ex, err := os.Executable()
+	if err != nil {
+		t.Error(err)
+	}
+	if !IsExecutable(ex) {
+		t.Errorf("go should be executable: %s", ex)
+	}
+}
+
 func TestFile__existsFile(t *testing.T) {
 	loc := "file-test"
 	if Exists(loc) {

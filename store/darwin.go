@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -33,9 +32,6 @@ var (
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
-
-	// internal options
-	debug = strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 )
 
 const (
@@ -65,9 +61,7 @@ func (s darwinStore) Backup() error {
 	if err != nil {
 		return err
 	}
-	if fd != nil {
-		defer os.Remove(fd.Name())
-	}
+	defer os.Remove(fd.Name())
 
 	// Copy the temp file somewhere safer
 	outDir, err := getCertManageDir()
@@ -201,10 +195,10 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 
 func getCertsWithTrustPolicy() (trustItems, error) {
 	fd, err := trustSettingsExport()
-	defer os.Remove(fd.Name())
 	if err != nil {
 		return nil, err
 	}
+	defer os.Remove(fd.Name())
 
 	plist, err := parsePlist(fd)
 	if err != nil {
@@ -315,23 +309,23 @@ func (s darwinStore) Restore(where string) error {
 }
 
 func getUserKeychainPaths() ([]string, error) {
-	u, err := user.Current()
-	if err != nil {
-		return nil, err
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		return nil, errors.New("unable to find user's home dir")
 	}
 
 	return []string{
-		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain"),
-		filepath.Join(u.HomeDir, "/Library/Keychains/login.keychain-db"),
+		filepath.Join(uhome, "/Library/Keychains/login.keychain"),
+		filepath.Join(uhome, "/Library/Keychains/login.keychain-db"),
 	}, nil
 }
 
 func getCertManageDir() (string, error) {
-	u, err := user.Current()
-	if err != nil {
-		return "", err
+	uhome := os.Getenv("HOME")
+	if uhome == "" {
+		return "", errors.New("unable to find user's home dir")
 	}
-	return filepath.Join(u.HomeDir, "/Library/cert-manage"), nil
+	return filepath.Join(uhome, "/Library/cert-manage"), nil
 }
 
 func getLatestBackupFile() (string, error) {
