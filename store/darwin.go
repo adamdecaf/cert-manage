@@ -150,7 +150,12 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	}
 
 	cmd := exec.Command("/usr/bin/security", "verify-cert", "-L", "-l", "-c", tmp.Name())
-	return nil == cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil && debug {
+		fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+		fmt.Printf("Output was: %s\n", string(out))
+	}
+	return err == nil
 }
 
 // readInstalledCerts pulls certificates from the `security` cli tool that's
@@ -161,12 +166,17 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	args := []string{"find-certificate", "-a", "-p"}
 	args = append(args, paths...)
 
-	b, err := exec.Command("/usr/bin/security", args...).Output()
+	cmd := exec.Command("/usr/bin/security", args...)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
+		if debug {
+			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Output was: %s\n", string(out))
+		}
 		return nil, err
 	}
 
-	cs, err := pem.Parse(b)
+	cs, err := pem.Parse(out)
 	if err != nil {
 		return nil, err
 	}
@@ -227,14 +237,21 @@ func trustSettingsExport() (*os.File, error) {
 
 	// run command
 	cmd := exec.Command("/usr/bin/security", args...)
-	_, err = cmd.Output()
+	out, err := cmd.CombinedOutput()
+
+	// The `security` cli will return an error if no trust settings were found. This seems to
+	// be in the case when they keychain isn't setup (or a very fresh install, e.g. CI)
 	if err != nil {
 		if debug {
 			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Output was: %s\n", string(out))
+			fmt.Printf("Error: %s\n", err.Error())
 		}
-		return nil, fmt.Errorf("error running `security trust-settings-export`: %v", err)
+		// We are following what Go's source code does for building the x509.CertPool on darwin.
+		// In that code all errors stemming from the `security` cli are ignored, but here we will
+		// optionally log those (in debug) for analysis.
+		return fd, nil
 	}
-
 	return fd, nil
 }
 
@@ -303,7 +320,13 @@ func (s darwinStore) Restore(where string) error {
 
 	// run restore
 	args := []string{"/usr/bin/security", "trust-settings-import", "-d", where}
-	_, err := exec.Command("sudo", args...).Output()
+	cmd := exec.Command("sudo", args...)
+	out, err := cmd.CombinedOutput()
+
+	if err != nil && debug {
+		fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+		fmt.Printf("Output was: %s\n", string(out))
+	}
 
 	return err
 }

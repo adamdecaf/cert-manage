@@ -32,7 +32,7 @@ cert-manage-*
 gen-whitelist-*
 build/*/whitelist.json
 build/*/main
-build/osx
+build/osx/whitelist.json
 
 # log files
 *.log
