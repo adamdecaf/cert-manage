@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
@@ -99,6 +100,23 @@ func containsCert8db(p string) bool {
 
 // we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
+	dir, err := getCertManageDir(s.nssType)
+	if err != nil {
+		return err
+	}
+
+	// Only backup the first nss cert8.db path for now
+	if len(s.paths) == 0 {
+		return errors.New("No NSS cert db paths found")
+	}
+
+	src := filepath.Join(string(s.paths[0]), cert8Filename)
+	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
+
+	err = file.CopyFile(src, dst)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
