@@ -19,6 +19,7 @@ check:
 	go fmt ./...
 
 test:
+	./build/osx/test-prep.sh
 	go test -v ./...
 
 ci: dist test
