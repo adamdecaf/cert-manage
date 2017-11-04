@@ -74,7 +74,8 @@ func MirrorDir(src, dst string) error {
 		// Create the symlink by reading the path pointed to in `src`
 		// https://stackoverflow.com/questions/18062026/resolve-symlinks-in-go/18062079
 		if item.Mode()&os.ModeSymlink != 0 {
-			final, err := os.Readlink(s)
+			var final string
+			final, err = os.Readlink(s)
 			if err != nil {
 				return err
 			}
