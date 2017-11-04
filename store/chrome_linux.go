@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func chromeCert8Locations() []string {
+func chromeCertdbLocations() []string {
 	uhome := os.Getenv("HOME")
 	if uhome == "" {
 		if debug {
@@ -25,7 +25,7 @@ func chromeCert8Locations() []string {
 // On linux chrome uses NSS
 // https://www.chromium.org/Home/chromium-security/root-ca-policy
 func ChromeStore() Store {
-	suggestions := collectNssSuggestions(chromeCert8Locations())
+	suggestions := collectNssSuggestions(chromeCertdbLocations())
 	return nssStore{
 		paths: suggestions,
 	}
