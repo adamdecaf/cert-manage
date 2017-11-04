@@ -48,6 +48,11 @@ echo "firefox was forced to quit, code=\$code"
 set -e
 /bin/cert-manage -list -app firefox | wc -l | grep -E [56]
 
+# Take a backup
+[ ! -d ~/.cert-manage/firefox ]
+/bin/cert-manage -backup -app firefox
+ls -1 ~/.cert-manage/firefox | wc -l | grep 1
+
 echo "Finished"
 EOF
 
