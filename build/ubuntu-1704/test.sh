@@ -67,6 +67,8 @@ do
         echo "failed to restore firefox cert8.db properly"
         exit 1
     fi
+
+    ls -l "\$db"
 done
 
 echo "Finished"
