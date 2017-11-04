@@ -34,7 +34,7 @@ func TestWhitelist_fingerprint(t *testing.T) {
 		t.Fatalf("fp='%s' and cert='%s' don't match, but should", fp, _x509.GetHexSHA256Fingerprint(*certificates[0]))
 	}
 
-	// TODO(adam): Support sha1 and sha256 fingerprints
+	// See: https://github.com/adamdecaf/cert-manage/issues/22
 	// fp = fingerprint("7e1874a98f")
 	// if !fp.Matches(*certificates[0]) {
 	// 	t.Fatalf("fp='%s' and cert='%s' don't match, but should", fp, _x509.GetHexSHA1Fingerprint(*certificates[0]))

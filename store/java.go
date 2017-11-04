@@ -61,7 +61,6 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-// TODO(adam): impl
 func (s javaStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }

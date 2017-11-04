@@ -90,7 +90,6 @@ func containsCert8db(p string) bool {
 	return s.Size() > 0
 }
 
-// TODO(adam): impl
 // we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
 	return nil
@@ -120,7 +119,6 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
-// TODO(adam): impl
 // $ /usr/local/opt/nss/bin/certutil -M --help
 // -M              Modify trust attributes of certificate
 //    -n cert-name      The nickname of the cert to modify
@@ -131,7 +129,6 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
-// TODO(adam): impl
 func (s nssStore) Restore(where string) error {
 	return nil
 }

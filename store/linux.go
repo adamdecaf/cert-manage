@@ -45,11 +45,6 @@ var (
 			all:    "/etc/ssl/certs/ca-certificates.crt",
 			backup: "/usr/share/ca-certificates.backup",
 		},
-		// TODO(adam): These paths aren't supported, _yet_
-		// "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
-		// "/etc/pki/tls/certs/ca-bundle.crt",                  // Fedora/RHEL 6
-		// "/etc/ssl/ca-bundle.pem",                            // OpenSUSE
-		// "/etc/pki/tls/cacert.pem",                           // OpenELEC
 	}
 )
 
