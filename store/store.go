@@ -4,11 +4,13 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
@@ -115,4 +117,25 @@ func getCertManageParentDir() string {
 		}
 	}
 	return ""
+}
+
+// getLatestBackupFile returns the "biggest" file at a given path
+//
+// This sorting is done by assuming filenames follow a pattern like
+// file-%d.ext where %d is a sortable timestamp and the filename follows
+// lexigraphical sorting. Results are sorted in descending order and the
+// first element (if exists) is returned
+func getLatestBackupFile(dir string) (string, error) {
+	fis, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	if len(fis) == 0 {
+		return "", nil
+	}
+
+	// get largest
+	file.SortFileInfos(fis)
+	latest := fis[len(fis)-1]
+	return filepath.Join(dir, latest.Name()), nil
 }
