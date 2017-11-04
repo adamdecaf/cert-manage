@@ -238,14 +238,20 @@ func trustSettingsExport() (*os.File, error) {
 	// run command
 	cmd := exec.Command("/usr/bin/security", args...)
 	out, err := cmd.CombinedOutput()
+
+	// The `security` cli will return an error if no trust settings were found. This seems to
+	// be in the case when they keychain isn't setup (or a very fresh install, e.g. CI)
 	if err != nil {
 		if debug {
 			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
 			fmt.Printf("Output was: %s\n", string(out))
+			fmt.Printf("Error: %s\n", err.Error())
 		}
-		return nil, fmt.Errorf("error running `security trust-settings-export`: %v", err)
+		// We are following what Go's source code does for building the x509.CertPool on darwin.
+		// In that code all errors stemming from the `security` cli are ignored, but here we will
+		// optionally log those (in debug) for analysis.
+		return nil, nil
 	}
-
 	return fd, nil
 }
 
