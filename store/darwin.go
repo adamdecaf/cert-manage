@@ -32,10 +32,11 @@ var (
 		"/System/Library/Keychains/SystemRootCertificates.keychain",
 		"/Library/Keychains/System.keychain",
 	}
+	// Folder under ~/Library/cert-manage/ to put backups
+	darwinBackupDir = "darwin"
 )
 
 const (
-	backupDirPerms = 0744
 	plistFilePerms = 0644
 )
 
@@ -64,7 +65,7 @@ func (s darwinStore) Backup() error {
 	defer os.Remove(fd.Name())
 
 	// Copy the temp file somewhere safer
-	outDir, err := getCertManageDir()
+	outDir, err := getCertManageDir(darwinBackupDir)
 	if err != nil {
 		return err
 	}
@@ -72,10 +73,6 @@ func (s darwinStore) Backup() error {
 	out := filepath.Join(outDir, filename)
 
 	// Copy file
-	err = os.MkdirAll(outDir, backupDirPerms)
-	if err != nil {
-		return err
-	}
 	err = file.CopyFile(fd.Name(), out)
 
 	return err
@@ -343,16 +340,8 @@ func getUserKeychainPaths() ([]string, error) {
 	}, nil
 }
 
-func getCertManageDir() (string, error) {
-	uhome := os.Getenv("HOME")
-	if uhome == "" {
-		return "", errors.New("unable to find user's home dir")
-	}
-	return filepath.Join(uhome, "/Library/cert-manage"), nil
-}
-
 func getLatestBackupFile() (string, error) {
-	dir, err := getCertManageDir()
+	dir, err := getCertManageDir(darwinBackupDir)
 	if err != nil {
 		return "", err
 	}

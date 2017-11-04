@@ -28,7 +28,7 @@ func TestStoreDarwin__SystemCertPool(t *testing.T) {
 func TestStoreDarwin__Backup(t *testing.T) {
 	t.Skip("darwin support is wip")
 
-	dir, err := getCertManageDir()
+	dir, err := getCertManageDir(darwinBackupDir)
 	if err != nil {
 		t.Fatal(err)
 	}
