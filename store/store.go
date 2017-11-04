@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/whitelist"
@@ -77,13 +78,7 @@ func ForApp(app string) (Store, error) {
 // getCertManageDir returns the fs location (always creating first) where a specific
 // store can save files into. This path is recommended for backups
 func getCertManageDir(name string) (string, error) {
-	uhome := os.Getenv("HOME")
-	if uhome == "" {
-		return "", errors.New("unable to find user's home dir")
-	}
-
-	// Setup parent dir (e.g. ~/Library/cert-manage)
-	parent := filepath.Join(uhome, "/Library/cert-manage")
+	parent := getCertManageParentDir()
 	err := os.MkdirAll(parent, os.ModeDir)
 	if err != nil {
 		return "", err
@@ -105,4 +100,19 @@ func getCertManageDir(name string) (string, error) {
 	}
 
 	return child, nil
+}
+
+func getCertManageParentDir() string {
+	// HOME works well enough across darwin, linux, and windows for now
+	uhome := strings.TrimSpace(os.Getenv("HOME"))
+	if uhome != "" {
+		// Setup parent dir
+		if runtime.GOOS == "darwin" {
+			return filepath.Join(uhome, "/Library/cert-manage")
+		}
+		if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
+			return filepath.Join(uhome, ".cert-manage")
+		}
+	}
+	return ""
 }
