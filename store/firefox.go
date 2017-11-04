@@ -27,6 +27,7 @@ func firefoxCertdbLocations() []string {
 func FirefoxStore() Store {
 	suggestions := collectNssSuggestions(firefoxCertdbLocations())
 	return nssStore{
-		paths: suggestions,
+		nssType: "firefox",
+		paths:   suggestions,
 	}
 }

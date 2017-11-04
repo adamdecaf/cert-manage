@@ -38,6 +38,13 @@ var (
 )
 
 type nssStore struct {
+	// nssType refers to the application using this nss cert8.db instance
+	// often multiple applications can share one db, or there are multiple
+	// cert8.db files on a system.
+	// This allows backups and restores to operate on the correct cert8.db file
+	// for a given application.
+	nssType string
+
 	// paths represent the fs locations where cert8.db are stored
 	// In the case of an app like Firefox this would be looking in the following locations:
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
