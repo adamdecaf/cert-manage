@@ -78,6 +78,10 @@ done
 # Verify restore
 /bin/cert-manage -list -app firefox | wc -l | grep -E [56]
 
+# Java
+echo "Java"
+/bin/cert-manage -list -app java | wc -l | grep 149
+
 echo "Finished"
 EOF
 

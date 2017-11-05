@@ -23,9 +23,8 @@ var (
 	ktool = keytool{
 		javahome: os.Getenv("JAVA_HOME"),
 		javaInstallPaths: []string{
-			"/usr/lib/jvm/",                      // Linux
+			"/etc/alternatives/java",             // Linux
 			"/Library/Java/JavaVirtualMachines/", // OSX
-			// `C:\Program Files\Java`,              // Windows
 
 		},
 		relativeKeystorePaths: []string{
@@ -71,12 +70,51 @@ type keytool struct {
 	relativeKeystorePaths []string
 }
 
+// expandSymlink takes in a symlink which refers to the `java` cli tool
+// and attempts to return the home directory for that java install
+//
+// This shows up on linux flavors of /etc/alternatives/java which helps
+// abstract over the java-$version-openjdk-$arch (or oracle) naming
+func (k keytool) expandSymlink(p string) (string, error) {
+	bin, err := os.Readlink(p)
+	if err != nil {
+		if _, ok := err.(*os.PathError); !ok {
+			// The error was something other than path related, so return it, could be bad
+			return "", err
+		}
+		return "", nil // path doesn't exist
+	}
+	if bin != "" {
+		dir := strings.TrimSuffix(bin, "bin/java")
+		if debug {
+			fmt.Printf("store/java: expanded %s to %s and stripped to %s\n", p, bin, dir)
+		}
+		return filepath.Clean(dir), nil
+	}
+	return "", nil // again, no error if we failed
+}
+
 func (k keytool) getKeystorePath() (string, error) {
 	kpath := k.javahome
 	if kpath == "" {
 		for i := range k.javaInstallPaths {
+			// Sometimes javaInstallPaths can be a symlink, if so expand it and use that
+			installPath := k.javaInstallPaths[i]
+			if debug {
+				fmt.Printf("store/java: searching %s\n", installPath)
+			}
+			dir, err := k.expandSymlink(installPath)
+			if err != nil {
+				return "", err
+			}
+			if dir != "" {
+				installPath = dir
+			}
+
+			// Check each possible relative location
 			for j := range k.relativeKeystorePaths {
-				where := filepath.Join(k.javaInstallPaths[i], k.relativeKeystorePaths[j])
+				// Check if we've got a path now
+				where := filepath.Join(installPath, k.relativeKeystorePaths[j])
 				if file.Exists(where) {
 					kpath = where
 					break
@@ -84,6 +122,9 @@ func (k keytool) getKeystorePath() (string, error) {
 			}
 			// If we've found something then quit
 			if kpath != "" {
+				if debug {
+					fmt.Printf("store/java: found kpath %s\n", kpath)
+				}
 				break
 			}
 		}
@@ -93,13 +134,16 @@ func (k keytool) getKeystorePath() (string, error) {
 			where := filepath.Join(kpath, k.relativeKeystorePaths[i])
 			if file.Exists(where) {
 				kpath = where
+				if debug {
+					fmt.Printf("store/java: found via JAVA_HOME %s\n", where)
+				}
 				break
 			}
 		}
 	}
 	// We never found a path which had a cacerts file
 	if kpath == "" {
-		return "", errors.New("Unable to find java and/or keystore path")
+		return "", errors.New("store/java: never found java and/or keystore path")
 	}
 
 	// Verify it's a non-empty file
