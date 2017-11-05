@@ -36,6 +36,10 @@ var (
 	// We're only going to support the current version (cert8.db)
 	// https://wiki.mozilla.org/NSS_Shared_DB#Where_we_are_today
 	cert8Filename = "cert8.db"
+
+	// Trust Attributes which signify "No Trust"
+	// Run `certutil -A -H` for the full list
+	trustAttrsNoTrust = "p,p,p"
 )
 
 type nssStore struct {
@@ -140,13 +144,28 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
-// $ /usr/local/opt/nss/bin/certutil -M --help
-// -M              Modify trust attributes of certificate
-//    -n cert-name      The nickname of the cert to modify
-//    -t trustargs      Set the certificate trust attributes (see -A above)
-//    -d certdir        Cert database directory (default is ~/.netscape)
-//    -P dbprefix       Cert & Key database prefix
 func (s nssStore) Remove(wh whitelist.Whitelist) error {
+	if len(s.paths) == 0 {
+		return errors.New("unable to find NSS db directory")
+	}
+
+	items, err := cutil.listCertsFromDB(s.paths[0])
+	if err != nil {
+		return err
+	}
+
+	// Remove trust from each cert if needed.
+	for i := range items {
+		if wh.MatchesAll(items[i].certs) {
+			continue
+		}
+
+		// whitelist didn't match, blacklist cert
+		err = cutil.modifyTrustAttributes(s.paths[0], items[i].nick, trustAttrsNoTrust)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -175,7 +194,9 @@ type cert8db string
 
 // cert8Item represents an x509 Certificate with the NSS trust attributes
 type cert8Item struct {
+	nick  string
 	certs []*x509.Certificate
+
 	// TODO(adam): this will probably need better thought out
 	trustAttrs string
 }
@@ -247,7 +268,9 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		items = append(items, cert8Item{
+			nick:       nick,
 			certs:      certs,
 			trustAttrs: trust,
 		})
@@ -293,7 +316,6 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 		"-L",
 		"-a",
 		"-d", string(path),
-		// "-n", fmt.Sprintf(`'%s'`, nick),
 		"-n", nick,
 	}
 	cmd := exec.Command(expath, args...)
@@ -314,4 +336,28 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 	}
 
 	return certs, nil
+}
+
+// $ /usr/local/opt/nss/bin/certutil -M -n <nick> -t <trust-args> -d <dir>
+func (c certutil) modifyTrustAttributes(path cert8db, nick, trustAttrs string) error {
+	expath, err := c.getExecPath()
+	if err != nil {
+		return err
+	}
+
+	args := []string{
+		"-M",
+		"-n", nick,
+		"-t", trustAttrs,
+		"-d", string(path),
+	}
+	cmd := exec.Command(expath, args...)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	err = cmd.Run()
+	if debug {
+		fmt.Printf("Command was: \n%s\nOutput was: \n%s\n", strings.Join(cmd.Args, " "), stdout.String())
+	}
+	return err
 }
