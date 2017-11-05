@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
@@ -55,6 +56,18 @@ type nssStore struct {
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
 	// The expected result is a slice of directories that can be passed into certutil's -d option
 	paths []cert8db
+
+	// Holds a trigger if we've made modifications (useful for triggering a "Restart app" message
+	// after we're done with modifications.
+	notify *sync.Once
+}
+
+func NssStore(nssType string, paths []cert8db) nssStore {
+	return nssStore{
+		nssType: nssType,
+		paths:   paths,
+		notify:  &sync.Once{},
+	}
 }
 
 func collectNssSuggestions(sugs []string) []cert8db {
@@ -100,6 +113,14 @@ func containsCert8db(p string) bool {
 		return false
 	}
 	return s.Size() > 0
+}
+
+// NSS apps often require being restarted to get the updated set of trustAttrs for each certificate
+func (s nssStore) notifyToRestart() {
+	s.notify.Do(func() {
+		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
+	})
+	return
 }
 
 // we should be able to backup a cert8.db file directly
@@ -161,6 +182,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 		}
 
 		// whitelist didn't match, blacklist cert
+		defer s.notifyToRestart()
 		err = cutil.modifyTrustAttributes(s.paths[0], items[i].nick, trustAttrsNoTrust)
 		if err != nil {
 			return err
@@ -183,6 +205,9 @@ func (s nssStore) Restore(where string) error {
 	if len(s.paths) == 0 {
 		return errors.New("No directory to restore NSS cert db into")
 	}
+
+	// Queue notification to restart app
+	defer s.notifyToRestart()
 
 	// Restore the latest backup file
 	dst := filepath.Join(string(s.paths[0]), cert8Filename)
