@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
@@ -36,6 +37,10 @@ var (
 	// We're only going to support the current version (cert8.db)
 	// https://wiki.mozilla.org/NSS_Shared_DB#Where_we_are_today
 	cert8Filename = "cert8.db"
+
+	// Trust Attributes which signify "No Trust"
+	// Run `certutil -A -H` for the full list
+	trustAttrsNoTrust = "p,p,p"
 )
 
 type nssStore struct {
@@ -51,6 +56,18 @@ type nssStore struct {
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
 	// The expected result is a slice of directories that can be passed into certutil's -d option
 	paths []cert8db
+
+	// Holds a trigger if we've made modifications (useful for triggering a "Restart app" message
+	// after we're done with modifications.
+	notify *sync.Once
+}
+
+func NssStore(nssType string, paths []cert8db) nssStore {
+	return nssStore{
+		nssType: nssType,
+		paths:   paths,
+		notify:  &sync.Once{},
+	}
 }
 
 func collectNssSuggestions(sugs []string) []cert8db {
@@ -98,6 +115,14 @@ func containsCert8db(p string) bool {
 	return s.Size() > 0
 }
 
+// NSS apps often require being restarted to get the updated set of trustAttrs for each certificate
+func (s nssStore) notifyToRestart() {
+	s.notify.Do(func() {
+		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
+	})
+	return
+}
+
 // we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
 	dir, err := getCertManageDir(s.nssType)
@@ -134,19 +159,36 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 
 	kept := make([]*x509.Certificate, 0)
 	for i := range items {
-		// TODO(adam): We should inspect the `items[i].trustAttrs` here
-		kept = append(kept, items[i].certs...)
+		if items[i].trustedForSSL() {
+			kept = append(kept, items[i].certs...)
+		}
 	}
 	return kept, nil
 }
 
-// $ /usr/local/opt/nss/bin/certutil -M --help
-// -M              Modify trust attributes of certificate
-//    -n cert-name      The nickname of the cert to modify
-//    -t trustargs      Set the certificate trust attributes (see -A above)
-//    -d certdir        Cert database directory (default is ~/.netscape)
-//    -P dbprefix       Cert & Key database prefix
 func (s nssStore) Remove(wh whitelist.Whitelist) error {
+	if len(s.paths) == 0 {
+		return errors.New("unable to find NSS db directory")
+	}
+
+	items, err := cutil.listCertsFromDB(s.paths[0])
+	if err != nil {
+		return err
+	}
+
+	// Remove trust from each cert if needed.
+	for i := range items {
+		if wh.MatchesAll(items[i].certs) {
+			continue
+		}
+
+		// whitelist didn't match, blacklist cert
+		defer s.notifyToRestart()
+		err = cutil.modifyTrustAttributes(s.paths[0], items[i].nick, trustAttrsNoTrust)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -165,6 +207,9 @@ func (s nssStore) Restore(where string) error {
 		return errors.New("No directory to restore NSS cert db into")
 	}
 
+	// Queue notification to restart app
+	defer s.notifyToRestart()
+
 	// Restore the latest backup file
 	dst := filepath.Join(string(s.paths[0]), cert8Filename)
 	return file.CopyFile(src, dst)
@@ -175,9 +220,30 @@ type cert8db string
 
 // cert8Item represents an x509 Certificate with the NSS trust attributes
 type cert8Item struct {
+	nick  string
 	certs []*x509.Certificate
-	// TODO(adam): this will probably need better thought out
+
+	// The 'Trust Attributes' header from `certutil -L`, this represents three usecases for
+	// x509 Certificates: SSL,S/MIME,JAR/XPI
 	trustAttrs string
+}
+
+func (c cert8Item) trustedForSSL() bool {
+	parts := strings.SplitN(c.trustAttrs, ",", 2) // We only care about the first C,.,. attribute
+	if len(parts) != 2 {
+		if debug {
+			fmt.Printf("after trustAttrs split (in %d parts): %s\n", len(parts), parts)
+		}
+		return false
+	}
+
+	// The only attribute for explicit distrust is 'p', which per the docs:
+	// 'p 	 prohibited (explicitly distrusted)'
+	//
+	// The other flags refer to sending warnings (but still trusted), user certs,
+	// or other attributes which may limit, but not explicitly remove trust
+	// in regards to SSL/TLS communication.
+	return !strings.Contains(parts[0], "p")
 }
 
 // certutil represents the NSS cli tool by the same name
@@ -247,7 +313,9 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		items = append(items, cert8Item{
+			nick:       nick,
 			certs:      certs,
 			trustAttrs: trust,
 		})
@@ -293,7 +361,6 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 		"-L",
 		"-a",
 		"-d", string(path),
-		// "-n", fmt.Sprintf(`'%s'`, nick),
 		"-n", nick,
 	}
 	cmd := exec.Command(expath, args...)
@@ -314,4 +381,28 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 	}
 
 	return certs, nil
+}
+
+// $ /usr/local/opt/nss/bin/certutil -M -n <nick> -t <trust-args> -d <dir>
+func (c certutil) modifyTrustAttributes(path cert8db, nick, trustAttrs string) error {
+	expath, err := c.getExecPath()
+	if err != nil {
+		return err
+	}
+
+	args := []string{
+		"-M",
+		"-n", nick,
+		"-t", trustAttrs,
+		"-d", string(path),
+	}
+	cmd := exec.Command(expath, args...)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+
+	err = cmd.Run()
+	if debug {
+		fmt.Printf("Command was: \n%s\nOutput was: \n%s\n", strings.Join(cmd.Args, " "), stdout.String())
+	}
+	return err
 }

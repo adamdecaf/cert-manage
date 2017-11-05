@@ -41,6 +41,16 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	return false
 }
 
+// MatchesAll checks if a given list of certificates all match against a whitelist
+func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
+	for i := range cs {
+		if !w.Matches(cs[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // Json structure in struct form
 type jsonWhitelist struct {
 	Fingerprints jsonFingerprints `json:"Fingerprints,omitempty"`

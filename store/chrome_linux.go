@@ -26,8 +26,5 @@ func chromeCertdbLocations() []string {
 // https://www.chromium.org/Home/chromium-security/root-ca-policy
 func ChromeStore() Store {
 	suggestions := collectNssSuggestions(chromeCertdbLocations())
-	return nssStore{
-		nssType: "chrome",
-		paths:   suggestions,
-	}
+	return NssStore("chrome", suggestions)
 }

@@ -53,6 +53,10 @@ set -e
 /bin/cert-manage -backup -app firefox
 ls -1 ~/.cert-manage/firefox | wc -l | grep 1
 
+# Whitelist
+/bin/cert-manage -whitelist -file /whitelist.json -app firefox
+/bin/cert-manage -list -app firefox | wc -l | grep 2
+
 # Restore that backup
 for db in \$(ls -1 ~/.mozilla/firefox/*.default/cert8.db | head -n1)
 do
@@ -70,6 +74,9 @@ do
 
     ls -l "\$db"
 done
+
+# Verify restore
+/bin/cert-manage -list -app firefox | wc -l | grep -E [56]
 
 echo "Finished"
 EOF
