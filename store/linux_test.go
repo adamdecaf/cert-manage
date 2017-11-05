@@ -13,7 +13,7 @@ func StoreLinux__cadir(t *testing.T) {
 	if !ok {
 		t.Error("error casting to linuxStore")
 	}
-	if s.ca == nil || s.ca.empty() {
+	if s.ca.empty() {
 		t.Errorf("no cadir found on platform: %s", runtime.GOOS)
 	}
 }
