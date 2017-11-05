@@ -14,6 +14,10 @@ import (
 // https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
 // https://social.technet.microsoft.com/wiki/contents/articles/31633.microsoft-trusted-root-program-requirements.aspx
 
+// Certificate store locations:
+// - https://superuser.com/questions/411909/where-is-the-certificate-folder-in-windows-7
+// - https://msdn.microsoft.com/en-us/library/windows/desktop/aa388136(v=vs.85).aspx
+
 type windowsStore struct{}
 
 func platform() Store {
