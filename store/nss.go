@@ -73,10 +73,10 @@ func NssStore(nssType string, paths []cert8db) nssStore {
 func collectNssSuggestions(sugs []string) []cert8db {
 	if debug {
 		if len(sugs) == 0 {
-			fmt.Println("no cert8.db paths suggested")
+			fmt.Println("store/nss: no cert8.db paths suggested")
 			return nil
 		}
-		fmt.Printf("suggestions: %s\n", strings.Join(sugs, ", "))
+		fmt.Printf("store/nss: suggestions: %s\n", strings.Join(sugs, ", "))
 	}
 
 	kept := make([]cert8db, 0)
@@ -85,7 +85,7 @@ func collectNssSuggestions(sugs []string) []cert8db {
 		matches, err := filepath.Glob(sugs[i])
 		if err != nil {
 			if debug {
-				fmt.Println(err.Error())
+				fmt.Printf("store/nss: %v\n", err)
 			}
 			return nil
 		}
@@ -103,13 +103,10 @@ func collectNssSuggestions(sugs []string) []cert8db {
 func containsCert8db(p string) bool {
 	where := filepath.Join(p, cert8Filename)
 	if debug {
-		fmt.Println(where)
+		fmt.Printf("store/nss: guessing cert8.db location: %s\n", where)
 	}
 	s, err := os.Stat(where)
 	if err != nil {
-		if debug {
-			fmt.Println(err.Error())
-		}
 		return false
 	}
 	return s.Size() > 0
@@ -232,7 +229,7 @@ func (c cert8Item) trustedForSSL() bool {
 	parts := strings.SplitN(c.trustAttrs, ",", 2) // We only care about the first C,.,. attribute
 	if len(parts) != 2 {
 		if debug {
-			fmt.Printf("after trustAttrs split (in %d parts): %s\n", len(parts), parts)
+			fmt.Printf("store/nss: after trustAttrs split (in %d parts): %s\n", len(parts), parts)
 		}
 		return false
 	}

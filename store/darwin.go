@@ -97,7 +97,7 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	}
 
 	if debug {
-		fmt.Printf("%d installed, %d with policy\n", len(installed), len(trustItems))
+		fmt.Printf("store/darwin: %d installed, %d with policy\n", len(installed), len(trustItems))
 	}
 
 	// If there's a trust policy verify it, otherwise don't bother.
@@ -110,7 +110,7 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 				kept = append(kept, installed[i])
 			}
 			if debug {
-				fmt.Printf("%s trust status after verify-cert: %v\n", _x509.GetHexSHA256Fingerprint(*installed[i]), trusted)
+				fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", _x509.GetHexSHA256Fingerprint(*installed[i]), trusted)
 			}
 			continue
 		} else {
@@ -131,7 +131,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	tmp, err := ioutil.TempFile("", "verify-cert")
 	if err != nil {
 		if debug {
-			fmt.Printf("error creating temp file for verify-cert: err=%v\n", err)
+			fmt.Printf("store/darwin: error creating temp file for verify-cert: err=%v\n", err)
 		}
 		return false
 	}
@@ -141,7 +141,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
 	if err != nil {
 		if debug {
-			fmt.Printf("error writing cert to tempfile, err=%v\n", err)
+			fmt.Printf("store/darwin: error writing cert to tempfile, err=%v\n", err)
 		}
 		return false
 	}

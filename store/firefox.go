@@ -13,7 +13,7 @@ func firefoxCertdbLocations() []string {
 	uhome := os.Getenv("HOME")
 	if uhome == "" {
 		if debug {
-			fmt.Println("unable to find user's home dir")
+			fmt.Println("store/firefox: unable to find user's home dir")
 		}
 		return nil
 	}
