@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestNSS_certdbDiscovery(t *testing.T) {
+func TestStoreNSS_certdbDiscovery(t *testing.T) {
 	// create a dir, add a 'cert8.db' file and verify we can discover it
 	tmp, err := ioutil.TempDir("", "nss-discovery")
 	if err != nil {
@@ -40,7 +40,7 @@ func TestNSS_certdbDiscovery(t *testing.T) {
 	}
 }
 
-func TestNSS_trustedForSSL(t *testing.T) {
+func TestStoreNSS_trustedForSSL(t *testing.T) {
 	trusted := map[string]bool{
 		// trusted attrs
 		"c,c,c": true,
