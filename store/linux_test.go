@@ -11,6 +11,6 @@ func StoreLinux__cadir(t *testing.T) {
 	// just grab the linuxStore and make sure it has a cadir member
 	s := platform()
 	if s.ca == nil || s.ca.empty() {
-		t.Error("no cadir found on platform: %s", runtime.GOOS)
+		t.Errorf("no cadir found on platform: %s", runtime.GOOS)
 	}
 }
