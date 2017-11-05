@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/adamdecaf/cert-manage/tools/_x509"
@@ -46,8 +48,8 @@ func printCertsInTable(certs []*x509.Certificate) {
 	for i := range certs {
 		fingerprint := _x509.GetHexSHA256Fingerprint(*certs[i])
 
-		c1 := certs[i].Subject.CommonName
-		c2 := certs[i].Issuer.CommonName
+		c1 := fmtPkixName(certs[i].Subject)
+		c2 := fmtPkixName(certs[i].Issuer)
 		c3 := _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm)
 		c4 := fingerprint[:fingerprintPreviewLength]
 
@@ -74,8 +76,8 @@ func printCertsToStdout(certs []*x509.Certificate) {
 		fmt.Printf("  Signature Algorithm: %s\n", certs[i].SignatureAlgorithm.String())
 		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
 		fmt.Printf("  Public Key Algorithm - %v\n", _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm))
-		fmt.Printf("  Issuer CommonName - %s, SerialNumber - %s\n", certs[i].Issuer.CommonName, certs[i].Issuer.SerialNumber)
-		fmt.Printf("  Subject CommonName - %s, SerialNumber - %s\n", certs[i].Subject.CommonName, certs[i].Subject.SerialNumber)
+		fmt.Printf("  Subject: %s\n", fmtPkixName(certs[i].Subject))
+		fmt.Printf("  Issuer: %s\n", fmtPkixName(certs[i].Issuer))
 		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
 		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
 		fmt.Printf("  MaxPathLen - %d\n", certs[i].MaxPathLen)
@@ -105,4 +107,11 @@ func printCertsToStdout(certs []*x509.Certificate) {
 			fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
 		}
 	}
+}
+
+func fmtPkixName(name pkix.Name) string {
+	if len(name.OrganizationalUnit) > 0 {
+		return fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])
+	}
+	return strings.Join(name.Organization, " ")
 }
