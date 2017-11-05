@@ -39,3 +39,23 @@ func TestNSS_certdbDiscovery(t *testing.T) {
 		t.Errorf("should have found cert8.db in %s", sugs)
 	}
 }
+
+func TestNSS_trustedForSSL(t *testing.T) {
+	trusted := map[string]bool{
+		// trusted attrs
+		"c,c,c": true,
+		",,":    true,
+		"CT,,":  true,
+		"u,,":   true,
+		"wC,,":  true,
+		// not trusted
+		"p,p,p": false,
+		"p,,":   false,
+	}
+	for attrs, answer := range trusted {
+		item := cert8Item{trustAttrs: attrs}
+		if res := item.trustedForSSL(); res != answer {
+			t.Errorf("attrs (%s), trustedForSSL()=%v should be %v", attrs, res, answer)
+		}
+	}
+}

@@ -159,8 +159,9 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 
 	kept := make([]*x509.Certificate, 0)
 	for i := range items {
-		// TODO(adam): We should inspect the `items[i].trustAttrs` here
-		kept = append(kept, items[i].certs...)
+		if items[i].trustedForSSL() {
+			kept = append(kept, items[i].certs...)
+		}
 	}
 	return kept, nil
 }
@@ -222,8 +223,27 @@ type cert8Item struct {
 	nick  string
 	certs []*x509.Certificate
 
-	// TODO(adam): this will probably need better thought out
+	// The 'Trust Attributes' header from `certutil -L`, this represents three usecases for
+	// x509 Certificates: SSL,S/MIME,JAR/XPI
 	trustAttrs string
+}
+
+func (c cert8Item) trustedForSSL() bool {
+	parts := strings.SplitN(c.trustAttrs, ",", 2) // We only care about the first C,.,. attribute
+	if len(parts) != 2 {
+		if debug {
+			fmt.Printf("after trustAttrs split (in %d parts): %s\n", len(parts), parts)
+		}
+		return false
+	}
+
+	// The only attribute for explicit distrust is 'p', which per the docs:
+	// 'p 	 prohibited (explicitly distrusted)'
+	//
+	// The other flags refer to sending warnings (but still trusted), user certs,
+	// or other attributes which may limit, but not explicitly remove trust
+	// in regards to SSL/TLS communication.
+	return !strings.Contains(parts[0], "p")
 }
 
 // certutil represents the NSS cli tool by the same name
