@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
@@ -34,6 +35,8 @@ var (
 	}
 
 	defaultKeystorePassword = "changeit"
+
+	javaCertManageDir = "java"
 )
 
 type javaStore struct{}
@@ -43,7 +46,20 @@ func JavaStore() Store {
 }
 
 func (s javaStore) Backup() error {
-	return nil
+	kpath, err := ktool.getKeystorePath()
+	if err != nil {
+		return err
+	}
+	dir, err := getCertManageDir(javaCertManageDir)
+	if err != nil {
+		return err
+	}
+
+	// Rename the file as is
+	_, filename := filepath.Split(kpath)
+	dst := filepath.Join(dir, fmt.Sprintf("%s-%d.bck", filename, time.Now().Unix()))
+
+	return file.CopyFile(kpath, dst)
 }
 
 func (s javaStore) List() ([]*x509.Certificate, error) {
@@ -55,7 +71,24 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s javaStore) Restore(where string) error {
-	return nil
+	dir, err := getCertManageDir(javaCertManageDir)
+	if err != nil {
+		return err
+	}
+	src, err := getLatestBackupFile(dir)
+	if err != nil {
+		return err
+	}
+
+	// Get destination path
+	dst, err := ktool.getKeystorePath()
+	if err != nil {
+		return err
+	}
+
+	// This sometimes requires escalated permissions because the `cacerts` file
+	// is often owned by root or have perms like: -rw-rw-r-- (which prevent global writes)
+	return file.SudoCopyFile(src, dst)
 }
 
 type keytool struct {
