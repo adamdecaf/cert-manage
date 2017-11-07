@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -62,6 +61,7 @@ func main() {
 	// Show the version
 	if ver != nil && *ver {
 		fmt.Printf("%s\n", version)
+		return
 	}
 
 	// Perform a restore
@@ -75,6 +75,7 @@ func main() {
 				return cmd.RestoreForPlatform(*file)
 			})
 		exit("Restore completed successfully", err)
+		return
 	}
 
 	// Take a backup
@@ -88,12 +89,15 @@ func main() {
 				return cmd.BackupForPlatform()
 			})
 		exit("Backup completed successfully", err)
+		return
 	}
 
 	// Whitelist
 	if whitelist != nil && *whitelist {
 		if *file == "" {
-			exit("", errors.New("no -file specified"))
+			fmt.Println("no -file specified")
+			fs.Usage()
+			return
 		}
 		err := appChoice(app,
 			func(a string) error {
@@ -103,6 +107,7 @@ func main() {
 				return cmd.WhitelistForPlatform(*file, *format)
 			})
 		exit("Whitelist completed successfully", err)
+		return
 	}
 
 	// List
@@ -115,7 +120,11 @@ func main() {
 				return cmd.ListCertsForPlatform(*format)
 			})
 		exit("", err)
+		return
 	}
+
+	// Print usage if no command was ran
+	fs.Usage()
 }
 
 type fn func() error
@@ -133,7 +142,6 @@ func appChoice(app *string, appfn appfn, fn fn) error {
 func exit(msg string, err error) {
 	if err != nil {
 		fmt.Println(err)
-		fs.Usage()
 		os.Exit(1)
 	}
 	if msg != "" {
