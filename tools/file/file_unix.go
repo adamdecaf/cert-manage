@@ -30,12 +30,22 @@ func execCopy(src, dst string) error {
 // execSudoCopy drops down to a shell in order to attempt a file copy.
 // This function assumes the paths are valid (and checked) by it's caller
 func execSudoCopy(src, dst string) error {
-	cmd := exec.Command("sudo", "cp", src, dst)
+	var cmd *exec.Cmd
+	if os.Getuid() == 0 {
+		// already root, no need to sudo
+		cmd = exec.Command("cp", src, dst)
+	} else {
+		cmd = exec.Command("sudo", "cp", src, dst)
+	}
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error copying file from '%s' to '%s', err=%v, stderr=%s", src, dst, err, stderr.String())
+		if stderr.Len() > 0 {
+			return fmt.Errorf("error copying file from '%s' to '%s', err=%v, stderr=%s", src, dst, err, stderr.String())
+		}
+		return fmt.Errorf("error copying file from '%s' to '%s', err=%v", src, dst, err)
 	}
 	return nil
 }
