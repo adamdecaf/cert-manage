@@ -132,3 +132,28 @@ func CopyFile(src, dst string) error {
 
 	return nil
 }
+
+// SudoCopyFile attempts to copy a file (and wraps CopyFile), but if required will escalate to
+// higher permissions in order to copy a file.
+func SudoCopyFile(src, dst string) error {
+	// Clean both paths
+	src = filepath.Clean(src)
+	dst = filepath.Clean(dst)
+
+	// quit if the paths look weird, or src doesn't exist
+	ssrc, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if ssrc.Size() == 0 {
+		return fmt.Errorf("'%s' appears to be an empty file", src)
+	}
+	// Paths of just / or C:\
+	// Clean(p) returns '.' if p is blank
+	if len(src) <= 3 || len(dst) <= 3 {
+		return fmt.Errorf("either src='%s' and dst='%s' doesn't seem like a valid path", src, dst)
+	}
+
+	// Drop down to platform specific file copy (with elevated permissions)
+	return execCopy(src, dst)
+}
