@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/x509"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/whitelist"
@@ -67,6 +69,42 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 }
 
 func (s javaStore) Remove(wh whitelist.Whitelist) error {
+	kpath, err := ktool.getKeystorePath()
+	if err != nil {
+		return err
+	}
+
+	cs, err := ktool.listCertificateMetadata()
+	if err != nil {
+		return err
+	}
+	csfp, err := ktool.getCertificatesWithFingerprints()
+	if err != nil {
+		return err
+	}
+
+	// compare against all listed certs
+	for i := range cs {
+		cert := csfp[cs[i].fingerprint]
+		if cert == nil {
+			if debug {
+				fmt.Printf("store/java: nil cert %s\n", cs[i].fingerprint)
+			}
+			continue
+		}
+
+		// Remove if we didn't match
+		if !wh.Matches(cert) {
+			err = ktool.deleteCertificate(kpath, cs[i].alias)
+			if err != nil {
+				return err
+			}
+			if debug {
+				fmt.Printf("store/java: deleted %s (%s) from %s\n", cs[i].alias, cs[i].fingerprint, kpath)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -191,20 +229,20 @@ func (k keytool) getKeystorePath() (string, error) {
 	return kpath, nil
 }
 
-func (k keytool) getCertificates() ([]*x509.Certificate, error) {
+func (k keytool) listCertificates(extraArgs ...string) ([]byte, error) {
 	// `keytool` gets installed onto PATH, so no need to search for it
 	kpath, err := k.getKeystorePath()
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{
+	args := append([]string{
 		"-list",
-		"-rfc",
 		"-storepass", defaultKeystorePassword,
 		"-keystore", kpath,
-	}
+	}, extraArgs...)
 	cmd := exec.Command("keytool", args...)
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	var stderr bytes.Buffer
@@ -219,11 +257,117 @@ func (k keytool) getCertificates() ([]*x509.Certificate, error) {
 		}
 		return nil, err
 	}
+	return stdout.Bytes(), nil
+}
+
+func (k keytool) getCertificates() ([]*x509.Certificate, error) {
+	out, err := k.listCertificates("-rfc")
+	if err != nil {
+		return nil, err
+	}
 
 	// Parse output, it's a bunch of PEM blocks
-	certs, err := pem.Parse(stdout.Bytes())
+	certs, err := pem.Parse(out)
 	if err != nil {
 		return nil, err
 	}
 	return certs, nil
+}
+
+func (k keytool) getCertificatesWithFingerprints() (map[string]*x509.Certificate, error) {
+	out := make(map[string]*x509.Certificate, 0)
+
+	certs, err := k.getCertificates()
+	if err != nil {
+		return out, err
+	}
+
+	for i := range certs {
+		if certs[i] == nil {
+			continue
+		}
+
+		fp := _x509.GetHexSHA1Fingerprint(*certs[i])
+		out[fp] = certs[i]
+	}
+
+	return out, nil
+}
+
+type cert struct {
+	alias       string
+	fingerprint string
+}
+
+// $ keytool -list -keystore <path> -storepass <pass>
+// Keystore type: JKS
+// Keystore provider: SUN
+//
+// Your keystore contains 105 entries
+//
+// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
+// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
+func (k keytool) listCertificateMetadata() ([]cert, error) {
+	out, err := k.listCertificates()
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]cert, 0)
+	r := bufio.NewScanner(bytes.NewReader(out))
+	var prev, curr string
+	for r.Scan() {
+		prev = curr     // $alias [info....]
+		curr = r.Text() // Certificate fingerprint ...
+
+		// Do we have a cert?
+		if strings.HasPrefix(curr, "Certificate fingerprint") {
+			// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
+			alias := strings.TrimSpace(strings.Split(prev, ",")[0])
+
+			// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
+			finger := curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
+			finger = strings.ToLower(strings.Replace(finger, ":", "", -1))
+
+			if debug {
+				fmt.Printf("store/java: Parsed cert -- %s - %s \n", alias, finger)
+			}
+
+			res = append(res, cert{
+				alias:       alias,
+				fingerprint: finger,
+			})
+		}
+	}
+
+	return res, nil
+}
+
+// keytool -delete -alias <alias> -keystore <path> -storepass <pass>
+// Pass kpath in so we don't have to rediscover it for every cert removal
+func (k keytool) deleteCertificate(kpath, alias string) error {
+	args := []string{
+		"keytool",
+		"-delete",
+		"-alias", alias,
+		"-keystore", kpath,
+		"-storepass", defaultKeystorePassword,
+	}
+	cmd := exec.Command("sudo", args...)
+
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		if debug {
+			fmt.Printf("Command was: %s\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Stdout:\n%s\n", stdout.String())
+			fmt.Printf("Stderr:\n%s\n", stderr.String())
+		}
+		return fmt.Errorf("%v when running keytool -delete %s", err.Error(), strings.TrimSpace(stdout.String()))
+	}
+	return nil
 }
