@@ -71,7 +71,24 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s javaStore) Restore(where string) error {
-	return nil
+	dir, err := getCertManageDir(javaCertManageDir)
+	if err != nil {
+		return err
+	}
+	src, err := getLatestBackupFile(dir)
+	if err != nil {
+		return err
+	}
+
+	// Get destination path
+	dst, err := ktool.getKeystorePath()
+	if err != nil {
+		return err
+	}
+
+	// This sometimes requires escalated permissions because the `cacerts` file
+	// is often owned by root or have perms like: -rw-rw-r-- (which prevent global writes)
+	return file.SudoCopyFile(src, dst)
 }
 
 type keytool struct {

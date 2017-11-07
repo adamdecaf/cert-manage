@@ -83,6 +83,17 @@ echo "Java"
 /bin/cert-manage -list -app java | wc -l | grep 149
 /bin/cert-manage -backup -app java
 ls -1 ~/.cert-manage/java | wc -l | grep 1
+# Break the keystore
+echo a > /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts
+# Restore
+/bin/cert-manage -restore -app java
+# Verify restore
+size=\$(stat --printf="%s" /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts)
+if [ ! "\$size" -gt "2" ];
+then
+    echo "failed to restore java cacerts properly"
+    exit 1
+fi
 
 echo "Finished"
 EOF
