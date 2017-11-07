@@ -90,7 +90,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 			if debug {
 				fmt.Printf("store/java: nil cert %s\n", cs[i].fingerprint)
 			}
-			continue
+			return fmt.Errorf("Unable to find cert %s in java store at %s", cs[i].alias, kpath)
 		}
 
 		// Remove if we didn't match
