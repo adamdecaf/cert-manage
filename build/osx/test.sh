@@ -10,16 +10,7 @@ then
 
     ./bin/cert-manage-osx-amd64 -list | wc -l
     ./bin/cert-manage-osx-amd64 -backup
-
-    # Whitelist
-    mkdir -p build/osx && cp ./testdata/globalsign-whitelist.json build/osx/whitelist.json
-    # ./bin/cert-manage-osx-amd64 -whitelist -file build/osx/whitelist.json
-    ./bin/cert-manage-osx-amd64 -list | wc -l # | grep $n
-
-    # Restore
-    # TODO(adam): how to test this on travis-ci ??
-    # ./bin/cert-manage-osx-amd64 -restore
-    # ./bin/cert-manage-osx-amd64 -list | wc -l # | grep $n
+    # TODO(adam): Need to run -whitelist and -restore
 
     echo "Firefox"
     if [[ -d "/Applications/Firefox.app" ]];
