@@ -324,18 +324,35 @@ func (k keytool) listCertificateMetadata() ([]cert, error) {
 		if strings.HasPrefix(curr, "Certificate fingerprint") {
 			// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
 			alias := strings.TrimSpace(strings.Split(prev, ",")[0])
+			var fingerprint string
 
+			// Java 9 changes the fingerprint algorithm to SHA-256, which is identified inline
 			// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
-			finger := curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
-			finger = strings.ToLower(strings.Replace(finger, ":", "", -1))
+			// OR
+			// Certificate fingerprint (SHA-256): 9A:CF:AB:7E:43:C8:D8:80:D0:6B:26:2A:94:DE:EE:E4:B4:65:99:89:C3:D0:CA:F1:9B:AF:64:05:E4:1A:B7:DF
+			if strings.Contains(curr, "SHA1") {
+				fingerprint = curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
+				fingerprint = strings.ToLower(strings.Replace(fingerprint, ":", "", -1))
+			}
+			if strings.Contains(curr, "SHA-256") {
+				fingerprint = curr[len(curr)-64-31:] // 64 chars from sha1 output, 31 :'s
+				fingerprint = strings.ToLower(strings.Replace(fingerprint, ":", "", -1))
+			}
+
+			if fingerprint == "" {
+				if debug {
+					fmt.Printf("store/java: Failed to determine fingerprint algorithm of: %s\n%s\n", alias, curr)
+				}
+				return nil, fmt.Errorf("Unable to determine fingerprint of cert %s", alias)
+			}
 
 			if debug {
-				fmt.Printf("store/java: Parsed cert -- %s - %s \n", alias, finger)
+				fmt.Printf("store/java: Parsed cert -- %s - %s \n", alias, fingerprint)
 			}
 
 			res = append(res, cert{
 				alias:       alias,
-				fingerprint: finger,
+				fingerprint: fingerprint,
 			})
 		}
 	}
