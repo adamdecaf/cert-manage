@@ -81,6 +81,8 @@ done
 # Java
 echo "Java"
 /bin/cert-manage -list -app java | wc -l | grep 149
+/bin/cert-manage -backup -app java
+ls -1 ~/.cert-manage/java | wc -l | grep 1
 
 echo "Finished"
 EOF
