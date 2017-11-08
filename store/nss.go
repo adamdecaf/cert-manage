@@ -279,7 +279,7 @@ func (c certutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
 	err = cmd.Run()
 	if err != nil {
 		if debug {
-			fmt.Printf("Command was:\n %s", strings.Join(cmd.Args, " "))
+			fmt.Printf("Command was:\n %s\n", strings.Join(cmd.Args, " "))
 		}
 		return nil, err
 	}
@@ -367,7 +367,7 @@ func (c certutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Ce
 	err = cmd.Run()
 	if err != nil {
 		if debug {
-			fmt.Printf("Command was:\n %s", strings.Join(cmd.Args, " "))
+			fmt.Printf("Command was:\n %s\n", strings.Join(cmd.Args, " "))
 		}
 		return nil, err
 	}
