@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -382,7 +383,14 @@ func (k keytool) deleteCertificate(kpath, alias string) error {
 		"-keystore", kpath,
 		"-storepass", defaultKeystorePassword,
 	}
-	cmd := exec.Command("sudo", args...)
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" || os.Getuid() == 0 {
+		// already root
+		cmd = exec.Command(args[0], args[1:]...)
+	} else {
+		cmd = exec.Command("sudo", args...)
+	}
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
