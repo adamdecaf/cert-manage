@@ -96,6 +96,8 @@ then
     echo "failed to restore java cacerts properly"
     exit 1
 fi
+/bin/cert-manage -whitelist -file /whitelist.json -app java
+/bin/cert-manage -list -app java | wc -l | grep 10
 
 echo "Finished"
 EOF

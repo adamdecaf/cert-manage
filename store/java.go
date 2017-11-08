@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/x509"
 	"errors"
@@ -8,9 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/whitelist"
@@ -67,6 +70,51 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 }
 
 func (s javaStore) Remove(wh whitelist.Whitelist) error {
+	kpath, err := ktool.getKeystorePath()
+	if err != nil {
+		return err
+	}
+
+	certs, err := ktool.getCertificates()
+	if err != nil {
+		return err
+	}
+
+	shortCerts, err := ktool.getShortCerts()
+	if err != nil {
+		return err
+	}
+
+	// compare against all listed certs
+	for i := range shortCerts {
+		if !shortCerts[i].hasFingerprints() {
+			return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
+		}
+
+		// Find the cert
+		for j := range certs {
+			// Match the "short cert" to it's full x509.Certificate
+			if shortCerts[i].matches(certs[j]) {
+				// then remove if it's not whitelisted
+				if !wh.Matches(certs[j]) {
+					err = ktool.deleteCertificate(kpath, shortCerts[i].alias)
+					if err != nil {
+						return err
+					}
+					if debug {
+						fmt.Printf("store/java: deleted %s from %s\n", shortCerts[i], kpath)
+					}
+				}
+				break // skip to next "short cert"
+			}
+		}
+
+		if debug {
+			// We didn't match the "short cert" to it's full x509.Certificate
+			fmt.Printf("store/java: Unable to find cert %s in java store at %s\n", shortCerts[i].alias, kpath)
+		}
+	}
+
 	return nil
 }
 
@@ -191,20 +239,20 @@ func (k keytool) getKeystorePath() (string, error) {
 	return kpath, nil
 }
 
-func (k keytool) getCertificates() ([]*x509.Certificate, error) {
+func (k keytool) getShortCertsRaw(extraArgs ...string) ([]byte, error) {
 	// `keytool` gets installed onto PATH, so no need to search for it
 	kpath, err := k.getKeystorePath()
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{
+	args := append([]string{
 		"-list",
-		"-rfc",
 		"-storepass", defaultKeystorePassword,
 		"-keystore", kpath,
-	}
+	}, extraArgs...)
 	cmd := exec.Command("keytool", args...)
+
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	var stderr bytes.Buffer
@@ -219,11 +267,158 @@ func (k keytool) getCertificates() ([]*x509.Certificate, error) {
 		}
 		return nil, err
 	}
+	return stdout.Bytes(), nil
+}
+
+func (k keytool) getCertificates() ([]*x509.Certificate, error) {
+	out, err := k.getShortCertsRaw("-rfc")
+	if err != nil {
+		return nil, err
+	}
 
 	// Parse output, it's a bunch of PEM blocks
-	certs, err := pem.Parse(stdout.Bytes())
+	certs, err := pem.Parse(out)
 	if err != nil {
 		return nil, err
 	}
 	return certs, nil
+}
+
+type cert struct {
+	alias string
+
+	// fingerprints
+	sha1Fingerprint   string
+	sha256Fingerprint string
+}
+
+func (c *cert) matches(cert *x509.Certificate) bool {
+	if cert == nil {
+		return false
+	}
+	if c.sha1Fingerprint != "" {
+		return _x509.GetHexSHA1Fingerprint(*cert) == c.sha1Fingerprint
+	}
+	if c.sha256Fingerprint != "" {
+		return _x509.GetHexSHA256Fingerprint(*cert) == c.sha256Fingerprint
+	}
+	return false
+}
+func (c *cert) hasFingerprints() bool {
+	return c.sha1Fingerprint != "" || c.sha256Fingerprint != ""
+}
+func (c *cert) String() string {
+	if c.sha1Fingerprint != "" {
+		return fmt.Sprintf("%s, SHA1=%s", c.alias, c.sha1Fingerprint)
+	}
+	if c.sha256Fingerprint != "" {
+		return fmt.Sprintf("%s, SHA256=%s", c.alias, c.sha256Fingerprint)
+	}
+	return fmt.Sprintf("%s, but no fingerprints", c.alias)
+}
+
+// $ keytool -list -keystore <path> -storepass <pass>
+// Keystore type: JKS
+// Keystore provider: SUN
+//
+// Your keystore contains 105 entries
+//
+// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
+// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
+func (k keytool) getShortCerts() ([]*cert, error) {
+	out, err := k.getShortCertsRaw()
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*cert, 0)
+	r := bufio.NewScanner(bytes.NewReader(out))
+	var prev, curr string
+	for r.Scan() {
+		prev = curr     // $alias [info....]
+		curr = r.Text() // Certificate fingerprint ...
+
+		// Do we have a cert?
+		if strings.HasPrefix(curr, "Certificate fingerprint") {
+			item := &cert{
+				// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
+				alias: strings.TrimSpace(strings.Split(prev, ",")[0]),
+			}
+
+			// Java 9 changes the fingerprint algorithm to SHA-256, which is identified inline
+			// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
+			// OR
+			// Certificate fingerprint (SHA-256): 9A:CF:AB:7E:43:C8:D8:80:D0:6B:26:2A:94:DE:EE:E4:B4:65:99:89:C3:D0:CA:F1:9B:AF:64:05:E4:1A:B7:DF
+			if strings.Contains(curr, "SHA1") {
+				fp := curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
+				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				item.sha1Fingerprint = fp
+			}
+			if strings.Contains(curr, "SHA-256") {
+				fp := curr[len(curr)-64-31:] // 64 chars from sha1 output, 31 :'s
+				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				item.sha256Fingerprint = fp
+			}
+
+			if !item.hasFingerprints() {
+				if debug {
+					fmt.Printf("store/java: Failed to determine fingerprint algorithm of: %s\n%s\n", item.alias, curr)
+				}
+				return nil, fmt.Errorf("Unable to determine fingerprint of cert: %s", item)
+			}
+
+			if debug {
+				fmt.Printf("store/java: Parsed cert: %s\n", item)
+			}
+
+			res = append(res, item)
+		}
+	}
+
+	return res, nil
+}
+
+// keytool -delete -alias <alias> -keystore <path> -storepass <pass>
+// Pass kpath in so we don't have to rediscover it for every cert removal
+func (k keytool) deleteCertificate(kpath, alias string) error {
+	if strings.Contains(alias, "?") {
+		// There seems to be an issue with aliases which contain certain characters. My guess
+		// is that they're non-ascii and being encoded/decoded improperly.
+		// I've filed a bug w/ openjdk (internal review ID 9051507), but until then
+		// certs with these characters fail to be deleted.
+		fmt.Printf("WARNING: alias %s cannot be currently removed from the keystore.\n", alias)
+		return nil
+	}
+
+	args := []string{
+		"keytool",
+		"-delete",
+		"-alias", alias,
+		"-keystore", kpath,
+		"-storepass", defaultKeystorePassword,
+	}
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" || os.Getuid() == 0 {
+		// already root
+		cmd = exec.Command(args[0], args[1:]...)
+	} else {
+		cmd = exec.Command("sudo", args...)
+	}
+
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		if debug {
+			fmt.Printf("Command was: %s\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Stdout:\n%s\n", stdout.String())
+			fmt.Printf("Stderr:\n%s\n", stderr.String())
+		}
+		return fmt.Errorf("%v when running keytool -delete %s", err.Error(), strings.TrimSpace(stdout.String()))
+	}
+	return nil
 }
