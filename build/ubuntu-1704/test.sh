@@ -32,13 +32,13 @@ ls -l /usr/share/ca-certificates.backup/* | wc -l | grep $total
 
 ## Chrome
 echo "Chrome tests"
-timeout 10s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
+timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
 # /bin/cert-manage -list -app chrome | wc -l
 
 ## Firefox
 echo "Firefox tests"
 set +e
-timeout 10s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
+timeout 15s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
 code=\$?
 if [ "\$code" -ne "124" ];
 then
