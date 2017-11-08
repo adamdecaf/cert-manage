@@ -32,13 +32,13 @@ ls -l /usr/share/ca-certificates.backup/* | wc -l | grep $total
 
 ## Chrome
 echo "Chrome tests"
-timeout 10s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
+timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
 # /bin/cert-manage -list -app chrome | wc -l
 
 ## Firefox
 echo "Firefox tests"
 set +e
-timeout 10s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
+timeout 15s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
 code=\$?
 if [ "\$code" -ne "124" ];
 then
@@ -46,7 +46,9 @@ then
 fi
 echo "firefox was forced to quit, code=\$code"
 set -e
-/bin/cert-manage -list -app firefox | wc -l | grep -E [56]
+count=\$(/bin/cert-manage -list -app firefox | wc -l)
+echo "Cert count from firefox: \$count"
+echo "\$count" | grep -E [56]
 
 # Take a backup
 [ ! -d ~/.cert-manage/firefox ]
