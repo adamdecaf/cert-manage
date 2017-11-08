@@ -381,6 +381,15 @@ func (k keytool) getShortCerts() ([]*cert, error) {
 // keytool -delete -alias <alias> -keystore <path> -storepass <pass>
 // Pass kpath in so we don't have to rediscover it for every cert removal
 func (k keytool) deleteCertificate(kpath, alias string) error {
+	if strings.Contains(alias, "?") {
+		// There seems to be an issue with aliases which contain certain characters. My guess
+		// is that they're non-ascii and being encoded/decoded improperly.
+		// I've filed a bug w/ openjdk (internal review ID 9051507), but until then
+		// certs with these characters fail to be deleted.
+		fmt.Printf("WARNING: alias %s cannot be currently removed from the keystore.\n", alias)
+		return nil
+	}
+
 	args := []string{
 		"keytool",
 		"-delete",
