@@ -108,6 +108,11 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 				break // skip to next "short cert"
 			}
 		}
+
+		if debug {
+			// We didn't match the "short cert" to it's full x509.Certificate
+			fmt.Printf("store/java: Unable to find cert %s in java store at %s\n", shortCerts[i].alias, kpath)
+		}
 	}
 
 	return nil
