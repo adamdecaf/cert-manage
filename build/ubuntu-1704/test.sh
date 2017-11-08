@@ -46,7 +46,9 @@ then
 fi
 echo "firefox was forced to quit, code=\$code"
 set -e
-/bin/cert-manage -list -app firefox | wc -l | grep -E [56]
+count=\$(/bin/cert-manage -list -app firefox | wc -l)
+echo "Cert count from firefox: \$count"
+echo "\$count" | grep -E [56]
 
 # Take a backup
 [ ! -d ~/.cert-manage/firefox ]
