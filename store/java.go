@@ -74,33 +74,37 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	cs, err := ktool.listCertificateMetadata()
+	certs, err := ktool.getCertificates()
 	if err != nil {
 		return err
 	}
-	csfp, err := ktool.getCertificatesWithFingerprints()
+
+	shortCerts, err := ktool.getShortCerts()
 	if err != nil {
 		return err
 	}
 
 	// compare against all listed certs
-	for i := range cs {
-		cert := csfp[cs[i].fingerprint]
-		if cert == nil {
-			if debug {
-				fmt.Printf("store/java: nil cert %s\n", cs[i].fingerprint)
-			}
-			return fmt.Errorf("Unable to find cert %s in java store at %s", cs[i].alias, kpath)
+	for i := range shortCerts {
+		if !shortCerts[i].hasFingerprints() {
+			return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
 		}
 
-		// Remove if we didn't match
-		if !wh.Matches(cert) {
-			err = ktool.deleteCertificate(kpath, cs[i].alias)
-			if err != nil {
-				return err
-			}
-			if debug {
-				fmt.Printf("store/java: deleted %s (%s) from %s\n", cs[i].alias, cs[i].fingerprint, kpath)
+		// Find the cert
+		for j := range certs {
+			// Match the "short cert" to it's full x509.Certificate
+			if shortCerts[i].matches(certs[j]) {
+				// then remove if it's not whitelisted
+				if !wh.Matches(certs[j]) {
+					err = ktool.deleteCertificate(kpath, shortCerts[i].alias)
+					if err != nil {
+						return err
+					}
+					if debug {
+						fmt.Printf("store/java: deleted %s from %s\n", shortCerts[i], kpath)
+					}
+				}
+				break // skip to next "short cert"
 			}
 		}
 	}
@@ -229,7 +233,7 @@ func (k keytool) getKeystorePath() (string, error) {
 	return kpath, nil
 }
 
-func (k keytool) listCertificates(extraArgs ...string) ([]byte, error) {
+func (k keytool) getShortCertsRaw(extraArgs ...string) ([]byte, error) {
 	// `keytool` gets installed onto PATH, so no need to search for it
 	kpath, err := k.getKeystorePath()
 	if err != nil {
@@ -261,7 +265,7 @@ func (k keytool) listCertificates(extraArgs ...string) ([]byte, error) {
 }
 
 func (k keytool) getCertificates() ([]*x509.Certificate, error) {
-	out, err := k.listCertificates("-rfc")
+	out, err := k.getShortCertsRaw("-rfc")
 	if err != nil {
 		return nil, err
 	}
@@ -274,29 +278,37 @@ func (k keytool) getCertificates() ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func (k keytool) getCertificatesWithFingerprints() (map[string]*x509.Certificate, error) {
-	out := make(map[string]*x509.Certificate, 0)
+type cert struct {
+	alias string
 
-	certs, err := k.getCertificates()
-	if err != nil {
-		return out, err
-	}
-
-	for i := range certs {
-		if certs[i] == nil {
-			continue
-		}
-
-		fp := _x509.GetHexSHA1Fingerprint(*certs[i])
-		out[fp] = certs[i]
-	}
-
-	return out, nil
+	// fingerprints
+	sha1Fingerprint   string
+	sha256Fingerprint string
 }
 
-type cert struct {
-	alias       string
-	fingerprint string
+func (c *cert) matches(cert *x509.Certificate) bool {
+	if cert == nil {
+		return false
+	}
+	if c.sha1Fingerprint != "" {
+		return _x509.GetHexSHA1Fingerprint(*cert) == c.sha1Fingerprint
+	}
+	if c.sha256Fingerprint != "" {
+		return _x509.GetHexSHA256Fingerprint(*cert) == c.sha256Fingerprint
+	}
+	return false
+}
+func (c *cert) hasFingerprints() bool {
+	return c.sha1Fingerprint != "" || c.sha256Fingerprint != ""
+}
+func (c *cert) String() string {
+	if c.sha1Fingerprint != "" {
+		return fmt.Sprintf("%s, SHA1=%s", c.alias, c.sha1Fingerprint)
+	}
+	if c.sha256Fingerprint != "" {
+		return fmt.Sprintf("%s, SHA256=%s", c.alias, c.sha256Fingerprint)
+	}
+	return fmt.Sprintf("%s, but no fingerprints", c.alias)
 }
 
 // $ keytool -list -keystore <path> -storepass <pass>
@@ -307,13 +319,13 @@ type cert struct {
 //
 // verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
 // Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
-func (k keytool) listCertificateMetadata() ([]cert, error) {
-	out, err := k.listCertificates()
+func (k keytool) getShortCerts() ([]*cert, error) {
+	out, err := k.getShortCertsRaw()
 	if err != nil {
 		return nil, err
 	}
 
-	res := make([]cert, 0)
+	res := make([]*cert, 0)
 	r := bufio.NewScanner(bytes.NewReader(out))
 	var prev, curr string
 	for r.Scan() {
@@ -322,38 +334,38 @@ func (k keytool) listCertificateMetadata() ([]cert, error) {
 
 		// Do we have a cert?
 		if strings.HasPrefix(curr, "Certificate fingerprint") {
-			// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
-			alias := strings.TrimSpace(strings.Split(prev, ",")[0])
-			var fingerprint string
+			item := &cert{
+				// verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
+				alias: strings.TrimSpace(strings.Split(prev, ",")[0]),
+			}
 
 			// Java 9 changes the fingerprint algorithm to SHA-256, which is identified inline
 			// Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D
 			// OR
 			// Certificate fingerprint (SHA-256): 9A:CF:AB:7E:43:C8:D8:80:D0:6B:26:2A:94:DE:EE:E4:B4:65:99:89:C3:D0:CA:F1:9B:AF:64:05:E4:1A:B7:DF
 			if strings.Contains(curr, "SHA1") {
-				fingerprint = curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
-				fingerprint = strings.ToLower(strings.Replace(fingerprint, ":", "", -1))
+				fp := curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
+				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				item.sha1Fingerprint = fp
 			}
 			if strings.Contains(curr, "SHA-256") {
-				fingerprint = curr[len(curr)-64-31:] // 64 chars from sha1 output, 31 :'s
-				fingerprint = strings.ToLower(strings.Replace(fingerprint, ":", "", -1))
+				fp := curr[len(curr)-64-31:] // 64 chars from sha1 output, 31 :'s
+				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				item.sha256Fingerprint = fp
 			}
 
-			if fingerprint == "" {
+			if !item.hasFingerprints() {
 				if debug {
-					fmt.Printf("store/java: Failed to determine fingerprint algorithm of: %s\n%s\n", alias, curr)
+					fmt.Printf("store/java: Failed to determine fingerprint algorithm of: %s\n%s\n", item.alias, curr)
 				}
-				return nil, fmt.Errorf("Unable to determine fingerprint of cert %s", alias)
+				return nil, fmt.Errorf("Unable to determine fingerprint of cert: %s", item)
 			}
 
 			if debug {
-				fmt.Printf("store/java: Parsed cert -- %s - %s \n", alias, fingerprint)
+				fmt.Printf("store/java: Parsed cert: %s\n", item)
 			}
 
-			res = append(res, cert{
-				alias:       alias,
-				fingerprint: fingerprint,
-			})
+			res = append(res, item)
 		}
 	}
 
