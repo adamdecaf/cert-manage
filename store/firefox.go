@@ -23,11 +23,6 @@ func firefoxCertdbLocations() []string {
 		filepath.Join(uhome, "/Library/Application Support/Firefox/Profiles/*.default"), // darwin
 	}
 
-	// TODO(adam): windows support
-	// Try and add windows path
-	// https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data
-	// paths = append(paths, filepath.Join(appdata, `Mozilla\Firefox\Profiles`))
-
 	return paths
 }
 
