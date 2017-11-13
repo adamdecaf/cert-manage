@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"os"
+	"github.com/adamdecaf/cert-manage/tools/file"
 	"path/filepath"
 )
 
@@ -10,7 +10,7 @@ import (
 // The idea of tihs slice is to generalize over randomly named directories
 // (how firefox names profiles) and handle user-specific filepaths
 func firefoxCertdbLocations() []string {
-	uhome := os.Getenv("HOME")
+	uhome := file.HomeDir()
 	if uhome == "" {
 		if debug {
 			fmt.Println("store/firefox: unable to find user's home dir")
@@ -25,11 +25,8 @@ func firefoxCertdbLocations() []string {
 
 	// TODO(adam): windows support
 	// Try and add windows path
-	// appdata := os.Getenv("APPDATA")
-	// if appdata != "" {
-	// 	// https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data
-	// 	paths = append(paths, filepath.Join(appdata, `Mozilla\Firefox\Profiles`))
-	// }
+	// https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data
+	// paths = append(paths, filepath.Join(appdata, `Mozilla\Firefox\Profiles`))
 
 	return paths
 }

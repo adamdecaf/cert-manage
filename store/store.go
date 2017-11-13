@@ -105,8 +105,7 @@ func getCertManageDir(name string) (string, error) {
 }
 
 func getCertManageParentDir() string {
-	// HOME works well enough across darwin, linux, and windows for now
-	uhome := strings.TrimSpace(os.Getenv("HOME"))
+	uhome := file.HomeDir()
 	if uhome != "" {
 		// Setup parent dir
 		if runtime.GOOS == "darwin" {
