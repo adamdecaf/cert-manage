@@ -334,7 +334,7 @@ func (s darwinStore) Restore(where string) error {
 }
 
 func getUserKeychainPaths() ([]string, error) {
-	uhome := os.Getenv("HOME")
+	uhome := file.HomeDir()
 	if uhome == "" {
 		return nil, errors.New("unable to find user's home dir")
 	}

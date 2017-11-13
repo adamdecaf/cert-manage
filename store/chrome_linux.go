@@ -4,12 +4,12 @@ package store
 
 import (
 	"fmt"
-	"os"
+	"github.com/adamdecaf/cert-manage/tools/file"
 	"path/filepath"
 )
 
 func chromeCertdbLocations() []string {
-	uhome := os.Getenv("HOME")
+	uhome := file.HomeDir()
 	if uhome == "" {
 		if debug {
 			fmt.Println("store/chrome: unable to find user's home dir")
