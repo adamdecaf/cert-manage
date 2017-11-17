@@ -8,14 +8,14 @@ then
     version=$(./bin/cert-manage-osx-amd64 -version)
     echo "cert-manage ($version)"
 
-    ./bin/cert-manage-osx-amd64 -list | wc -l
+    ./bin/cert-manage-osx-amd64 -list -count
     ./bin/cert-manage-osx-amd64 -backup
     # TODO(adam): Need to run -whitelist and -restore
 
     echo "Firefox"
     if [[ -d "/Applications/Firefox.app" ]];
     then
-        count=$(./bin/cert-manage-osx-amd64 -list -app firefox | wc -l | tr -d ' ')
+        count=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
         if [[ ! "$count" -gt "1" ]];
         then
             echo "Only found $count firefox certs"
@@ -28,7 +28,7 @@ then
     echo "Java"
     if [[ -n "JAVA_HOME" ]];
     then
-        count=$(./bin/cert-manage-osx-amd64 -list -app java | wc -l | tr -d ' ')
+        count=$(./bin/cert-manage-osx-amd64 -list -app java -count)
         if [[ ! "$count" -gt "1" ]];
         then
             echo "Only found $count java certs"
