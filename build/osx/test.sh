@@ -16,7 +16,8 @@ then
     if [[ -d "/Applications/Firefox.app" ]];
     then
         set +e
-        count=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
+        out=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
+        count=$(echo "$out" | tail -n1)
         if [[ "$?" -ne "0" ]];
         then
             echo "Error: $count"
@@ -35,13 +36,9 @@ then
     echo "Java"
     if [[ -n "JAVA_HOME" ]];
     then
-        echo " = JAVA DEBUG"
-        echo $(which java)
-        ls -l $(which java)
-        echo " = END JAVA DEBUG"
-
         set +e
-        count=$(./bin/cert-manage-osx-amd64 -list -app java -count)
+        out=$(./bin/cert-manage-osx-amd64 -list -app java -count)
+        count=$(echo "$out" | tail -n1)
         if [[ "$?" -ne "0" ]];
         then
             echo "Error: $count"
