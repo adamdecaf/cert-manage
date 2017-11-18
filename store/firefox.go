@@ -9,7 +9,7 @@ import (
 // returns a slice of "suggestions" for where cert8.db files live.
 // The idea of tihs slice is to generalize over randomly named directories
 // (how firefox names profiles) and handle user-specific filepaths
-func firefoxCertdbLocations() []string {
+func firefoxCertdbLocations() []cert8db {
 	uhome := file.HomeDir()
 	if uhome == "" {
 		if debug {
@@ -18,15 +18,16 @@ func firefoxCertdbLocations() []string {
 		return nil
 	}
 
-	paths := []string{
-		filepath.Join(uhome, ".mozilla/firefox/*.default"),                              // Linux
-		filepath.Join(uhome, "/Library/Application Support/Firefox/Profiles/*.default"), // darwin
+	paths := []cert8db{
+		cert8db(filepath.Join(uhome, ".mozilla/firefox/*.default")),                              // Linux
+		cert8db(filepath.Join(uhome, "/Library/Application Support/Firefox/Profiles/*.default")), // darwin
 	}
 
 	return paths
 }
 
 func FirefoxStore() Store {
-	suggestions := collectNssSuggestions(firefoxCertdbLocations())
-	return NssStore("firefox", suggestions)
+	suggestions := firefoxCertdbLocations()
+	found := locateCert8db(suggestions)
+	return NssStore("firefox", suggestions, found)
 }

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func chromeCertdbLocations() []string {
+func chromeCertdbLocations() []cert8db {
 	uhome := file.HomeDir()
 	if uhome == "" {
 		if debug {
@@ -17,14 +17,15 @@ func chromeCertdbLocations() []string {
 		return nil
 	}
 
-	return []string{
-		filepath.Join(uhome, ".pki/nssdb"),
+	return []cert8db{
+		cert8db(filepath.Join(uhome, ".pki/nssdb")),
 	}
 }
 
 // On linux chrome uses NSS
 // https://www.chromium.org/Home/chromium-security/root-ca-policy
 func ChromeStore() Store {
-	suggestions := collectNssSuggestions(chromeCertdbLocations())
-	return NssStore("chrome", suggestions)
+	suggestions := chromeCertdbLocations()
+	found := locateCert8db(suggestions)
+	return NssStore("chrome", suggestions, found)
 }

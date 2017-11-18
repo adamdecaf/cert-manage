@@ -16,7 +16,9 @@ func TestStoreNSS_certdbDiscovery(t *testing.T) {
 	defer os.Remove(tmp)
 
 	// Very we don't find anything in an empty dir
-	if len(collectNssSuggestions([]string{tmp})) > 0 {
+	in := make([]cert8db, 1)
+	in[0] = cert8db(tmp)
+	if found := locateCert8db(in); !found.empty() {
 		t.Errorf("shouldn't have found cert8.db files in %s", tmp)
 	}
 	if containsCert8db(tmp) {
@@ -33,10 +35,6 @@ func TestStoreNSS_certdbDiscovery(t *testing.T) {
 	// Now we should find the cert8.db path
 	if !containsCert8db(tmp) {
 		t.Errorf("should have found cert8.db in %s", tmp)
-	}
-	sugs := collectNssSuggestions([]string{tmp})
-	if len(sugs) != 1 {
-		t.Errorf("should have found cert8.db in %s", sugs)
 	}
 }
 
