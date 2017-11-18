@@ -51,53 +51,61 @@ type nssStore struct {
 	// for a given application.
 	nssType string
 
-	// paths represent the fs locations where cert8.db are stored
+	// cert8dbSuggestedDirs represent the fs locations where cert8.db are stored
 	// In the case of an app like Firefox this would be looking in the following locations:
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
-	// The expected result is a slice of directories that can be passed into certutil's -d option
-	paths []cert8db
+	cert8dbSuggestedDirs []cert8db
+
+	// foundCert8dbLocation is a shortcut for a locally found cert8.db file
+	// The expected result is a directory that can be passed into certutil's -d option
+	foundCert8dbLocation cert8db
 
 	// Holds a trigger if we've made modifications (useful for triggering a "Restart app" message
 	// after we're done with modifications.
 	notify *sync.Once
 }
 
-func NssStore(nssType string, paths []cert8db) nssStore {
+func NssStore(nssType string, suggestedDirs []cert8db, foundCert8db cert8db) nssStore {
 	return nssStore{
-		nssType: nssType,
-		paths:   paths,
-		notify:  &sync.Once{},
+		nssType:              nssType,
+		cert8dbSuggestedDirs: suggestedDirs,
+		foundCert8dbLocation: foundCert8db,
+		notify:               &sync.Once{},
 	}
 }
 
-func collectNssSuggestions(sugs []string) []cert8db {
+func locateCert8db(suggestions []cert8db) cert8db {
 	if debug {
-		if len(sugs) == 0 {
+		if len(suggestions) == 0 {
 			fmt.Println("store/nss: no cert8.db paths suggested")
-			return nil
+			return cert8db("")
 		}
-		fmt.Printf("store/nss: suggestions: %s\n", strings.Join(sugs, ", "))
+		fmt.Printf("store/nss: suggestions: ")
+		for i := range suggestions {
+			fmt.Printf("%s, ", string(suggestions[i]))
+		}
+		fmt.Printf("\n")
 	}
 
-	kept := make([]cert8db, 0)
-	for i := range sugs {
+	for i := range suggestions {
 		// Glob and find a cert8.db file
-		matches, err := filepath.Glob(sugs[i])
+		matches, err := filepath.Glob(string(suggestions[i]))
 		if err != nil {
 			if debug {
 				fmt.Printf("store/nss: %v\n", err)
 			}
-			return nil
+			return cert8db("")
 		}
 
 		// Accumulate dirs with a cert8.db file
 		for j := range matches {
 			if containsCert8db(matches[j]) {
-				kept = append(kept, cert8db(matches[j]))
+				return cert8db(matches[j])
 			}
 		}
 	}
-	return kept
+
+	return cert8db("")
 }
 
 func containsCert8db(p string) bool {
@@ -128,12 +136,12 @@ func (s nssStore) Backup() error {
 	}
 
 	// Only backup the first nss cert8.db path for now
-	if len(s.paths) == 0 {
+	if s.foundCert8dbLocation.empty() {
 		return errors.New("No NSS cert db paths found")
 	}
 
 	// Copy file into backup location
-	src := filepath.Join(string(s.paths[0]), cert8Filename)
+	src := filepath.Join(string(s.foundCert8dbLocation), cert8Filename)
 	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
 	return file.CopyFile(src, dst)
 }
@@ -145,11 +153,11 @@ func (s nssStore) Backup() error {
 //
 // Note: `dir` represents a directory path which contains a cert8.db file
 func (s nssStore) List() ([]*x509.Certificate, error) {
-	if len(s.paths) == 0 {
+	if s.foundCert8dbLocation.empty() {
 		return nil, errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.paths[0])
+	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -164,11 +172,11 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 }
 
 func (s nssStore) Remove(wh whitelist.Whitelist) error {
-	if len(s.paths) == 0 {
+	if s.foundCert8dbLocation.empty() {
 		return errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.paths[0])
+	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation)
 	if err != nil {
 		return err
 	}
@@ -181,7 +189,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 
 		// whitelist didn't match, blacklist cert
 		defer s.notifyToRestart()
-		err = cutil.modifyTrustAttributes(s.paths[0], items[i].nick, trustAttrsNoTrust)
+		err = cutil.modifyTrustAttributes(s.foundCert8dbLocation, items[i].nick, trustAttrsNoTrust)
 		if err != nil {
 			return err
 		}
@@ -199,21 +207,42 @@ func (s nssStore) Restore(where string) error {
 		return err
 	}
 
-	// Check we've got a restore point
-	if len(s.paths) == 0 {
-		return errors.New("No directory to restore NSS cert db into")
+	// Try and find a dir that eixsts, which could hold a cert8.db file
+	var dst string
+	for i := range s.cert8dbSuggestedDirs {
+		matches, err := filepath.Glob(string(s.cert8dbSuggestedDirs[i]))
+		if err != nil {
+			return err
+		}
+
+		for j := range matches {
+			if st, err := os.Stat(matches[j]); err == nil && st.IsDir() {
+				dst = matches[j]
+				break
+			}
+		}
+		if dst != "" {
+			break
+		}
+	}
+	if dst == "" {
+		return fmt.Errorf("No directory found to restore %s certificates", s.nssType)
 	}
 
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
 	// Restore the latest backup file
-	dst := filepath.Join(string(s.paths[0]), cert8Filename)
+	dst = filepath.Join(dst, cert8Filename)
 	return file.CopyFile(src, dst)
 }
 
 // cert8db represents a fs path for a cert8.db file
 type cert8db string
+
+func (c cert8db) empty() bool {
+	return len(string(c)) == 0
+}
 
 // cert8Item represents an x509 Certificate with the NSS trust attributes
 type cert8Item struct {
