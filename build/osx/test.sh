@@ -15,7 +15,14 @@ then
     echo "Firefox"
     if [[ -d "/Applications/Firefox.app" ]];
     then
+        set +e
         count=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
+        if [[ "$?" -ne "0" ]];
+        then
+            echo "Error: $count"
+            exit 1
+        fi
+        set -e
         if [[ ! "$count" -gt "1" ]];
         then
             echo "Only found $count firefox certs"
@@ -28,7 +35,19 @@ then
     echo "Java"
     if [[ -n "JAVA_HOME" ]];
     then
+        echo " = JAVA DEBUG"
+        echo $(which java)
+        ls -l $(which java)
+        echo " = END JAVA DEBUG"
+
+        set +e
         count=$(./bin/cert-manage-osx-amd64 -list -app java -count)
+        if [[ "$?" -ne "0" ]];
+        then
+            echo "Error: $count"
+            exit 1
+        fi
+        set -e
         if [[ ! "$count" -gt "1" ]];
         then
             echo "Only found $count java certs"
