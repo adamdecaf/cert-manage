@@ -93,7 +93,6 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	}
 	trustItems, err := getCertsWithTrustPolicy()
 	if err != nil {
-		fmt.Printf("store/darwin: trustItems=%d, err=%v\n", len(trustItems), err)
 		return nil, err
 	}
 	fmt.Println("OTHER")
@@ -211,6 +210,12 @@ func getCertsWithTrustPolicy() (trustItems, error) {
 
 	plist, err := parsePlist(fd)
 	if err != nil {
+		if err == io.EOF {
+			if debug {
+				fmt.Printf("store/darwin: EOF encountered with parsing trust-setting-export at: %s\n", fd.Name())
+			}
+			return plist.convertToTrustItems(), nil
+		}
 		return nil, err
 	}
 
@@ -577,8 +582,12 @@ var (
 	whitespaceReplacer = strings.NewReplacer("\t", "", "\n", "", " ", "", "\r", "")
 )
 
-func (p plist) convertToTrustItems() trustItems {
-	out := make([]trustItem, 0)
+func (p *plist) convertToTrustItems() trustItems {
+	out := make(trustItems, 0)
+
+	if p.ChiDict == nil {
+		return out
+	}
 
 	max := len(p.ChiDict.ChiDict.ChiDict.ChiData)
 	for i := 0; i < max; i += 2 {
@@ -615,5 +624,5 @@ func (p plist) convertToTrustItems() trustItems {
 		out = append(out, item)
 	}
 
-	return trustItems(out)
+	return out
 }
