@@ -29,7 +29,7 @@ var (
 	app = fs.String("app", "", "Specify an application (see -list)")
 
 	// Output
-	// -count: Just output the count of trusted certs
+	count  = fs.Bool("count", false, "Just output the count of certificates rather than every cert")
 	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
 )
 
@@ -114,10 +114,10 @@ func main() {
 	if list != nil && *list {
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.ListCertsForApp(*app, *format)
+				return cmd.ListCertsForApp(*app, *count, *format)
 			},
 			func() error {
-				return cmd.ListCertsForPlatform(*format)
+				return cmd.ListCertsForPlatform(*count, *format)
 			})
 		exit("", err)
 		return

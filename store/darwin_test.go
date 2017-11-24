@@ -277,3 +277,10 @@ func TestStoreDarwin__plistGeneration(t *testing.T) {
 	// cleanup
 	os.Remove(tmp.Name())
 }
+
+func TestStoreDarwin__nilplist(t *testing.T) {
+	var pl plist
+	if l := len(pl.convertToTrustItems()); l != 0 {
+		t.Errorf("somehow got %d items from nil plist", l)
+	}
+}
