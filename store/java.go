@@ -24,22 +24,8 @@ import (
 // - https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html
 
 var (
-	ktool = keytool{
-		javahome: os.Getenv("JAVA_HOME"),
-		javaInstallPaths: []string{
-			"/etc/alternatives/java",             // Linux
-			"/Library/Java/JavaVirtualMachines/", // OSX
-
-		},
-		relativeKeystorePaths: []string{
-			"/lib/security/cacerts",     // Linux and OSX
-			"/jre/lib/security/cacerts", // OSX 10.10.1
-		},
-	}
-
 	defaultKeystorePassword = "changeit"
-
-	javaCertManageDir = "java"
+	javaCertManageDir       = "java"
 )
 
 type javaStore struct{}
