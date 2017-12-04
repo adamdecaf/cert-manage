@@ -259,10 +259,10 @@ func trustSettingsExport() (*os.File, error) {
 	return fd, nil
 }
 
-func (s darwinStore) Remove(wh whitelist.Whitelist) error {
+func (s darwinStore) Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error) {
 	certs, err := s.List()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Keep what's whitelisted
@@ -285,7 +285,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// Create temporary output file
 	f, err := ioutil.TempFile("", "cert-manage")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// show plist file if we're in debug mode, otherwise cleanup
 	if debug {
@@ -299,10 +299,10 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// https://github.com/ntkme/security-trust-settings-tools/blob/master/security-trust-settings-blacklist/main.m#L10
 	err = items.toXmlFile(f.Name())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return s.Restore(f.Name())
+	return nil, s.Restore(f.Name())
 }
 
 // TODO(adam): This should default trust to "Use System Trust", not "Always Trust"

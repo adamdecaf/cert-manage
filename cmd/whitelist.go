@@ -5,7 +5,7 @@ import (
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
-func WhitelistForApp(app, whpath string) error {
+func WhitelistForApp(app, whpath string, cfg *Config) error {
 	// load whitelist
 	wh, err := whitelist.FromFile(whpath)
 	if err != nil {
@@ -17,15 +17,20 @@ func WhitelistForApp(app, whpath string) error {
 	if err != nil {
 		return err
 	}
-	err = st.Remove(wh)
+
+	certs, err := st.Remove(wh, cfg.DryRun)
 	if err != nil {
 		return err
+	}
+
+	if cfg.DryRun {
+		printCerts(certs, cfg.Format)
 	}
 
 	return nil
 }
 
-func WhitelistForPlatform(whpath string) error {
+func WhitelistForPlatform(whpath string, cfg *Config) error {
 	// load whitelist
 	wh, err := whitelist.FromFile(whpath)
 	if err != nil {
@@ -34,9 +39,13 @@ func WhitelistForPlatform(whpath string) error {
 
 	// diff
 	st := store.Platform()
-	err = st.Remove(wh)
+	certs, err := st.Remove(wh, cfg.DryRun)
 	if err != nil {
 		return err
+	}
+
+	if cfg.DryRun {
+		printCerts(certs, cfg.Format)
 	}
 
 	return nil

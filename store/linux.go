@@ -96,7 +96,7 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 // Steps
 // 1. Walk through the dir (/etc/ssl/certs/) and chmod 000 the certs we aren't trusting
 // 2. Run `update-ca-certificates` to re-create the ca-certificates.crt file
-func (s linuxStore) Remove(wh whitelist.Whitelist) error {
+func (s linuxStore) Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error) {
 	// Check each CA cert file and optionally disable
 	walk := func(path string, info os.FileInfo, err error) error {
 		// Ignore SkipDir and directories
@@ -135,7 +135,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	return bundleCerts()
+	return nil, bundleCerts()
 }
 
 func (s linuxStore) Restore(where string) error {

@@ -55,26 +55,26 @@ func (s javaStore) List() ([]*x509.Certificate, error) {
 	return ktool.getCertificates()
 }
 
-func (s javaStore) Remove(wh whitelist.Whitelist) error {
+func (s javaStore) Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error) {
 	kpath, err := ktool.getKeystorePath()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	certs, err := ktool.getCertificates()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	shortCerts, err := ktool.getShortCerts()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// compare against all listed certs
 	for i := range shortCerts {
 		if !shortCerts[i].hasFingerprints() {
-			return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
+			return nil, fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
 		}
 
 		// Find the cert
@@ -85,7 +85,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 				if !wh.Matches(certs[j]) {
 					err = ktool.deleteCertificate(kpath, shortCerts[i].alias)
 					if err != nil {
-						return err
+						return nil, err
 					}
 					if debug {
 						fmt.Printf("store/java: deleted %s from %s\n", shortCerts[i], kpath)
@@ -101,7 +101,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (s javaStore) Restore(where string) error {

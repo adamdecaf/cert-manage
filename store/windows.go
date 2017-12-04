@@ -43,8 +43,8 @@ func (s windowsStore) List() ([]*x509.Certificate, error) {
 	return nil, nil
 }
 
-func (s windowsStore) Remove(wh whitelist.Whitelist) error {
-	return nil
+func (s windowsStore) Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error) {
+	return nil, nil
 }
 
 func (s windowsStore) Restore(where string) error {

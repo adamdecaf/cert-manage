@@ -31,6 +31,7 @@ var (
 	// Output
 	count  = fs.Bool("count", false, "Just output the count of certificates rather than every cert")
 	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
+	dryrun = fs.Bool("dry-run", false, "Don't actually delete/untrust certificates, but show a diff instead")
 )
 
 func init() {
@@ -68,6 +69,7 @@ func main() {
 	cfg := &cmd.Config{
 		Count:  *count,
 		Format: *format,
+		DryRun: *dryrun,
 	}
 
 	// Perform a restore
@@ -107,10 +109,10 @@ func main() {
 		}
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.WhitelistForApp(a, *file)
+				return cmd.WhitelistForApp(a, *file, cfg)
 			},
 			func() error {
-				return cmd.WhitelistForPlatform(*file)
+				return cmd.WhitelistForPlatform(*file, cfg)
 			})
 		exit("Whitelist completed successfully", err)
 		return

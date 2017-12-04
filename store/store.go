@@ -43,7 +43,9 @@ type Store interface {
 	// the store such that the certificate is no longer trusted.
 	// This is done when possible to limit the actual deletions to
 	// preserve restore capabilities
-	Remove(whitelist.Whitelist) error
+	//
+	// If dryrun == true then certificates are never removed or modified.
+	Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error)
 
 	// Restore will bring the system back to it's previous state
 	// if a backup exists, otherwise it will attempt to bring the

@@ -171,14 +171,14 @@ func (s nssStore) List() ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
-func (s nssStore) Remove(wh whitelist.Whitelist) error {
+func (s nssStore) Remove(wh whitelist.Whitelist, dryrun bool) ([]*x509.Certificate, error) {
 	if s.foundCert8dbLocation.empty() {
-		return errors.New("unable to find NSS db directory")
+		return nil, errors.New("unable to find NSS db directory")
 	}
 
 	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Remove trust from each cert if needed.
@@ -191,10 +191,10 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 		defer s.notifyToRestart()
 		err = cutil.modifyTrustAttributes(s.foundCert8dbLocation, items[i].nick, trustAttrsNoTrust)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (s nssStore) Restore(where string) error {
