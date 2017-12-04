@@ -35,4 +35,4 @@ EOF
 chmod +x main
 docker build -t cert-manage-alpine-36:latest . 2>&1 > test.log
 docker run -i --entrypoint /bin/main cert-manage-alpine-36:latest 2>&1 >> test.log
-echo "Alpine Passed"
+echo "Alpine 3.6 Passed"
