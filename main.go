@@ -64,6 +64,12 @@ func main() {
 		return
 	}
 
+	// Lift config options into a higher-level
+	cfg := &cmd.Config{
+		Count:  *count,
+		Format: *format,
+	}
+
 	// Perform a restore
 	// Note: This always needs to happen before -whitelist and before -backup
 	if restore != nil && *restore {
@@ -101,10 +107,10 @@ func main() {
 		}
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.WhitelistForApp(a, *file, *format)
+				return cmd.WhitelistForApp(a, *file)
 			},
 			func() error {
-				return cmd.WhitelistForPlatform(*file, *format)
+				return cmd.WhitelistForPlatform(*file)
 			})
 		exit("Whitelist completed successfully", err)
 		return
@@ -114,10 +120,10 @@ func main() {
 	if list != nil && *list {
 		err := appChoice(app,
 			func(a string) error {
-				return cmd.ListCertsForApp(*app, *count, *format)
+				return cmd.ListCertsForApp(*app, cfg)
 			},
 			func() error {
-				return cmd.ListCertsForPlatform(*count, *format)
+				return cmd.ListCertsForPlatform(cfg)
 			})
 		exit("", err)
 		return
