@@ -16,7 +16,7 @@ then
 fi
 
 # Run each build's tests
-platforms=(alpine-36 debian-8 debian-9 ubuntu-1604 ubuntu-1704 ubuntu-1710)
+platforms=(alpine-36 alpine-37 debian-8 debian-9 ubuntu-1604 ubuntu-1704 ubuntu-1710)
 for plat in "${platforms[@]}"
 do
     echo "CI: $plat"
