@@ -29,7 +29,7 @@ do
     docker run -it cert-manage:"$plat" 2>&1 >> test.log
     if [ ! $? -eq 0 ];
     then
-        cat ./build/"$plat"/test.log
+        cat test.log
         exit 1
     fi
     set -e
