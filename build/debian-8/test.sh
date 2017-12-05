@@ -1,15 +1,7 @@
 #!/bin/bash
-set -e
-
-cd build/debian-8/
-cp ../../bin/cert-manage-linux-amd64 cert-manage
-cp ../../testdata/globalsign-whitelist.json whitelist.json
 
 total=174
 after=5
-cat > main <<EOF
-#!/bin/sh
-set -e
 
 # Verify we're starting with the correct number of certs
 /bin/cert-manage -list -count | grep $total
@@ -29,10 +21,4 @@ ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep 177
 /bin/cert-manage -restore
 /bin/cert-manage -list -count | grep $total
 
-echo "Finished"
-EOF
-
-chmod +x main
-docker build -t cert-manage-debian-8:latest . 2>&1 > test.log
-docker run -i --entrypoint /bin/main cert-manage-debian-8:latest 2>&1 >> test.log
 echo "Debian 8 Passed"

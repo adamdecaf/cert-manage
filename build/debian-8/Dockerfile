@@ -5,5 +5,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY cert-manage /bin/cert-manage
-COPY main /bin/main
 COPY whitelist.json /whitelist.json
+
+COPY test.sh /test.sh
+CMD ["/test.sh"]

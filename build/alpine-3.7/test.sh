@@ -1,18 +1,11 @@
-#!/bin/bash
-set -e
-
-cd build/ubuntu-1604/
-cp ../../bin/cert-manage-linux-amd64 cert-manage
-cp ../../testdata/globalsign-whitelist.json whitelist.json
-
-total=148
-after=5
-cat > main <<EOF
 #!/bin/sh
 set -e
 
+total=151
+after=5
+
 # Verify we're starting with the correct number of certs
-/bin/cert-manage -list -count | grep $total
+/bin/cert-manage -list -count grep $total
 
 # Make a backup
 /bin/cert-manage -backup
@@ -29,10 +22,4 @@ ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep $total
 /bin/cert-manage -restore
 /bin/cert-manage -list -count | grep $total
 
-echo "Finished"
-EOF
-
-chmod +x main
-docker build -t cert-manage-ubuntu-1604:latest . 2>&1 > test.log
-docker run -i --entrypoint /bin/main cert-manage-ubuntu-1604:latest 2>&1 >> test.log
-echo "Ubuntu 16.04 Passed"
+echo "Alpine 3.7 Passed"

@@ -1,14 +1,6 @@
 #!/bin/bash
 set -e
 
-cd build/ubuntu-1710/
-cp ../../bin/cert-manage-linux-amd64 cert-manage
-cp ../../testdata/globalsign-whitelist.json whitelist.json
-
-cat > main <<EOF
-#!/bin/sh
-set -e
-
 echo "Platform tests"
 # Verify we're starting with the correct number of certs
 /bin/cert-manage -list -count | grep 148
@@ -37,16 +29,16 @@ timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> 
 echo "Firefox tests"
 set +e
 timeout 15s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log
-code=\$?
-if [ "\$code" -ne "124" ];
+code=$?
+if [ "$code" -ne "124" ];
 then
-  exit \$code
+  exit $code
 fi
-echo "firefox was forced to quit, code=\$code"
+echo "firefox was forced to quit, code=$code"
 set -e
-count=\$(/bin/cert-manage -list -app firefox -count)
-echo "Cert count from firefox: \$count"
-echo "\$count" | grep -E 4
+count=$(/bin/cert-manage -list -app firefox -count)
+echo "Cert count from firefox: $count"
+echo "$count" | grep -E 4
 
 # Take a backup
 [ ! -d ~/.cert-manage/firefox ]
@@ -58,21 +50,21 @@ ls -1 ~/.cert-manage/firefox | wc -l | grep 1
 /bin/cert-manage -list -app firefox -count | grep 1
 
 # Restore that backup
-for db in \$(ls -1 ~/.mozilla/firefox/*.default/cert8.db | head -n1)
+for db in $(ls -1 ~/.mozilla/firefox/*.default/cert8.db | head -n1)
 do
     # Force a difference we'd notice 5 a restore happens
-    echo a > "\$db"
+    echo a > "$db"
     /bin/cert-manage -restore -app firefox
 
     # Check we actaully restored a file
-    size=\$(stat --printf="%s" ~/.mozilla/firefox/*.default/cert8.db)
-    if [ ! "\$size" -gt "2" ];
+    size=$(stat --printf="%s" ~/.mozilla/firefox/*.default/cert8.db)
+    if [ ! "$size" -gt "2" ];
     then
         echo "failed to restore firefox cert8.db properly"
         exit 1
     fi
 
-    ls -l "\$db"
+    ls -l "$db"
 done
 
 # Verify restore
@@ -88,8 +80,8 @@ echo a > /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts
 # Restore
 /bin/cert-manage -restore -app java
 # Verify restore
-size=\$(stat --printf="%s" /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts)
-if [ ! "\$size" -gt "2" ];
+size=$(stat --printf="%s" /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts)
+if [ ! "$size" -gt "2" ];
 then
     echo "failed to restore java cacerts properly"
     exit 1
@@ -97,10 +89,4 @@ fi
 /bin/cert-manage -whitelist -file /whitelist.json -app java
 /bin/cert-manage -list -app java -count | grep 9
 
-echo "Finished"
-EOF
-
-chmod +x main
-docker build -t cert-manage-ubuntu-1710:latest . 2>&1 > test.log
-docker run -i --entrypoint /bin/main cert-manage-ubuntu-1710:latest 2>&1 >> test.log
 echo "Ubuntu 17.10 Passed"
