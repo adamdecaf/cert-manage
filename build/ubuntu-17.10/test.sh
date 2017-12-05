@@ -16,9 +16,23 @@ ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep 148
 /bin/cert-manage -whitelist -file /whitelist.json
 /bin/cert-manage -list -count | grep 5
 
+# Verify google.com fails to load
+set +e
+curl -s https://www.google.com/images/branding/product/ico/googleg_lodp.ico
+code=$?
+set -e
+if [ "$code" -ne "35" ];
+then
+    echo "Got other status code from google.com request, code=$code"
+    exit 1
+fi
+
 # Restore
 /bin/cert-manage -restore
 /bin/cert-manage -list -count | grep 148
+
+# Verify google.com loads now
+curl -s https://www.google.com/images/branding/product/ico/googleg_lodp.ico
 
 ## Chrome
 echo "Chrome tests"
