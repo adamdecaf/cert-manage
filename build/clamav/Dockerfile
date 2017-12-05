@@ -1,0 +1,11 @@
+FROM ubuntu:17.10
+
+RUN apt-get update && \
+    apt-get install -y clamav && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY cert-manage /bin/cert-manage
+COPY whitelist.json /whitelist.json
+
+COPY test.sh /test.sh
+CMD ["/test.sh"]
