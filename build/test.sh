@@ -16,16 +16,23 @@ then
 fi
 
 # Run each build's tests
-platforms=(alpine-36 alpine-37 debian-8 debian-9 ubuntu-1604 ubuntu-1704 ubuntu-1710)
+platforms=(alpine-3.6 alpine-3.7 debian-8 debian-9 ubuntu-16.04 ubuntu-17.04 ubuntu-17.10)
 for plat in "${platforms[@]}"
 do
     echo "CI: $plat"
+    cd ./build/"$plat"
+    cp ../../bin/cert-manage-linux-amd64 cert-manage
+    cp ../../testdata/globalsign-whitelist.json whitelist.json
+    docker build -t cert-manage:"$plat" . 2>&1 > test.log
+
     set +e
-    ./build/"$plat"/test.sh
+    docker run -it cert-manage:"$plat" 2>&1 >> test.log
     if [ ! $? -eq 0 ];
     then
         cat ./build/"$plat"/test.log
         exit 1
     fi
     set -e
+
+    cd ../../
 done
