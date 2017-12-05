@@ -12,9 +12,9 @@ then
     ./bin/cert-manage-osx-amd64 -backup
     # TODO(adam): Need to run -whitelist and -restore
 
-    echo "Firefox"
     if [[ -d "/Applications/Firefox.app" ]];
     then
+        echo "Firefox"
         set +e
         out=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
         count=$(echo "$out" | tail -n1)
@@ -31,11 +31,12 @@ then
         else
             echo "Found $count firefox certs"
         fi
+        echo "Firefox Passed"
     fi
 
-    echo "Java"
     if [[ -n "JAVA_HOME" ]];
     then
+        echo "Java"
         set +e
         out=$(./bin/cert-manage-osx-amd64 -list -app java -count)
         count=$(echo "$out" | tail -n1)
@@ -52,6 +53,7 @@ then
         else
             echo "Found $count java certs"
         fi
+        echo "Java Passed"
     fi
 
     echo "== END OSX"
