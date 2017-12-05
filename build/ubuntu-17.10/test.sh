@@ -18,7 +18,7 @@ ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep 148
 
 # Verify google.com fails to load
 set +e
-curl -s https://www.google.com/images/branding/product/ico/googleg_lodp.ico
+curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
 code=$?
 set -e
 if [ "$code" -ne "35" ];
@@ -32,7 +32,7 @@ fi
 /bin/cert-manage -list -count | grep 148
 
 # Verify google.com loads now
-curl -s https://www.google.com/images/branding/product/ico/googleg_lodp.ico
+curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
 
 ## Chrome
 echo "Chrome tests"
