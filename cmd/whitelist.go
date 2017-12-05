@@ -5,7 +5,7 @@ import (
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
 
-func WhitelistForApp(app, whpath, format string) error {
+func WhitelistForApp(app, whpath string) error {
 	// load whitelist
 	wh, err := whitelist.FromFile(whpath)
 	if err != nil {
@@ -25,7 +25,7 @@ func WhitelistForApp(app, whpath, format string) error {
 	return nil
 }
 
-func WhitelistForPlatform(whpath, format string) error {
+func WhitelistForPlatform(whpath string) error {
 	// load whitelist
 	wh, err := whitelist.FromFile(whpath)
 	if err != nil {

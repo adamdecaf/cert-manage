@@ -10,16 +10,16 @@ import (
 // ListCertsForPlatform finds certs for the given platform.
 // The supported platforms can be found in the readme. They're compiled in
 // with build flags in the `certs/find_*.go` files.
-func ListCertsForPlatform(count bool, format string) error {
+func ListCertsForPlatform(cfg *Config) error {
 	certificates, err := store.Platform().List()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if count {
+	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, format)
+		printCerts(certificates, cfg.Format)
 	}
 	return nil
 }
@@ -27,7 +27,7 @@ func ListCertsForPlatform(count bool, format string) error {
 // ListCertsForApp finds certs for the given app.
 // The supported applications are listed in the readme. This includes
 // non-traditional applications like NSS.
-func ListCertsForApp(app string, count bool, format string) error {
+func ListCertsForApp(app string, cfg *Config) error {
 	st, err := store.ForApp(app)
 	if err != nil {
 		fmt.Println(err)
@@ -47,10 +47,10 @@ func ListCertsForApp(app string, count bool, format string) error {
 	}
 
 	// Output the certificates
-	if count {
+	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, format)
+		printCerts(certificates, cfg.Format)
 	}
 	return nil
 }
