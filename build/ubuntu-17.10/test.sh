@@ -86,13 +86,21 @@ done
 
 # Java
 echo "Java"
+
+# Take a backup and verify
 /bin/cert-manage -list -app java -count | grep 148
 /bin/cert-manage -backup -app java
 ls -1 ~/.cert-manage/java | wc -l | grep 1
+
+# Verify google.com request loads
+java Download
+
 # Break the keystore
 echo a > /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts
+
 # Restore
 /bin/cert-manage -restore -app java
+
 # Verify restore
 size=$(stat --printf="%s" /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts)
 if [ ! "$size" -gt "2" ];
@@ -100,7 +108,19 @@ then
     echo "failed to restore java cacerts properly"
     exit 1
 fi
+
 /bin/cert-manage -whitelist -file /whitelist.json -app java
 /bin/cert-manage -list -app java -count | grep 9
+
+# Verify google.com request fails now that it should
+set +e
+out=$(java Download 2>&1)
+set -e
+if ! echo "$out" | grep 'PKIX path building failed';
+then
+    echo "Expected http response failure, but got something else, response:"
+    echo "$out"
+    exit 1
+fi
 
 echo "Ubuntu 17.10 Passed"

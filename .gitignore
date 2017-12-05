@@ -11,5 +11,6 @@ cert-manage-*
 build/*/whitelist.json
 build/*/main
 build/osx/whitelist.json
+build/*/*.class
 
 *.log
