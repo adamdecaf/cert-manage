@@ -100,6 +100,7 @@ echo a > /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts
 
 # Restore
 /bin/cert-manage -restore -app java
+/bin/cert-manage -list -app java -count | grep 148
 
 # Verify restore
 size=$(stat --printf="%s" /usr/lib/jvm/java-9-openjdk-amd64/lib/security/cacerts)
