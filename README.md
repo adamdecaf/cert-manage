@@ -26,7 +26,7 @@ AAA Certificate Services                                     AAA Certificate Ser
 
 # Trim down what CA's are trusted on your system
 $ cert-manage whitelist -file digicert.json
-$ cert-manage app chrome -whitelist -file digicert.json
+$ cert-manage whitelist -app chrome -file digicert.json
 
 # Backup and Restore the current trust
 $ cert-manage backup
