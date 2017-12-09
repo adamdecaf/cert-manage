@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/adamdecaf/cert-manage/cmd"
 )
@@ -14,13 +16,6 @@ const (
 
 var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
-
-	// Commands
-	backup    = fs.Bool("backup", false, "Make a backup")
-	list      = fs.Bool("list", false, "List certificates (by default on the system, see -app)")
-	restore   = fs.Bool("restore", false, "Restore from a given backup file, if it exists (and supported)")
-	whitelist = fs.Bool("whitelist", false, "Filter certificates according to the provided whitelist")
-	ver       = fs.Bool("version", false, "Show the version of cert-manage")
 
 	// Qualifiers
 	file = fs.String("file", "", "File to use for operation (restore, whitelist)")
@@ -36,14 +31,14 @@ var (
 func init() {
 	fs.Usage = func() {
 		fmt.Printf(`Usage of cert-manage (version %s)
-COMMANDS
-  -backup   Take a backup of the specified certificate store
-  -list     List the currently installed and trusted certificates
-  -restore  Revert the certificate trust back to, optionally takes -file <path>
-  -version  Show the version of cert-manage
+SUB-COMMANDS
+  backup   Take a backup of the specified certificate store
+  list     List the currently installed and trusted certificates
+  restore  Revert the certificate trust back to, optionally takes -file <path>
+  version  Show the version of cert-manage
 
-  Commands which require a file (via -file)
-  -whitelist -file <path> Remove trust from certificates which do not match the whitelist in <path>
+  Sub-Commands which require a file (via -file)
+  whitelist -file <path> Remove trust from certificates which do not match the whitelist in <path>
 
 FILTERS
   Filters can be applied to the following commands: -backup, -list, -restore, -whitelist
@@ -55,102 +50,106 @@ OUTPUT
 	}
 }
 
-func main() {
-	fs.Parse(os.Args[1:])
+type command struct {
+	fn    func() error
+	appfn func(string) error
 
-	// Show the version
-	if ver != nil && *ver {
-		fmt.Printf("%s\n", version)
+	usage func() string
+}
+
+func main() {
+	// Just show help if there aren't enough arguments to do anything
+	if len(os.Args) < 2 {
+		fs.Usage()
 		return
 	}
 
 	// Lift config options into a higher-level
+	fs.Parse(os.Args[2:])
 	cfg := &cmd.Config{
 		Count:  *count,
 		Format: *format,
 	}
 
-	// Perform a restore
-	// Note: This always needs to happen before -whitelist and before -backup
-	if restore != nil && *restore {
-		err := appChoice(app,
-			func(a string) error {
-				return cmd.RestoreForApp(a, *file)
-			},
-			func() error {
-				return cmd.RestoreForPlatform(*file)
-			})
-		exit("Restore completed successfully", err)
+	// Build up sub-commands
+	cmds := make(map[string]*command, 0)
+	cmds["backup"] = &command{
+		fn: func() error {
+			return cmd.BackupForPlatform()
+		},
+		appfn: func(a string) error {
+			return cmd.BackupForApp(a)
+		},
+		usage: func() string {
+			return "Make a backup of a certificate store."
+		},
+	}
+	cmds["list"] = &command{
+		fn: func() error {
+			return cmd.ListCertsForPlatform(cfg)
+		},
+		appfn: func(a string) error {
+			return cmd.ListCertsForApp(a, cfg)
+		},
+		usage: func() string {
+			return "List certificates (by default on the system, see -app)"
+		},
+	}
+	cmds["restore"] = &command{
+		fn: func() error {
+			return cmd.RestoreForPlatform(*file)
+		},
+		appfn: func(a string) error {
+			return cmd.RestoreForApp(a, *file)
+		},
+		usage: func() string {
+			return "Restore from a given backup file, if it exists (and supported)"
+		},
+	}
+	cmds["whitelist"] = &command{
+		fn: func() error {
+			if *file == "" {
+				return errors.New("no -file specified")
+			}
+			return cmd.WhitelistForPlatform(*file)
+		},
+		appfn: func(a string) error {
+			if *file == "" {
+				return errors.New("no -file specified")
+			}
+			return cmd.WhitelistForApp(a, *file)
+		},
+		usage: func() string {
+			return "Filter certificates according to the provided attributes/filters"
+		},
+	}
+	cmds["version"] = &command{
+		fn:    func() error { return nil },
+		appfn: func(_ string) error { return nil },
+		usage: func() string {
+			return "Show the version of cert-manage"
+		},
+	}
+
+	// Run whatever function we've got here..
+	c, ok := cmds[strings.ToLower(os.Args[1])]
+	if !ok { // sub-cmd wasn't found
+		fs.Usage()
 		return
 	}
 
-	// Take a backup
-	// Note: This always needs to be done before -whitelist
-	if backup != nil && *backup {
-		err := appChoice(app,
-			func(a string) error {
-				return cmd.BackupForApp(a)
-			},
-			func() error {
-				return cmd.BackupForPlatform()
-			})
-		exit("Backup completed successfully", err)
-		return
-	}
-
-	// Whitelist
-	if whitelist != nil && *whitelist {
-		if *file == "" {
-			fmt.Println("no -file specified")
-			fs.Usage()
-			return
-		}
-		err := appChoice(app,
-			func(a string) error {
-				return cmd.WhitelistForApp(a, *file)
-			},
-			func() error {
-				return cmd.WhitelistForPlatform(*file)
-			})
-		exit("Whitelist completed successfully", err)
-		return
-	}
-
-	// List
-	if list != nil && *list {
-		err := appChoice(app,
-			func(a string) error {
-				return cmd.ListCertsForApp(*app, cfg)
-			},
-			func() error {
-				return cmd.ListCertsForPlatform(cfg)
-			})
-		exit("", err)
-		return
-	}
-
-	// Print usage if no command was ran
-	fs.Usage()
-}
-
-type fn func() error
-type appfn func(string) error
-
-// appChoice decides between `appfn` and `fn` given the presence of `app`
-// being non-nil and a non-empty string.
-func appChoice(app *string, appfn appfn, fn fn) error {
+	// sub-command found, try and exec something off it
 	if app != nil && *app != "" {
-		return appfn(*app)
+		err := c.appfn(*app)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n%s", err, c.usage())
+			os.Exit(1)
+		}
+		return
 	}
-	return fn()
-}
-
-func exit(msg string, err error) {
+	err := c.fn()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("ERROR: %v\n%s", err, c.usage())
 		os.Exit(1)
-	}
-	if msg != "" {
-		fmt.Println(msg)
 	}
 }

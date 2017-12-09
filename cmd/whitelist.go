@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/adamdecaf/cert-manage/store"
 	"github.com/adamdecaf/cert-manage/whitelist"
 )
@@ -22,6 +24,7 @@ func WhitelistForApp(app, whpath string) error {
 		return err
 	}
 
+	fmt.Println("Whitelist completed successfully")
 	return nil
 }
 
@@ -39,5 +42,6 @@ func WhitelistForPlatform(whpath string) error {
 		return err
 	}
 
+	fmt.Println("Whitelist completed successfully")
 	return nil
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/adamdecaf/cert-manage/store"
 )
 
@@ -9,9 +10,17 @@ func RestoreForApp(app, path string) error {
 	if err != nil {
 		return err
 	}
-	return s.Restore(path)
+	err = s.Restore(path)
+	if err == nil {
+		fmt.Println("Restore completed successfully")
+	}
+	return err
 }
 
 func RestoreForPlatform(path string) error {
-	return store.Platform().Restore(path)
+	err := store.Platform().Restore(path)
+	if err == nil {
+		fmt.Println("Restore completed successfully")
+	}
+	return err
 }

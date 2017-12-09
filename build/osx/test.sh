@@ -5,18 +5,18 @@ set -e
 if [[ `uname -s` == 'Darwin' ]];
 then
     echo "== START OSX"
-    version=$(./bin/cert-manage-osx-amd64 -version)
+    version=$(./bin/cert-manage-osx-amd64 version)
     echo "cert-manage ($version)"
 
-    ./bin/cert-manage-osx-amd64 -list -count
-    ./bin/cert-manage-osx-amd64 -backup
+    ./bin/cert-manage-osx-amd64 list -count
+    ./bin/cert-manage-osx-amd64 backup
     # TODO(adam): Need to run -whitelist and -restore
 
     if [[ -d "/Applications/Firefox.app" ]];
     then
         echo "Firefox"
         set +e
-        out=$(./bin/cert-manage-osx-amd64 -list -app firefox -count)
+        out=$(./bin/cert-manage-osx-amd64 list -app firefox -count)
         count=$(echo "$out" | tail -n1)
         if [[ "$?" -ne "0" ]];
         then
@@ -38,7 +38,7 @@ then
     then
         echo "Java"
         set +e
-        out=$(./bin/cert-manage-osx-amd64 -list -app java -count)
+        out=$(./bin/cert-manage-osx-amd64 list -app java -count)
         count=$(echo "$out" | tail -n1)
         if [[ "$?" -ne "0" ]];
         then
