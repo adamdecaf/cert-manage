@@ -33,19 +33,25 @@ func init() {
 		fmt.Printf(`Usage of cert-manage (version %s)
 SUB-COMMANDS
   backup   Take a backup of the specified certificate store
+           Accepts: -app
+
   list     List the currently installed and trusted certificates
+           Accepts: -app, -count, -format
+
   restore  Revert the certificate trust back to, optionally takes -file <path>
+           Accepts: -app, -file
+
   version  Show the version of cert-manage
 
-  Sub-Commands which require a file (via -file)
-  whitelist -file <path> Remove trust from certificates which do not match the whitelist in <path>
+  whitelist -file <path>   Remove trust from certificates which do not match the whitelist in <path>
+                           Accepts: -app, -file
 
 FILTERS
-  Filters can be applied to the following commands: -backup, -list, -restore, -whitelist
   -app <name> The name of an application which to perform the given command on. (Examples: chrome, java)
 
 OUTPUT
-  -format Change the output format for a given command (default: table, options: table, raw)
+  -count  Output the count of certificates instead of each certificate
+  -format <format> Change the output format for a given command (default: table, options: table, raw)
 `, version)
 	}
 }
