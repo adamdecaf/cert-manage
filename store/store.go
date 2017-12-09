@@ -23,6 +23,13 @@ var (
 		strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 
 	backupDirPerms os.FileMode = 0744
+
+	// Define a mapping between -app and the Store instance
+	appStores = map[string]Store{
+		"chrome":  ChromeStore(),
+		"firefox": FirefoxStore(),
+		"java":    JavaStore(),
+	}
 )
 
 // Store represents a certificate store (often called 'pool') and has
@@ -65,16 +72,11 @@ func Platform() Store {
 
 // ForApp returns a `Store` instance for the given app
 func ForApp(app string) (Store, error) {
-	switch strings.ToLower(app) {
-	case "chrome":
-		return ChromeStore(), nil
-	case "firefox":
-		return FirefoxStore(), nil
-	case "java":
-		return JavaStore(), nil
-	default:
+	s, ok := appStores[strings.ToLower(app)]
+	if !ok {
 		return nil, fmt.Errorf("application '%s' not found", app)
 	}
+	return s, nil
 }
 
 // getCertManageDir returns the fs location (always creating first) where a specific
