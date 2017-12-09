@@ -2,12 +2,12 @@
 
 ### List
 
-The cli option `-list` will output a list of certificates installed (and trusted) in the certificate store. This option defaults to the platform (Linux, OSX, or Windows), but can be switched to an application via the `-app` flag.
+The cli sub-command `list` will output a list of certificates installed (and trusted) in the certificate store. This option defaults to the platform (Linux, OSX, or Windows), but can be switched to an application via the `-app` flag.
 
 Show certificates installed in the platform:
 
 ```
-$ cert-manage -list
+$ cert-manage list
 Subject                                                      Issuer                                                       Public Key Algorithm SHA256 Fingerprint Not Before Not After
 A-Trust-nQual-01                                             A-Trust-nQual-01                                             RSA                  7b1f8d8eff5d7349   2004-11-30 2014-11-30
 A-Trust-nQual-03                                             A-Trust-nQual-03                                             RSA                  793cbf4559b9fde3   2005-08-17 2015-08-17
@@ -17,7 +17,7 @@ A-Trust-nQual-03                                             A-Trust-nQual-03   
 Show certificates installed for an application
 
 ```
-$ cert-manage -list -app firefox
+$ cert-manage list -app firefox
 Subject                                             Issuer                                                       Public Key Algorithm SHA256 Fingerprint Not Before Not After
 AlphaSSL CA - SHA256 - G2                           GlobalSign Root CA                                           RSA                  ee793643199474ed   2014-02-20 2024-02-20
 Amazon                                              Amazon Root CA 1                                             RSA                  f55f9ffcb83c7345   2015-10-22 2025-10-19
@@ -27,7 +27,7 @@ Amazon Root CA 1                                    Starfield Services Root Cert
 Note: You can specify `-format raw` to output all details of each certificate, but the result won't be in a table layout.
 
 ```
-$ cert-manage -list -format raw
+$ cert-manage list -format raw
 Certificate
   SHA1 Fingerprint - 801d62d07b449d5c5c035c98ea61fa443c2a58fe
   SHA256 Fingerprint - d1c339ea2784eb870f934fc5634e4aa9ad5505016401f26465d37a574663359f
@@ -70,14 +70,14 @@ Whitelists are stored in json files. There is a basic structure to them which al
 To apply a whitelist against a platform:
 
 ```
-$ cert-manage -whitelist -file wh.json
+$ cert-manage whitelist -file wh.json
 Whitelist completed successfully
 ```
 
 You can also apply a whitelist against an application's certificate store:
 
 ```
-$ cert-manage -whitelist -file wh.json -app java
+$ cert-manage whitelist -file wh.json -app java
 Whitelist completed successfully
 ```
 
@@ -88,13 +88,13 @@ It's important to be able to rollback changes to your certificate store. These c
 To capture a backup:
 
 ```
-$ cert-manage -backup
+$ cert-manage backup
 Backup completed successfully
 ```
 
 To capture a backup for an application
 
 ```
-$ cert-manage -backup -app java
+$ cert-manage backup -app java
 Backup completed successfully
 ```

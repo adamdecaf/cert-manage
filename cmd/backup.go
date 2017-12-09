@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/adamdecaf/cert-manage/store"
 )
 
@@ -9,9 +10,17 @@ func BackupForApp(app string) error {
 	if err != nil {
 		return err
 	}
-	return s.Backup()
+	err = s.Backup()
+	if err == nil {
+		fmt.Println("Backup completed successfully")
+	}
+	return err
 }
 
 func BackupForPlatform() error {
-	return store.Platform().Backup()
+	err := store.Platform().Backup()
+	if err == nil {
+		fmt.Println("Backup completed successfully")
+	}
+	return err
 }

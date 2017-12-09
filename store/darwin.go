@@ -95,7 +95,6 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("OTHER")
 
 	if debug {
 		fmt.Printf("store/darwin: %d installed, %d with policy\n", len(installed), len(trustItems))

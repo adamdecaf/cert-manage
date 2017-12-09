@@ -18,19 +18,19 @@ $ make build
 ...
 
 # List certificates trusted on your system (or app)
-$ cert-manage -list
+$ cert-manage list
 
-$ cert-manage -list -app java
+$ cert-manage list -app java
 Subject                                                      Issuer                                                       Public Key Algorithm SHA256 Fingerprint Not Before Not After
 AAA Certificate Services                                     AAA Certificate Services                                     RSA                  d7a7a0fb5d7e2731   2004-01-01 2028-12-31
 
 # Trim down what CA's are trusted on your system
-$ cert-manage -whitelist -file digicert.json
-$ cert-manage -app chrome -whitelist -file digicert.json
+$ cert-manage whitelist -file digicert.json
+$ cert-manage app chrome -whitelist -file digicert.json
 
 # Backup and Restore the current trust
-$ cert-manage -backup
-$ cert-manage -restore [-file <path>]
+$ cert-manage backup
+$ cert-manage restore [-file <path>]
 ```
 
 ## Features
