@@ -124,8 +124,13 @@ func main() {
 		},
 	}
 	cmds["version"] = &command{
-		fn:    func() error { return nil },
-		appfn: func(_ string) error { return nil },
+		fn: func() error {
+			fmt.Printf("%s\n", version)
+			return nil
+		},
+		appfn: func(_ string) error {
+			return nil
+		},
 		usage: func() string {
 			return "Show the version of cert-manage"
 		},
