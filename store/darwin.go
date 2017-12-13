@@ -315,7 +315,7 @@ func (s darwinStore) Restore(where string) error {
 		}
 
 		// Ignore any errors and try to set a file
-		latest, _ := getLatestBackupFile(dir)
+		latest, _ := getLatestBackup(dir)
 		where = latest
 	}
 	if where == "" {

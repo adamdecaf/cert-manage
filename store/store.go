@@ -120,13 +120,13 @@ func getCertManageParentDir() string {
 	return ""
 }
 
-// getLatestBackupFile returns the "biggest" file at a given path
+// getLatestBackup returns the "biggest" file or dir at a given path
 //
 // This sorting is done by assuming filenames follow a pattern like
 // file-%d.ext where %d is a sortable timestamp and the filename follows
 // lexigraphical sorting. Results are sorted in descending order and the
 // first element (if exists) is returned
-func getLatestBackupFile(dir string) (string, error) {
+func getLatestBackup(dir string) (string, error) {
 	fis, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return "", err
