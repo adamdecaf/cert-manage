@@ -34,10 +34,11 @@ fi
 # Verify google.com loads now
 curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
 
-## Chrome
-echo "Chrome tests"
-timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
+# Chrome
+# echo "Chrome tests"
+# timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
 # /bin/cert-manage list -app chrome -count
+# TODO(adam): https://github.com/adamdecaf/cert-manage/issues/83
 
 ## Firefox
 echo "Firefox tests"

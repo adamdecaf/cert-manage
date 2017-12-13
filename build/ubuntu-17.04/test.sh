@@ -23,10 +23,11 @@ ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep $total
 /bin/cert-manage restore
 /bin/cert-manage list -count | grep $total
 
-## Chrome
-echo "Chrome tests"
-timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
+# Chrome
+# echo "Chrome tests"
+# timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
 # /bin/cert-manage list -app chrome -count
+# TODO(adam): https://github.com/adamdecaf/cert-manage/issues/83
 
 ## Firefox
 echo "Firefox tests"
