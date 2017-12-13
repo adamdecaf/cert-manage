@@ -34,10 +34,11 @@ fi
 # Verify google.com loads now
 curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
 
-## Chrome
-echo "Chrome tests"
-timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
+# Chrome
+# echo "Chrome tests"
+# timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log
 # /bin/cert-manage list -app chrome -count
+# TODO(adam): https://github.com/adamdecaf/cert-manage/issues/83
 
 ## Firefox
 echo "Firefox tests"
@@ -52,7 +53,11 @@ echo "firefox was forced to quit, code=$code"
 set -e
 count=$(/bin/cert-manage list -app firefox -count)
 echo "Cert count from firefox: $count"
-echo "$count" | grep -E 4
+if [ "$count" -ne "5" ];
+then
+    echo "Wrong number of certificates from firefox"
+    exit 1
+fi
 
 # Take a backup
 [ ! -d ~/.cert-manage/firefox ]
@@ -82,7 +87,7 @@ do
 done
 
 # Verify restore
-/bin/cert-manage list -app firefox -count | grep -E 4
+/bin/cert-manage list -app firefox -count | grep 5
 
 # Java
 echo "Java"
