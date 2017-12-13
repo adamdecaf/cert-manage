@@ -129,7 +129,7 @@ func main() {
 	c, ok := cmds[strings.ToLower(os.Args[1])]
 	if !ok { // sub-cmd wasn't found
 		fs.Usage()
-		return
+		os.Exit(1)
 	}
 
 	// sub-command found, try and exec something off it
@@ -139,7 +139,7 @@ func main() {
 			fmt.Printf("ERROR: %v\n", err)
 			os.Exit(1)
 		}
-		return
+		os.Exit(0)
 	}
 	err := c.fn()
 	if err != nil {
