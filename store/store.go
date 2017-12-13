@@ -81,6 +81,9 @@ func ForApp(app string) (Store, error) {
 
 // getCertManageDir returns the fs location (always creating first) where a specific
 // store can save files into. This path is recommended for backups
+//
+// If `name` is an absolute fs reference then just ensure that directory is created
+// and has permissions setup properly.
 func getCertManageDir(name string) (string, error) {
 	parent := getCertManageParentDir()
 	err := os.MkdirAll(parent, os.ModeDir)
@@ -92,18 +95,32 @@ func getCertManageDir(name string) (string, error) {
 		return "", err
 	}
 
-	// Create the child dir now
-	child := filepath.Join(parent, name)
-	err = os.MkdirAll(child, os.ModeDir)
+	dir := filepath.Join(parent, name)
+	// If `name` is actually an absolute fs reference then just ensure
+	// it's created and owned properly, otherwise append whatever was
+	// provided onto the parent dir.
+	if filepath.IsAbs(name) {
+		s, err := os.Stat(name)
+		if err != nil {
+			return "", err
+		}
+		if !s.IsDir() {
+			return "", fmt.Errorf("since %s exists and cannot be a file, should be a dir", name)
+		}
+		dir = name
+	}
+
+	// Create the dir and set ownership
+	err = os.MkdirAll(dir, os.ModeDir)
 	if err != nil {
 		return "", err
 	}
-	err = os.Chmod(child, backupDirPerms)
+	err = os.Chmod(dir, backupDirPerms)
 	if err != nil {
 		return "", err
 	}
 
-	return child, nil
+	return dir, nil
 }
 
 func getCertManageParentDir() string {

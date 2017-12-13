@@ -2,6 +2,7 @@ package store
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -22,6 +23,53 @@ func TestStore__getCertManageDir(t *testing.T) {
 		t.Errorf("%s != %s", d1, d2)
 	}
 	defer os.Remove(d1)
+
+	// If we're asking for an abs reference just return that.
+	// AKA. Don't append getCertManageParentDir()
+	dir, err := filepath.Abs("../testdata/backups/files")
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = os.Stat(dir) // make sure `dir` exists
+	if err != nil {
+		t.Error(err)
+	}
+	d3, err := getCertManageDir(dir)
+	if err != nil {
+		t.Error(err)
+	}
+	if dir != d3 {
+		t.Errorf("dir=%s != d3=%s", dir, d3)
+	}
+	_, err = os.Stat(dir) // make sure `dir` exists
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestStore__getCertManageDirNeg(t *testing.T) {
+	// Grab a file and ensure it can't be modified
+	f, err := filepath.Abs("../main.go")
+	if err != nil {
+		t.Error(err)
+	}
+	s, err := os.Stat(f)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// "get dir"
+	dir, err := getCertManageDir(f)
+	if err == nil {
+		t.Errorf("expected error, dir=%s", dir)
+	}
+	s2, err := os.Stat(f)
+	if err != nil {
+		t.Error(err)
+	}
+	if s.Mode().String() != s2.Mode().String() {
+		t.Errorf("s.Mode()=%s != s2.Mode()=%s", s.Mode().String(), s2.Mode().String())
+	}
 }
 
 func TestStore__getLatestBackup(t *testing.T) {
