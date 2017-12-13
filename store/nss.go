@@ -202,7 +202,7 @@ func (s nssStore) Restore(where string) error {
 	if err != nil {
 		return err
 	}
-	src, err := getLatestBackupFile(dir)
+	src, err := getLatestBackup(dir)
 	if err != nil {
 		return err
 	}
