@@ -77,11 +77,10 @@ func TestStoreDarwin__locations(t *testing.T) {
 	}
 
 	// Show the difference between the various keychains
-	paths := make([]string, 0)
-	paths = append(paths, systemKeychains...)
-
-	userDirs, _ := getUserKeychainPaths()
-	paths = append(paths, userDirs...)
+	paths, err := getKeychainPaths(systemKeychains)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	count := 0
 

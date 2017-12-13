@@ -56,38 +56,63 @@ func platform() Store {
 	return darwinStore{}
 }
 
-// Backup will save off a copy of the existing trust policy
 func (s darwinStore) Backup() error {
-	fd, err := trustSettingsExport()
+	// setup (and create) backup (parent) dir
+	parent, err := getCertManageDir(fmt.Sprintf("%s/%d", darwinBackupDir, time.Now().Unix()))
 	if err != nil {
 		return err
 	}
-	defer os.Remove(fd.Name())
 
-	// Copy the temp file somewhere safer
-	outDir, err := getCertManageDir(darwinBackupDir)
+	keychainFilepaths, err := getKeychainPaths(systemKeychains)
 	if err != nil {
 		return err
 	}
-	filename := fmt.Sprintf("trust-backup-%d.xml", time.Now().Unix())
-	out := filepath.Join(outDir, filename)
 
-	// Copy file
-	err = file.CopyFile(fd.Name(), out)
+	// Take each keychain and export each certificate into a separate file (costly.. I know)
+	// this way we can restore them much easier.
+	//
+	// The backup format looks like this: darwin/$time/$keychain-name/$fingerprint.crt
+	// Files are PEM encoded x509 certificates.
+	for i := range keychainFilepaths {
+		if _, err := os.Stat(keychainFilepaths[i]); os.IsNotExist(err) {
+			if debug {
+				fmt.Printf("store/darwin: skipping %s because it does not exist\n", keychainFilepaths[i])
+			}
+			continue
+		}
 
-	return err
+		// Backup the certs from each keychain file
+		_, fname := filepath.Split(keychainFilepaths[i])
+		certs, err := readInstalledCerts(keychainFilepaths[i])
+		if err != nil {
+			return err
+		}
+		dir, err := getCertManageDir(filepath.Join(parent, fname))
+		if err != nil {
+			return err
+		}
+
+		// Write each certificate to the underlying fs
+		for j := range certs {
+			fp := _x509.GetHexSHA256Fingerprint(*certs[j])
+			where := filepath.Join(dir, fmt.Sprintf("%s.crt", fp))
+
+			err = pem.ToFile(where, certs[j:j+1]) // avoid creating a new slice
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
-// List
-//
-// Note: Currently we are ignoring the login keychain. This is done because those certs are
-// typically modified by the user (or an application the user trusts).
 func (s darwinStore) List() ([]*x509.Certificate, error) {
-	uchains, err := getUserKeychainPaths()
+	chains, err := getKeychainPaths(systemKeychains)
 	if err != nil {
 		return nil, err
 	}
-	installed, err := readInstalledCerts(append(systemKeychains, uchains...)...)
+	installed, err := readInstalledCerts(chains...)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +225,12 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	return res, nil
 }
 
+// TODO(adam): Unlike Go, we don't really have a perf concern that pushes us towards
+// grabbing this plist file and parsing it. We can shell out to `security verify-cert`
+// and encur the time penality. It'll help us simplify the code.
+//
+// With our login.keychain modifications we'd need to verify against the login keychain
+// overlayed with the system keychain anyway. (I'm not sure if this func does that now)
 func getCertsWithTrustPolicy() (trustItems, error) {
 	fd, err := trustSettingsExport()
 	if err != nil {
@@ -264,91 +295,197 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	// Keep what's whitelisted
-	kept := make([]*x509.Certificate, 0)
-	for i := range certs {
-		if wh.Matches(certs[i]) {
-			kept = append(kept, certs[i])
+	remove := func(cert *x509.Certificate) error {
+		if cert == nil {
+			return errors.New("nil x509 certificate")
 		}
-	}
 
-	// Build plist xml file and restore on the system
-	items := make(trustItems, 0)
-	for i := range kept {
-		if kept[i] == nil {
-			continue
+		// Write the cert as a PEM block to a tempfile
+		tmp, err := ioutil.TempFile("", "cert-manage-remove-trusted-cert")
+		if err != nil {
+			return err
 		}
-		items = append(items, trustItemFromCertificate(*kept[i]))
-	}
+		defer os.Remove(tmp.Name())
 
-	// Create temporary output file
-	f, err := ioutil.TempFile("", "cert-manage")
-	if err != nil {
-		return err
-	}
-	// show plist file if we're in debug mode, otherwise cleanup
-	if debug {
-		fmt.Printf("darwin.Remove() plist file: %s\n", f.Name())
-	} else {
-		defer os.Remove(f.Name())
-	}
-
-	// Write out plist file
-	// TODO(adam): This needs to have set the trust settings (to Never Trust), the <array> fields lower on
-	// https://github.com/ntkme/security-trust-settings-tools/blob/master/security-trust-settings-blacklist/main.m#L10
-	err = items.toXmlFile(f.Name())
-	if err != nil {
-		return err
-	}
-
-	return s.Restore(f.Name())
-}
-
-// TODO(adam): This should default trust to "Use System Trust", not "Always Trust"
-// Maybe this is a change for "Backup"...?
-func (s darwinStore) Restore(where string) error {
-	// Setup file to use as restore point
-	if where == "" {
-		dir, err := getCertManageDir(darwinBackupDir)
+		err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
 		if err != nil {
 			return err
 		}
 
-		// Ignore any errors and try to set a file
-		latest, _ := getLatestBackup(dir)
-		where = latest
-	}
-	if where == "" {
-		// No backup dir (or backup files) and no -file specified
-		return errors.New("No backup file found and -file not specified")
-	}
-	if !file.Exists(where) {
-		return errors.New("Restore file doesn't exist")
+		// Shell out and apply an override to the login keychain
+		loginKeychain, err := getLoginKeychain()
+		if err != nil {
+			return err
+		}
+
+		// After "System Integrity Protection" was added to macs not even root can modify files
+		// like /System/Library/Keychains/SystemRootCertificates.keychain
+		// SIP: https://support.apple.com/en-ca/HT204899
+		//
+		// Instead we apply a "Never Trust" override to the login keychain, which has the impact
+		// of not trusting that cert. This works nicely as undoing that work is as simple as
+		// deleting the "Never Trust" record in the login keychain
+		//
+		// https://superuser.com/questions/1070664/security-seckeychainitemdelete-unixoperation-not-permitted-on-os-x-when-tryi
+		// https://apple.stackexchange.com/questions/24640/how-do-i-remove-many-system-roots-from-apple-system-keychain
+
+		// TODO(adam): Changes
+		//  - Removed "sudo", from Command(..), works as expected on login keychain now
+		//  - Removed -d, works on login keychain now
+		// TODO(adam): Need to unlock keychain for a bit, typing password in everytime is crazy
+		cmd := exec.Command("/usr/bin/security", "add-trusted-cert", "-r", "deny", "-k", loginKeychain, tmp.Name())
+		out, err := cmd.CombinedOutput()
+		if debug {
+			fp := _x509.GetHexSHA256Fingerprint(*cert)
+			if err != nil {
+				output := string(out)
+
+				fmt.Printf("ERROR: during remove-trusted-cert (fingerprint=%s), error=%v\n", fp, err)
+				fmt.Printf("  Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+				fmt.Printf("  Output was: %s\n", output)
+
+				if strings.Contains(output, "could not be found") {
+					if debug {
+						fmt.Println("Silencing error due to cert not found in keychain")
+					}
+					return nil
+				}
+
+			} else {
+				fmt.Printf("remove-trusted-cert (for %s)\n%s\n", fp, out)
+			}
+		}
+		return err
 	}
 
-	// run restore
-	args := []string{"/usr/bin/security", "trust-settings-import", "-d", where}
-	cmd := exec.Command("sudo", args...)
-	out, err := cmd.CombinedOutput()
+	// Remove certificates that are not whitelisted
+	for i := range certs {
+		if i > 3 { // TODO(adam): Remove
+			return errors.New("store/darwin: TEMP quit early")
+		}
 
-	if err != nil && debug {
-		fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
-		fmt.Printf("Output was: %s\n", string(out))
+		if !wh.Matches(certs[i]) {
+			err := remove(certs[i])
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	return err
+	return nil
 }
 
-func getUserKeychainPaths() ([]string, error) {
+// TODO(adam): `where` needs to be a directory with properly exported certs from keychain files
+//
+// TODO(adam): Restore Steps
+//  1. Remove any certs from a "system keychain" that are marked as "Never Trust" in the login keychain
+//  2. Add any certs in the login.keychain backup to login.keychain
+//     - Should we do this? Is that expected? -- Yes, we're restoring from the latest backup.
+//
+// TODO(adam): Do we need to backup anything but the "login keychain" and "SystemRootCertificates" keychain?
+func (s darwinStore) Restore(where string) error {
+	// Find latest backup dir
+	dir, err := getCertManageDir(darwinBackupDir)
+	if err != nil {
+		return err
+	}
+	dir, err = getLatestBackup(dir)
+	if err != nil {
+		return err
+	}
+	if debug {
+		fmt.Printf("store/darwin: Found backup dir at %s\n", dir)
+	}
+
+	// Grab each folder at `dir`, which represents the keychain name
+	chainfds, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	loginKeyChain, err := getLoginKeychain()
+	if err != nil {
+		return err
+	}
+
+	// Cycle over folders (and nested files) found in the backup dir to restore
+	// the login keychain (by removing overrides which alter trust status).
+	for i := range chainfds {
+		// Grab the filenames under chainfds[i] (e.g. System.keychain/$sha1.crt), read the cert
+		// and verify it's matching the sha1 filename. Remove the cert from the login keychain
+		// if it's marked as 'Never Trust' to the user.
+		//
+		// TODO(adam): Don't do anything if the cert is already in the chain. (via readInstalledCerts)
+		certfiles, err := ioutil.ReadDir(filepath.Join(dir, chainfds[i].Name()))
+		if err != nil {
+			return err
+		}
+
+		for j := range certfiles {
+			certs, err := pem.FromFile(filepath.Join(dir, chainfds[i].Name(), certfiles[j].Name()))
+			if err != nil {
+				return err
+			}
+			if len(certs) == 0 {
+				return fmt.Errorf("no certificates found in backup file: %s", certfiles[j].Name())
+			}
+
+			// Remove cert from the login keychain
+			//
+			// TODO(adam): Actually find the cert, don't assume it's [0]
+			// TODO(adam): IDEA: Don't delete cert if it's only found in login.keychain (e.g. banno_ca)
+			//             This is sorta counter to whitelist though..
+			//
+			// sudo security delete-certificate -t -Z DE28F4A4FFE5B92FA3C503D1A349A7F9962A8212 ~/Library/Keychains/login.keychain
+			fp := _x509.GetHexSHA1Fingerprint(*certs[0])
+			cmd := exec.Command("/usr/bin/security", "delete-certificate", "-t", "-Z", fp, loginKeyChain)
+			out, err := cmd.CombinedOutput()
+			if err != nil {
+				if debug {
+					fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+					fmt.Printf("Output was: %s\n", string(out))
+				}
+				if strings.Contains(string(out), "Unable to delete certificate matching") {
+					if debug {
+						fmt.Printf("store/darwin: Ignoring removal failure of %s because it doesn't exist in %s\n", fp, loginKeyChain)
+					}
+					continue
+				}
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func getKeychainPaths(initial []string) ([]string, error) {
 	uhome := file.HomeDir()
 	if uhome == "" {
 		return nil, errors.New("unable to find user's home dir")
 	}
 
-	return []string{
+	return append(initial,
 		filepath.Join(uhome, "/Library/Keychains/login.keychain"),
 		filepath.Join(uhome, "/Library/Keychains/login.keychain-db"),
-	}, nil
+	), nil
+}
+
+func getLoginKeychain() (string, error) {
+	needles, err := getKeychainPaths(nil)
+	if err != nil {
+		return "", err
+	}
+	for i := range needles {
+		_, err := os.Stat(needles[i])
+		if err != nil {
+			if !os.IsNotExist(err) {
+				continue
+			}
+			return "", err
+		}
+		return needles[i], nil
+	}
+	return "", errors.New("no login keychain found")
 }
 
 // trustItems wraps up a collection of trustItems parsed from the `security` cli tool
