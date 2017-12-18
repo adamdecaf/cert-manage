@@ -452,7 +452,7 @@ func (s darwinStore) Restore(where string) error {
 	// Grab each folder at `dir`, which represents the keychain name
 	chainfds, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return err
+		return fmt.Errorf("ERROR: Failed to read %s as dir, err=%v", dir, err)
 	}
 	loginKeyChain, err := getLoginKeychain()
 	if err != nil {
