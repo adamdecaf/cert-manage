@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+// ToFile overwrites file at `path` with the certificates encoded in
+// PEM format.
 func ToFile(path string, certs []*x509.Certificate) error {
 	var perms os.FileMode = 0666
 	stat, err := os.Stat(path)
