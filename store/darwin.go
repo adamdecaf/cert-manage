@@ -295,27 +295,95 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	remove := func(cert *x509.Certificate) error {
-		if cert == nil {
-			return errors.New("nil x509 certificate")
-		}
+	loginKeychain, err := getLoginKeychain()
+	if err != nil {
+		return err
+	}
 
-		// Write the cert as a PEM block to a tempfile
-		tmp, err := ioutil.TempFile("", "cert-manage-remove-trusted-cert")
+	// remove := func(cert *x509.Certificate) error {
+	// 	if cert == nil {
+	// 		return errors.New("nil x509 certificate")
+	// 	}
+
+	// 	// Write the cert as a PEM block to a tempfile
+	// 	tmp, err := ioutil.TempFile("", "cert-manage-remove-trusted-cert")
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	defer os.Remove(tmp.Name())
+
+	// 	err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	// After "System Integrity Protection" was added to macs not even root can modify files
+	// 	// like /System/Library/Keychains/SystemRootCertificates.keychain
+	// 	// SIP: https://support.apple.com/en-ca/HT204899
+	// 	//
+	// 	// Instead we apply a "Never Trust" override to the login keychain, which has the impact
+	// 	// of not trusting that cert. This works nicely as undoing that work is as simple as
+	// 	// deleting the "Never Trust" record in the login keychain
+	// 	//
+	// 	// https://superuser.com/questions/1070664/security-seckeychainitemdelete-unixoperation-not-permitted-on-os-x-when-tryi
+	// 	// https://apple.stackexchange.com/questions/24640/how-do-i-remove-many-system-roots-from-apple-system-keychain
+
+	// 	// TODO(adam): Changes
+	// 	//  - Removed "sudo", from Command(..), works as expected on login keychain now
+	// 	//  - Removed -d, works on login keychain now
+	// 	// TODO(adam): Need to unlock keychain for a bit, typing password in everytime is crazy
+	// 	cmd := exec.Command("/usr/bin/security", "add-trusted-cert", "-r", "deny", "-k", loginKeychain, tmp.Name())
+	// 	out, err := cmd.CombinedOutput()
+	// 	if debug {
+	// 		fp := _x509.GetHexSHA256Fingerprint(*cert)
+	// 		if err != nil {
+	// 			output := string(out)
+
+	// 			fmt.Printf("ERROR: during remove-trusted-cert (fingerprint=%s), error=%v\n", fp, err)
+	// 			fmt.Printf("  Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+	// 			fmt.Printf("  Output was: %s\n", output)
+
+	// 			if strings.Contains(output, "could not be found") {
+	// 				if debug {
+	// 					fmt.Println("Silencing error due to cert not found in keychain")
+	// 				}
+	// 				return nil
+	// 			}
+
+	// 		} else {
+	// 			fmt.Printf("remove-trusted-cert (for %s)\n%s\n", fp, out)
+	// 		}
+	// 	}
+	// 	return err
+	// }
+
+	// Remove certificates that are not whitelisted
+	removable := make([]*x509.Certificate, 0)
+	for i := range certs {
+		if !wh.Matches(certs[i]) {
+			// collect certs that we are going to remove trust for and later
+			// apply one `security` cli command, otherwise users are prompted
+			// on each command
+			fmt.Printf("Subject=%v\n", certs[i].Subject)
+			removable = append(removable, certs[i])
+		}
+	}
+
+	if len(removable) > 0 {
+		// Write removable certs to a file and run `security` to remove trust
+		tmp, err := ioutil.TempFile("", "cert-manage-Remove")
 		if err != nil {
 			return err
 		}
-		defer os.Remove(tmp.Name())
+		// defer os.Remove(tmp.Name())
 
-		err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
+		// Write removable certs to temp file
+		err = pem.ToFile(tmp.Name(), removable)
 		if err != nil {
 			return err
 		}
-
-		// Shell out and apply an override to the login keychain
-		loginKeychain, err := getLoginKeychain()
-		if err != nil {
-			return err
+		if debug {
+			fmt.Printf("store/darwin: Wrote %d certs to %s\n", len(removable), tmp.Name())
 		}
 
 		// After "System Integrity Protection" was added to macs not even root can modify files
@@ -336,11 +404,9 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		cmd := exec.Command("/usr/bin/security", "add-trusted-cert", "-r", "deny", "-k", loginKeychain, tmp.Name())
 		out, err := cmd.CombinedOutput()
 		if debug {
-			fp := _x509.GetHexSHA256Fingerprint(*cert)
 			if err != nil {
 				output := string(out)
-
-				fmt.Printf("ERROR: during remove-trusted-cert (fingerprint=%s), error=%v\n", fp, err)
+				fmt.Printf("ERROR: during removing darwin certs, error=%v\n", err)
 				fmt.Printf("  Command ran: '%s'\n", strings.Join(cmd.Args, " "))
 				fmt.Printf("  Output was: %s\n", output)
 
@@ -350,26 +416,12 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 					}
 					return nil
 				}
-
-			} else {
-				fmt.Printf("remove-trusted-cert (for %s)\n%s\n", fp, out)
+			}
+			if debug {
+				fmt.Printf("store/darwin: Removed %d certificates\n", len(removable))
 			}
 		}
 		return err
-	}
-
-	// Remove certificates that are not whitelisted
-	for i := range certs {
-		if i > 3 { // TODO(adam): Remove
-			return errors.New("store/darwin: TEMP quit early")
-		}
-
-		if !wh.Matches(certs[i]) {
-			err := remove(certs[i])
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil
