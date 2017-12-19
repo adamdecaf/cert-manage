@@ -101,10 +101,10 @@ func getCertManageDir(name string) (string, error) {
 	// provided onto the parent dir.
 	if filepath.IsAbs(name) {
 		s, err := os.Stat(name)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return "", err
 		}
-		if !s.IsDir() {
+		if s != nil && !s.IsDir() {
 			return "", fmt.Errorf("since %s exists and cannot be a file, should be a dir", name)
 		}
 		dir = name
