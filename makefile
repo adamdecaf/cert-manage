@@ -1,4 +1,4 @@
-.PHONY: build check
+.PHONY: build check test
 
 linux: linux_amd64
 linux_amd64:
@@ -19,12 +19,11 @@ check:
 	go fmt ./...
 
 test:
-	./build/osx/test-prep.sh
 	go test -v ./...
+	go test -v github.com/adamdecaf/cert-manage/test
 	go test -v github.com/adamdecaf/cert-manage/tools/_x509
 
 ci: dist test
-	./build/test.sh
 
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage
