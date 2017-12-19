@@ -7,15 +7,14 @@ import (
 )
 
 func TestIntegration__date(t *testing.T) {
-	cmd := Command("date", "-r", "0").Trim()
-	cmd.EqualT(t, "Wed Dec 31 18:00:00 CST 1969")
+	cmd := Command("date", "-u", "-r", "0").Trim()
+	cmd.EqualT(t, "Thu Jan  1 00:00:00 UTC 1970")
 
-	inc := cmd.String()
 	ans := `Command:
-  date -r 0
+  date -u -r 0
 Output:
-  Wed Dec 31 18:00:00 CST 1969`
-	if inc != ans {
-		t.Errorf("match != ans\n match = '%s'", inc)
+  Thu Jan  1 00:00:00 UTC 1970`
+	if cmd.String() != ans {
+		t.Errorf("cmd.String() = '%s'", cmd.String())
 	}
 }
