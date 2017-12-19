@@ -57,6 +57,8 @@ func (c *Cmd) Trim() *Cmd {
 }
 
 func (c *Cmd) EqualT(t *testing.T, ans string) {
+	t.Helper() // mark caller for debug info
+
 	c.exec()
 	if c.output != ans {
 		t.Errorf("ERROR: Output did not match expected answer!\n Output: %s\n Answer: %s", c.output, ans)
