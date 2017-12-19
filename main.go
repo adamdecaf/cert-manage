@@ -59,8 +59,6 @@ OUTPUT
 type command struct {
 	fn    func() error
 	appfn func(string) error
-
-	usage func() string
 }
 
 func main() {
@@ -86,9 +84,6 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.BackupForApp(a)
 		},
-		usage: func() string {
-			return "Make a backup of a certificate store."
-		},
 	}
 	cmds["list"] = &command{
 		fn: func() error {
@@ -97,9 +92,6 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.ListCertsForApp(a, cfg)
 		},
-		usage: func() string {
-			return "List certificates (by default on the system, see -app)"
-		},
 	}
 	cmds["restore"] = &command{
 		fn: func() error {
@@ -107,9 +99,6 @@ func main() {
 		},
 		appfn: func(a string) error {
 			return cmd.RestoreForApp(a, *file)
-		},
-		usage: func() string {
-			return "Restore from a given backup file, if it exists (and supported)"
 		},
 	}
 	cmds["whitelist"] = &command{
@@ -125,9 +114,6 @@ func main() {
 			}
 			return cmd.WhitelistForApp(a, *file)
 		},
-		usage: func() string {
-			return "Filter certificates according to the provided attributes/filters"
-		},
 	}
 	cmds["version"] = &command{
 		fn: func() error {
@@ -137,30 +123,27 @@ func main() {
 		appfn: func(_ string) error {
 			return nil
 		},
-		usage: func() string {
-			return "Show the version of cert-manage"
-		},
 	}
 
 	// Run whatever function we've got here..
 	c, ok := cmds[strings.ToLower(os.Args[1])]
 	if !ok { // sub-cmd wasn't found
 		fs.Usage()
-		return
+		os.Exit(1)
 	}
 
 	// sub-command found, try and exec something off it
 	if app != nil && *app != "" {
 		err := c.appfn(*app)
 		if err != nil {
-			fmt.Printf("ERROR: %v\n%s", err, c.usage())
+			fmt.Printf("ERROR: %v\n", err)
 			os.Exit(1)
 		}
-		return
+		os.Exit(0)
 	}
 	err := c.fn()
 	if err != nil {
-		fmt.Printf("ERROR: %v\n%s", err, c.usage())
+		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
 }

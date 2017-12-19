@@ -42,11 +42,7 @@ echo "firefox was forced to quit, code=$code"
 set -e
 count=$(/bin/cert-manage list -app firefox -count)
 echo "Cert count from firefox: $count"
-if [ "$count" -ne "5" ];
-then
-    echo "Wrong number of certificates from firefox"
-    exit 1
-fi
+echo "$count" | grep -E 4
 
 # Take a backup
 [ ! -d ~/.cert-manage/firefox ]
@@ -76,7 +72,7 @@ do
 done
 
 # Verify restore
-/bin/cert-manage list -app firefox -count | grep 5
+/bin/cert-manage list -app firefox -count | grep -E 4
 
 # Java
 echo "Java"

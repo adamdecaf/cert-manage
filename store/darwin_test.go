@@ -53,7 +53,7 @@ func TestStoreDarwin__Backup(t *testing.T) {
 	}
 
 	// make sure backup file is non-empty
-	latest, err := getLatestBackupFile(dir)
+	latest, err := getLatestBackup(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,11 +77,10 @@ func TestStoreDarwin__locations(t *testing.T) {
 	}
 
 	// Show the difference between the various keychains
-	paths := make([]string, 0)
-	paths = append(paths, systemKeychains...)
-
-	userDirs, _ := getUserKeychainPaths()
-	paths = append(paths, userDirs...)
+	paths, err := getKeychainPaths(systemKeychains)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	count := 0
 
