@@ -122,11 +122,13 @@ func (c *Cmd) String() string {
 	return buf.String()
 }
 
-func (c *Cmd) SuccessT(t *testing.T) {
-	t.Helper()
+func (c *Cmd) Success() bool {
 	c.exec()
+	return c.err == nil
+}
 
-	if c.err != nil {
+func (c *Cmd) SuccessT(t *testing.T) {
+	if !c.Success() {
 		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
 	}
 }
