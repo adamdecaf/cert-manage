@@ -44,6 +44,7 @@ func TestIntegration__java(t *testing.T) {
 	}
 
 	cmd := CertManage("list", "-count", "-app", "java").Trim()
+	cmd.SuccessT(t)
 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
 }
 
@@ -58,5 +59,6 @@ func TestIntegration__firefox(t *testing.T) {
 
 	// Verify firefox has found certificates
 	cmd := CertManage("list", "-app", "firefox", "-count").Trim()
+	cmd.SuccessT(t)
 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
 }

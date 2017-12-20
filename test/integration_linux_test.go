@@ -35,5 +35,6 @@ func TestIntegration__java(t *testing.T) {
 	}
 
 	cmd := CertManage("list", "-count", "-app", "java").Trim()
+	cmd.SuccessT(t)
 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
 }
