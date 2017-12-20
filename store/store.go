@@ -18,8 +18,7 @@ var (
 	ErrNoBackupMade = errors.New("unable to make backup of store")
 
 	// internal options
-	debug = len(os.Getenv("TRAVIS_OS_NAME")) > 0 ||
-		len(os.Getenv("DEBUG")) > 0 ||
+	debug = len(os.Getenv("DEBUG")) > 0 ||
 		strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 
 	backupDirPerms os.FileMode = 0744

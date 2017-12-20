@@ -76,6 +76,7 @@ func (c *Cmd) Trim() *Cmd {
 	return c
 }
 
+// TODO(adam): rename this to something like CmpFnIntT ? maybe.. what does go-cmp have/do?
 func (c *Cmd) CmpFnT(t *testing.T, f func(int) bool) {
 	t.Helper()
 	c.exec()
@@ -119,4 +120,13 @@ func (c *Cmd) String() string {
 		buf.WriteString(fmt.Sprintf("\nError:\n  %v", c.err))
 	}
 	return buf.String()
+}
+
+func (c *Cmd) SuccessT(t *testing.T) {
+	t.Helper()
+	c.exec()
+
+	if c.err != nil {
+		t.Errorf("Expected no error, got err=%v", c.err)
+	}
 }

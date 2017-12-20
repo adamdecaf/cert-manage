@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-local_tests=(osx)
-for l in "${local_tests[@]}"
-do
-    ./build/"$l"/test.sh
-done
-
 # Travis-ci doesn't support docker..
 # https://docs.travis-ci.com/user/docker/
 if [ "$TRAVIS_OS_NAME" == "osx" ];

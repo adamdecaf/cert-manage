@@ -37,11 +37,26 @@ func TestIntegration__backup(t *testing.T) {
 
 // TODO(adam): Need to run -whitelist and -restore
 
+// Java tests
 func TestIntegration__java(t *testing.T) {
 	if os.Getenv("JAVA_HOME") == "" {
 		t.Skip("java isn't installed/setup")
 	}
 
 	cmd := CertManage("list", "-count", "-app", "java").Trim()
+	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
+}
+
+// Firefox tests
+func TestIntegration__firefox(t *testing.T) {
+	if online(t) {
+		// Make a request using the Keychain to get it ready
+		// travis needs this
+		cmd := Command("curl", "-s", "-o", "/dev/null", "https://google.com")
+		cmd.SuccessT(t)
+	}
+
+	// Verify firefox has found certificates
+	cmd := CertManage("list", "-app", "firefox", "-count").Trim()
 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
 }
