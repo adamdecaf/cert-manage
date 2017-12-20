@@ -84,12 +84,7 @@ func ForApp(app string) (Store, error) {
 // If `name` is an absolute fs reference then just ensure that directory is created
 // and has permissions setup properly.
 func getCertManageDir(name string) (string, error) {
-	parent := getCertManageParentDir()
-	err := os.MkdirAll(parent, os.ModeDir)
-	if err != nil {
-		return "", err
-	}
-	err = os.Chmod(parent, backupDirPerms)
+	parent, err := getCertManageParentDir()
 	if err != nil {
 		return "", err
 	}
@@ -110,11 +105,7 @@ func getCertManageDir(name string) (string, error) {
 	}
 
 	// Create the dir and set ownership
-	err = os.MkdirAll(dir, os.ModeDir)
-	if err != nil {
-		return "", err
-	}
-	err = os.Chmod(dir, backupDirPerms)
+	err = os.MkdirAll(dir, os.ModeDir|backupDirPerms)
 	if err != nil {
 		return "", err
 	}
@@ -122,18 +113,27 @@ func getCertManageDir(name string) (string, error) {
 	return dir, nil
 }
 
-func getCertManageParentDir() string {
+func getCertManageParentDir() (string, error) {
 	uhome := file.HomeDir()
 	if uhome != "" {
+		parent := ""
+
 		// Setup parent dir
 		if runtime.GOOS == "darwin" {
-			return filepath.Join(uhome, "/Library/cert-manage")
+			parent = filepath.Join(uhome, "/Library/cert-manage")
 		}
 		if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
-			return filepath.Join(uhome, ".cert-manage")
+			parent = filepath.Join(uhome, ".cert-manage")
 		}
+
+		// Make parent dir and set ownership
+		err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
+		if err != nil {
+			return "", err
+		}
+		return parent, nil
 	}
-	return ""
+	return "", nil
 }
 
 // getLatestBackup returns the "biggest" file or dir at a given path
