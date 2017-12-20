@@ -127,6 +127,6 @@ func (c *Cmd) SuccessT(t *testing.T) {
 	c.exec()
 
 	if c.err != nil {
-		t.Errorf("Expected no error, got err=%v", c.err)
+		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
 	}
 }
