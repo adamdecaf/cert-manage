@@ -3,7 +3,6 @@
 package test
 
 import (
-	"os"
 	"testing"
 )
 
@@ -28,13 +27,3 @@ func TestIntegration__backup(t *testing.T) {
 }
 
 // TODO(adam): Need to run -whitelist and -restore
-
-func TestIntegration__java(t *testing.T) {
-	if os.Getenv("JAVA_HOME") == "" {
-		t.Skip("java isn't installed/setup")
-	}
-
-	cmd := CertManage("list", "-count", "-app", "java").Trim()
-	cmd.SuccessT(t)
-	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
-}
