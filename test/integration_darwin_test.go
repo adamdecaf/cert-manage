@@ -18,3 +18,21 @@ Output:
 		t.Errorf("cmd.String() = '%s'", cmd.String())
 	}
 }
+
+func TestIntegration__unknown(t *testing.T) {
+	cmd := CertManage("other").Trim()
+	cmd.FailedT(t)
+}
+
+func TestIntegration__list(t *testing.T) {
+	cmd := CertManage("list", "-count").Trim()
+	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
+}
+
+func TestIntegration__backup(t *testing.T) {
+	cmd := CertManage("backup").Trim()
+	cmd.EqualT(t, "Backup completed successfully")
+}
+
+// TODO(adam): Need to run -whitelist and -restore
+

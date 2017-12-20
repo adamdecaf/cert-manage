@@ -23,7 +23,7 @@ test:
 	go test -v github.com/adamdecaf/cert-manage/test
 	go test -v github.com/adamdecaf/cert-manage/tools/_x509
 
-ci: dist test
+ci: check dist test
 
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage
