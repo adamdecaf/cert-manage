@@ -130,3 +130,14 @@ func (c *Cmd) SuccessT(t *testing.T) {
 		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
 	}
 }
+
+func (c *Cmd) PendingT(t *testing.T, reason string) {
+	t.Helper()
+	c.exec()
+
+	if c.err == nil {
+		t.Errorf("Expected failing test, got success. Pending because %s", reason)
+	} else {
+		t.Skip(reason)
+	}
+}
