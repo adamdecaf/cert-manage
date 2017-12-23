@@ -3,7 +3,7 @@
 package test
 
 import (
-	"os"
+	// "strings"
 	"testing"
 )
 
@@ -38,18 +38,18 @@ func TestIntegration__backup(t *testing.T) {
 // TODO(adam): Need to run -whitelist and -restore
 
 // Firefox tests
-func TestIntegration__firefox(t *testing.T) {
-	if !online(t) {
-		t.Skip("offline, can't run firefox tests (no NSS setup)")
-	}
+// func TestIntegration__firefox(t *testing.T) {
+// 	if !online(t) {
+// 		t.Skip("offline, can't run firefox tests (no NSS setup)")
+// 	}
 
-	// Make a request using the Keychain to get it ready
-	// travis needs this
-	cmd := Command("curl", "-s", "-o", os.DevNull, "https://google.com")
-	cmd.SuccessT(t)
+// 	// Make a request using the Keychain to get it ready
+// 	// travis needs this
+// 	cmd := Command("timeout", strings.Split("15s firefox --headless https://google.com 2>&1 >> /var/log/firefox.log", " ")...)
+// 	cmd.SuccessT(t)
 
-	// Verify firefox has found certificates
-	cmd = CertManage("list", "-app", "firefox", "-count").Trim()
-	cmd.SuccessT(t)
-	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
-}
+// 	// Verify firefox has found certificates
+// 	cmd = CertManage("list", "-app", "firefox", "-count").Trim()
+// 	cmd.SuccessT(t)
+// 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
+// }
