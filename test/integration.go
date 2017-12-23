@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -39,6 +41,24 @@ func Command(cmd string, args ...string) *Cmd {
 	}
 }
 
+// Quick wrapper around platform/arch specific call to cert-manage
+// which is located at ../bin/cert-manage-GOOS-GOARCH
+func CertManage(args ...string) *Cmd {
+	render := func(tpl string) string {
+		return fmt.Sprintf(tpl, runtime.GOARCH)
+	}
+
+	switch runtime.GOOS {
+	case "darwin":
+		return Command(render("../bin/cert-manage-osx-%s"), args...)
+	case "linux":
+		return Command(render("../bin/cert-manage-linux-%s"), args...)
+	case "windows":
+		return Command(render("../bin/cert-manage-%s.exe"), args...)
+	}
+	return nil
+}
+
 func (c *Cmd) exec() {
 	c.Do(func() {
 		out, err := exec.Command(c.command, c.args...).CombinedOutput()
@@ -56,9 +76,36 @@ func (c *Cmd) Trim() *Cmd {
 	return c
 }
 
-func (c *Cmd) EqualT(t *testing.T, ans string) {
-	t.Helper() // mark caller for debug info
+// TODO(adam): rename this to something like CmpFnIntT ? maybe.. what does go-cmp have/do?
+func (c *Cmd) CmpFnT(t *testing.T, f func(int) bool) {
+	t.Helper()
+	c.exec()
 
+	n, err := strconv.Atoi(c.output)
+	if err != nil {
+		t.Errorf("ERROR: converting '%s' to integer failed, err=%v", c.output, err)
+	}
+	if !f(n) {
+		t.Errorf("ERROR: got %d", n)
+	}
+}
+
+func (c *Cmd) CmpT(t *testing.T, ans int) {
+	t.Helper()
+	c.CmpFnT(t, func(i int) bool { return i == ans })
+}
+
+func (c *Cmd) FailedT(t *testing.T) {
+	t.Helper()
+	c.exec()
+
+	if c.err == nil {
+		t.Errorf("Expected failure, but seeig none.\n Output: %s", c.output)
+	}
+}
+
+func (c *Cmd) EqualT(t *testing.T, ans string) {
+	t.Helper()
 	c.exec()
 	if c.output != ans {
 		t.Errorf("ERROR: Output did not match expected answer!\n Output: %s\n Answer: %s", c.output, ans)
@@ -73,4 +120,26 @@ func (c *Cmd) String() string {
 		buf.WriteString(fmt.Sprintf("\nError:\n  %v", c.err))
 	}
 	return buf.String()
+}
+
+func (c *Cmd) Success() bool {
+	c.exec()
+	return c.err == nil
+}
+
+func (c *Cmd) SuccessT(t *testing.T) {
+	if !c.Success() {
+		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
+	}
+}
+
+func (c *Cmd) PendingT(t *testing.T, reason string) {
+	t.Helper()
+	c.exec()
+
+	if c.err == nil {
+		t.Errorf("Expected failing test, got success. Pending because %s", reason)
+	} else {
+		t.Skip(reason)
+	}
 }
