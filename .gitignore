@@ -14,3 +14,4 @@ build/osx/whitelist.json
 build/*/*.class
 
 *.log
+*.out
