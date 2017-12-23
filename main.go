@@ -52,6 +52,11 @@ FILTERS
 OUTPUT
   -count  Output the count of certificates instead of each certificate
   -format <format> Change the output format for a given command (default: table, options: table, raw)
+
+DEBUG and TRACE
+  Alongside command line flags are two environmental varialbes read by cert-manage:
+  - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
+  - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `, version)
 	}
 }
@@ -61,7 +66,27 @@ type command struct {
 	appfn func(string) error
 }
 
+func trace() *cmd.Trace {
+	trace, err := cmd.NewTrace(os.Getenv("TRACE"))
+	if err != nil {
+		panic(err)
+	}
+	err = trace.Start()
+	if err != nil {
+		panic(err)
+	}
+	return trace
+}
+
 func main() {
+	t := trace()
+	defer func() {
+		err := t.Stop()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
 	// Just show help if there aren't enough arguments to do anything
 	if len(os.Args) < 2 {
 		fs.Usage()
