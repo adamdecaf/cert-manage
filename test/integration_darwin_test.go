@@ -27,7 +27,7 @@ func TestIntegration__unknown(t *testing.T) {
 
 func TestIntegration__list(t *testing.T) {
 	cmd := CertManage("list", "-count").Trim()
-	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
+	cmd.CmpIntF(t, func(i int) bool { return i > 1 })
 }
 
 func TestIntegration__backup(t *testing.T) {
@@ -51,5 +51,5 @@ func TestIntegration__backup(t *testing.T) {
 // 	// Verify firefox has found certificates
 // 	cmd = CertManage("list", "-app", "firefox", "-count").Trim()
 // 	cmd.SuccessT(t)
-// 	cmd.CmpFnT(t, func(i int) bool { return i > 1 })
+// 	cmd.CmpIntF(t, func(i int) bool { return i > 1 })
 // }
