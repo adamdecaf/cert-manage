@@ -18,14 +18,14 @@ var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
 
 	// Qualifiers
-	file = fs.String("file", "", "File to use for operation (restore, whitelist)")
+	file = fs.String("file", "", "")
 
 	// Filters
-	app = fs.String("app", "", "Specify an application (see -list)")
+	app = fs.String("app", "", "")
 
 	// Output
-	count  = fs.Bool("count", false, "Just output the count of certificates rather than every cert")
-	format = fs.String("format", "table", "Specify the output format (options: raw, table)")
+	count  = fs.Bool("count", false, "")
+	format = fs.String("format", cmd.DefaultOutputFormat(), "")
 )
 
 func init() {
@@ -51,13 +51,17 @@ FILTERS
 
 OUTPUT
   -count  Output the count of certificates instead of each certificate
-  -format <format> Change the output format for a given command (default: table, options: table, raw)
+  -format <format> Change the output format for a given command (default: %s, options: %s)
 
 DEBUG and TRACE
   Alongside command line flags are two environmental varialbes read by cert-manage:
   - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
-`, version)
+`,
+			version,
+			cmd.DefaultOutputFormat(),
+			strings.Join(cmd.GetOutputFormats(), ", "),
+		)
 	}
 }
 
