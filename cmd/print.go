@@ -3,7 +3,6 @@ package cmd
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -147,39 +146,45 @@ func printCertsRaw(certs []*x509.Certificate) {
 		fmt.Printf("Certificate\n")
 		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
 		fmt.Printf("  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
-		fmt.Printf("  Signature - %s\n", hex.EncodeToString(certs[i].Signature))
-		fmt.Printf("  Signature Algorithm: %s\n", certs[i].SignatureAlgorithm.String())
 		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
-		fmt.Printf("  Public Key Algorithm - %v\n", _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm))
 		fmt.Printf("  Subject: %s\n", fmtPkixName(certs[i].Subject))
 		fmt.Printf("  Issuer: %s\n", fmtPkixName(certs[i].Issuer))
 		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
 		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
-		fmt.Printf("  MaxPathLen - %d\n", certs[i].MaxPathLen)
 
-		fmt.Printf("  DNSNames\n")
-		for j := range certs[i].DNSNames {
-			fmt.Printf("    %s\n", certs[i].DNSNames[j])
+		if len(certs[i].DNSNames) > 0 {
+			fmt.Printf("  DNSNames\n")
+			for j := range certs[i].DNSNames {
+				fmt.Printf("    %s\n", certs[i].DNSNames[j])
+			}
 		}
 
-		fmt.Printf("  EmailAddresses\n")
-		for j := range certs[i].EmailAddresses {
-			fmt.Printf("    %s\n", certs[i].EmailAddresses[j])
+		if len(certs[i].EmailAddresses) > 0 {
+			fmt.Printf("  EmailAddresses\n")
+			for j := range certs[i].EmailAddresses {
+				fmt.Printf("    %s\n", certs[i].EmailAddresses[j])
+			}
 		}
 
-		fmt.Printf("  IPAddresses\n")
-		for j := range certs[i].IPAddresses {
-			fmt.Printf("    %s\n", certs[i].IPAddresses[j])
+		if len(certs[i].IPAddresses) > 0 {
+			fmt.Printf("  IPAddresses\n")
+			for j := range certs[i].IPAddresses {
+				fmt.Printf("    %s\n", certs[i].IPAddresses[j])
+			}
 		}
 
-		fmt.Printf("  PermittedDNSDomains\n")
-		for j := range certs[i].PermittedDNSDomains {
-			fmt.Printf("    %s\n", certs[i].PermittedDNSDomains[j])
+		if len(certs[i].PermittedDNSDomains) > 0 {
+			fmt.Printf("  PermittedDNSDomains\n")
+			for j := range certs[i].PermittedDNSDomains {
+				fmt.Printf("    %s\n", certs[i].PermittedDNSDomains[j])
+			}
 		}
 
-		fmt.Printf("  CRLDistributionPoints\n")
-		for j := range certs[i].CRLDistributionPoints {
-			fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
+		if len(certs[i].CRLDistributionPoints) > 0 {
+			fmt.Printf("  CRLDistributionPoints\n")
+			for j := range certs[i].CRLDistributionPoints {
+				fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
+			}
 		}
 	}
 }
