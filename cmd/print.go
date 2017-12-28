@@ -5,17 +5,41 @@ import (
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 )
 
 const (
 	fingerprintPreviewLength = 16
 )
+
+var (
+	defaultOutputFormat = "table"
+
+	outputFormats = map[string]func([]*x509.Certificate){
+		"openssl":                   printCertsOpenSSL,
+		string(defaultOutputFormat): printCertsTable,
+		"raw": printCertsRaw,
+	}
+)
+
+func DefaultOutputFormat() string {
+	return defaultOutputFormat
+}
+func GetOutputFormats() []string {
+	out := make([]string, 0)
+	for k, _ := range outputFormats {
+		out = append(out, k)
+	}
+	return out
+}
 
 // PrintCerts outputs the slice of certificates in `format` to stdout
 // Format can be 'table' and any other value will output them in more detail
@@ -25,16 +49,17 @@ func printCerts(certs []*x509.Certificate, format string) {
 		os.Exit(1)
 	}
 
-	if format == "table" {
-		printCertsInTable(certs)
-	} else {
-		printCertsToStdout(certs)
+	fn, ok := outputFormats[strings.ToLower(format)]
+	if !ok {
+		fmt.Printf("Unknown format %s specified", format)
+		return
 	}
+	fn(certs)
 }
 
-// printCertsInTable outputs a nicely formatted table of the certs found. This uses golang's
+// printCertsTable outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
-func printCertsInTable(certs []*x509.Certificate) {
+func printCertsTable(certs []*x509.Certificate) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tSHA256 Fingerprint\tNot Before\tNot After")
 	defer func() {
@@ -65,9 +90,59 @@ func printCertsInTable(certs []*x509.Certificate) {
 	}
 }
 
-// printCertsToStdout very verbosly prints out the ecah certificate's information
+type openssl struct{}
+
+func (o *openssl) installed() bool {
+	err := exec.Command("openssl", "version").Run()
+	return err == nil
+}
+func (o *openssl) printCertificate(path string) error {
+	out, err := exec.Command("openssl", "x509", "-in", path, "-noout", "-text").CombinedOutput()
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(out))
+	return nil
+}
+
+// printCertsOpenSSL shells out to openssl (if available) to print out each certificate
+func printCertsOpenSSL(certs []*x509.Certificate) {
+	ossl := openssl{}
+
+	// fail if we can't find openssl
+	if !ossl.installed() {
+		fmt.Println("Unable to find openssl")
+		return
+	}
+
+	tmp, err := ioutil.TempFile("", "cert-mange-print-cert")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer os.Remove(tmp.Name())
+
+	wrapper := make([]*x509.Certificate, 1)
+	for i := range certs {
+		// render each cert to temp file, then `openssl x509 -in tmp.Name() -outform pem`
+		wrapper[0] = certs[i]
+		err = pem.ToFile(tmp.Name(), wrapper)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = ossl.printCertificate(tmp.Name())
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	return
+}
+
+// printCertsRaw very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
-func printCertsToStdout(certs []*x509.Certificate) {
+func printCertsRaw(certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Printf("Certificate\n")
 		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
