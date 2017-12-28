@@ -53,7 +53,10 @@ const (
 type darwinStore struct{}
 
 func platform() Store {
-	return darwinStore{}
+	if debug {
+		return darwinStore{}
+	}
+	return emptyStore{}
 }
 
 func (s darwinStore) Backup() error {

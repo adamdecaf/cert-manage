@@ -61,8 +61,20 @@ func CertManage(args ...string) *Cmd {
 
 func (c *Cmd) exec() {
 	c.Do(func() {
-		out, err := exec.Command(c.command, c.args...).CombinedOutput()
-		c.output = string(out)
+		cmd := exec.Command(c.command, c.args...)
+
+		// Set output collectors
+		var stdout bytes.Buffer
+		cmd.Stdout = &stdout
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+
+		err := cmd.Run()
+		if err == nil {
+			c.output = stdout.String()
+		} else {
+			c.output = stderr.String()
+		}
 		c.err = err
 	})
 	return
