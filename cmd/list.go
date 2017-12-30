@@ -19,7 +19,7 @@ func ListCertsForPlatform(cfg *Config) error {
 	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, cfg.Format)
+		printCerts(certificates, cfg)
 	}
 	return nil
 }
@@ -50,7 +50,7 @@ func ListCertsForApp(app string, cfg *Config) error {
 	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, cfg.Format)
+		printCerts(certificates, cfg)
 	}
 	return nil
 }

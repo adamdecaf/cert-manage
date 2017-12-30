@@ -13,6 +13,7 @@ import (
 	"github.com/adamdecaf/cert-manage/tools/_x509"
 	"github.com/adamdecaf/cert-manage/tools/file"
 	"github.com/adamdecaf/cert-manage/tools/pem"
+	"github.com/adamdecaf/cert-manage/ui"
 )
 
 const (
@@ -29,6 +30,13 @@ var (
 	}
 )
 
+// TODO(adam): How should we consolidate this file vs the new 'ui' package?
+// I can see '-ui cli' (or the default) being this code, but then '-ui web'
+// bringing up a web browser.
+//
+// For now I'm adding a check to `printCerts` which will just switch over
+// to the 'ui' package.
+
 func DefaultOutputFormat() string {
 	return defaultOutputFormat
 }
@@ -42,15 +50,24 @@ func GetOutputFormats() []string {
 
 // PrintCerts outputs the slice of certificates in `format` to stdout
 // Format can be 'table' and any other value will output them in more detail
-func printCerts(certs []*x509.Certificate, format string) {
+func printCerts(certs []*x509.Certificate, cfg *Config) {
 	if len(certs) == 0 {
 		fmt.Println("No certififcates to display")
 		os.Exit(1)
 	}
 
-	fn, ok := outputFormats[strings.ToLower(format)]
+	// TODO(adam): Figure out cmd/print.go vs ui package
+	if cfg.UI == "web" {
+		err := ui.ListCertificates(certs)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return
+	}
+
+	fn, ok := outputFormats[strings.ToLower(cfg.Format)]
 	if !ok {
-		fmt.Printf("Unknown format %s specified", format)
+		fmt.Printf("Unknown format %s specified", cfg.Format)
 		return
 	}
 	fn(certs)
