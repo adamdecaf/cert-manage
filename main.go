@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/cmd"
+	"github.com/adamdecaf/cert-manage/ui"
 )
 
 const (
@@ -151,6 +152,13 @@ func main() {
 		},
 		appfn: func(_ string) error {
 			return nil
+		},
+	}
+
+	// TODO(adam): Remove after testing
+	cmds["ui"] = &command{
+		fn: func() error {
+			return ui.Launch()
 		},
 	}
 
