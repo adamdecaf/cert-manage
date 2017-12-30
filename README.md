@@ -66,6 +66,10 @@ There have been numerous recent exploits in the wild surrounding CA's (Certifica
 
 Below is a short list of incidents over the past couple of years (2015-2017) from CA's either acting carelessly or maliciously.
 
+- Blizzard / EA Origin
+  - [Local CA](https://groups.google.com/forum/#!msg/mozilla.dev.security.policy/pk039T_wPrI/tGnFDFTnCQAJ) (clienttolocalhostonly.com and localblizzard.net)
+    Blizzard and EA were running an HTTPS webserver on 127.0.0.1 (where the domains resolve) with a valid certificate. This implies that there's a private key bundled with the software which is considered a "key compromise" and requires revocation of the certificate.
+    This issue is not itself bad, but allows an attacker to mitm the dns for either domain and be presented with a valid connection to end users.
 - Comodo
   - Invalid domains
     Comodo issued certs for invalid domains. In specific, `www.sb` which should not have been generated. It has since [been revoked](https://crt.sh/?id=34242572).
