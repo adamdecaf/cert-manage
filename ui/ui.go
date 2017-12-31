@@ -24,18 +24,6 @@ func GetUIs() []string {
 	return []string{DefaultFormat(), "web"}
 }
 
-// Formats - how the data is displayed on the UI
-func DefaultFormat() string {
-	return "table"
-}
-func GetFormats() []string {
-	out := make([]string, 0)
-	for k, _ := range outputFormats {
-		out = append(out, k)
-	}
-	return out
-}
-
 type Config struct {
 	// If we should only show the certificate count, rather than each one
 	Count bool
