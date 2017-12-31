@@ -24,7 +24,10 @@ var (
 </head>
 <body>
   <h3>All Done!</h3>
-  <p>You can close this browser window now.</p>
+  <p>You can close this window.</p>
+<script>
+  window.close();
+</script>
 </body>
 </html>
 `

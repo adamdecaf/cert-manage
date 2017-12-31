@@ -37,6 +37,8 @@ function toggle(sel) {
 
 	list = `
 <h3>Certificates</h3>
+Options: <a href="/done" style="color: #000;">Close</a>
+<hr />
 {{range $idx, $cert := .Certificates}}
 Subject: {{ $cert.Subject }}<br />
 <a href="#" onclick="toggle('cert{{ $idx }}'); return false;" style="color: #000;">Details</a><br />
