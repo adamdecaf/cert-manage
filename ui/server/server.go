@@ -3,13 +3,18 @@ package server
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
+	"os"
 	"sync"
+	"time"
 )
 
 var (
 	srv *http.Server
 	wg  sync.WaitGroup
+
+	seed sync.Once
 )
 
 // Address returns the http://$server:$port/ representation for clients to load
@@ -27,22 +32,31 @@ func Register() {
 
 	srv = &http.Server{
 		// TODO(adam): Can we pick a random port?
-		Addr: "127.0.0.1:8888",
+		Addr: fmt.Sprintf("127.0.0.1:%d", getPort()),
 	}
 
-	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-	// 	io.WriteString(w, "hello world\n")
-	// })
 	http.HandleFunc("/done", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "finished\n")
 		wg.Done()
 	})
 }
 
+func getPort() int {
+	// prep seed, otherwise math/rand.Intn is deterministic, which means there could be
+	// something relying on that port
+	seed.Do(func() {
+		rand.Seed(time.Now().Unix()) // something
+	})
+
+	lowerBound := 1024 // ports below require elevated privileges
+	n := rand.Intn(2<<15 - lowerBound)
+	return n + lowerBound
+}
+
 // Start initializes the http server, binds and accepts connections
 func Start() {
 	if srv == nil {
-		// TODO(adam): should we log here?
+		fmt.Fprint(os.Stderr, "ui/server: no http server has been registered")
 		return
 	}
 
