@@ -1,8 +1,7 @@
-package cmd
+package ui
 
 import (
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -20,41 +19,24 @@ const (
 )
 
 var (
-	defaultOutputFormat = "table"
-
-	outputFormats = map[string]func([]*x509.Certificate){
-		"openssl":                   printCertsOpenSSL,
-		string(defaultOutputFormat): printCertsTable,
-		"raw": printCertsRaw,
+	outputFormats = map[string]printer{
+		"openssl":       printCertsOpenSSL,
+		DefaultFormat(): printCertsTable,
+		"raw":           printCertsRaw,
 	}
 )
 
-func DefaultOutputFormat() string {
-	return defaultOutputFormat
-}
-func GetOutputFormats() []string {
-	out := make([]string, 0)
-	for k, _ := range outputFormats {
-		out = append(out, k)
-	}
-	return out
-}
-
-// PrintCerts outputs the slice of certificates in `format` to stdout
-// Format can be 'table' and any other value will output them in more detail
-func printCerts(certs []*x509.Certificate, format string) {
-	if len(certs) == 0 {
-		fmt.Println("No certififcates to display")
-		os.Exit(1)
-	}
-
-	fn, ok := outputFormats[strings.ToLower(format)]
+// showCertsOnCli outputs the slice of certificates in `cfg.Format` to stdout
+func showCertsOnCli(certs []*x509.Certificate, cfg *Config) error {
+	fn, ok := outputFormats[strings.ToLower(cfg.Format)]
 	if !ok {
-		fmt.Printf("Unknown format %s specified", format)
-		return
+		return fmt.Errorf("Unknown format %s specified", cfg.Format)
 	}
 	fn(certs)
+	return nil
 }
+
+type printer func([]*x509.Certificate)
 
 // printCertsTable outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
@@ -72,8 +54,8 @@ func printCertsTable(certs []*x509.Certificate) {
 	for i := range certs {
 		fingerprint := _x509.GetHexSHA256Fingerprint(*certs[i])
 
-		c1 := fmtPkixName(certs[i].Subject)
-		c2 := fmtPkixName(certs[i].Issuer)
+		c1 := _x509.StringifyPKIXName(certs[i].Subject)
+		c2 := _x509.StringifyPKIXName(certs[i].Issuer)
 		c3 := _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm)
 		c4 := fingerprint[:fingerprintPreviewLength]
 
@@ -147,8 +129,8 @@ func printCertsRaw(certs []*x509.Certificate) {
 		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
 		fmt.Printf("  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
 		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
-		fmt.Printf("  Subject: %s\n", fmtPkixName(certs[i].Subject))
-		fmt.Printf("  Issuer: %s\n", fmtPkixName(certs[i].Issuer))
+		fmt.Printf("  Subject: %s\n", _x509.StringifyPKIXName(certs[i].Subject))
+		fmt.Printf("  Issuer: %s\n", _x509.StringifyPKIXName(certs[i].Issuer))
 		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
 		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
 
@@ -187,11 +169,4 @@ func printCertsRaw(certs []*x509.Certificate) {
 			}
 		}
 	}
-}
-
-func fmtPkixName(name pkix.Name) string {
-	if len(name.OrganizationalUnit) > 0 {
-		return fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])
-	}
-	return strings.Join(name.Organization, " ")
 }

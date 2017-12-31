@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/cmd"
+	"github.com/adamdecaf/cert-manage/ui"
 )
 
 const (
@@ -23,9 +24,12 @@ var (
 	// Filters
 	app = fs.String("app", "", "")
 
+	// Input
+	whatui = fs.String("ui", ui.DefaultUI(), "")
+
 	// Output
 	count  = fs.Bool("count", false, "")
-	format = fs.String("format", cmd.DefaultOutputFormat(), "")
+	format = fs.String("format", ui.DefaultFormat(), "")
 )
 
 func init() {
@@ -49,6 +53,9 @@ SUB-COMMANDS
 FILTERS
   -app <name> The name of an application which to perform the given command on. (Examples: chrome, java)
 
+INPUT
+  -ui <type> Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
+
 OUTPUT
   -count  Output the count of certificates instead of each certificate
   -format <format> Change the output format for a given command (default: %s, options: %s)
@@ -59,8 +66,10 @@ DEBUG and TRACE
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			version,
-			cmd.DefaultOutputFormat(),
-			strings.Join(cmd.GetOutputFormats(), ", "),
+			ui.DefaultUI(),
+			strings.Join(ui.GetUIs(), ", "),
+			ui.DefaultFormat(),
+			strings.Join(ui.GetFormats(), ", "),
 		)
 	}
 }
@@ -99,9 +108,10 @@ func main() {
 
 	// Lift config options into a higher-level
 	fs.Parse(os.Args[2:])
-	cfg := &cmd.Config{
+	cfg := &ui.Config{
 		Count:  *count,
 		Format: *format,
+		UI:     *whatui,
 	}
 
 	// Build up sub-commands
