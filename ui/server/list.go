@@ -23,7 +23,7 @@ func ListCertificates(certs []*x509.Certificate) {
 	})
 }
 
-// TODO(adam): from cmd/print.go
+// TODO(adam): from ui/cli.go, replace with RDSSequence.Name() in go1.10 ?
 func fmtPkixName(name pkix.Name) string {
 	if len(name.OrganizationalUnit) > 0 {
 		return fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])

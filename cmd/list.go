@@ -5,12 +5,13 @@ import (
 	"os"
 
 	"github.com/adamdecaf/cert-manage/store"
+	"github.com/adamdecaf/cert-manage/ui"
 )
 
 // ListCertsForPlatform finds certs for the given platform.
 // The supported platforms can be found in the readme. They're compiled in
 // with build flags in the `certs/find_*.go` files.
-func ListCertsForPlatform(cfg *Config) error {
+func ListCertsForPlatform(cfg *ui.Config) error {
 	certificates, err := store.Platform().List()
 	if err != nil {
 		fmt.Println(err)
@@ -19,7 +20,7 @@ func ListCertsForPlatform(cfg *Config) error {
 	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, cfg)
+		ui.ListCertificates(certificates, cfg)
 	}
 	return nil
 }
@@ -27,7 +28,7 @@ func ListCertsForPlatform(cfg *Config) error {
 // ListCertsForApp finds certs for the given app.
 // The supported applications are listed in the readme. This includes
 // non-traditional applications like NSS.
-func ListCertsForApp(app string, cfg *Config) error {
+func ListCertsForApp(app string, cfg *ui.Config) error {
 	st, err := store.ForApp(app)
 	if err != nil {
 		fmt.Println(err)
@@ -50,7 +51,7 @@ func ListCertsForApp(app string, cfg *Config) error {
 	if cfg.Count {
 		fmt.Println(len(certificates))
 	} else {
-		printCerts(certificates, cfg)
+		ui.ListCertificates(certificates, cfg)
 	}
 	return nil
 }

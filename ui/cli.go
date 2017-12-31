@@ -1,19 +1,17 @@
-package cmd
+package ui
 
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"github.com/adamdecaf/cert-manage/tools/_x509"
+	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"text/tabwriter"
-
-	"github.com/adamdecaf/cert-manage/tools/_x509"
-	"github.com/adamdecaf/cert-manage/tools/file"
-	"github.com/adamdecaf/cert-manage/tools/pem"
-	"github.com/adamdecaf/cert-manage/ui"
 )
 
 const (
@@ -21,57 +19,24 @@ const (
 )
 
 var (
-	defaultOutputFormat = "table"
-
-	outputFormats = map[string]func([]*x509.Certificate){
-		"openssl":                   printCertsOpenSSL,
-		string(defaultOutputFormat): printCertsTable,
-		"raw": printCertsRaw,
+	outputFormats = map[string]printer{
+		"openssl":       printCertsOpenSSL,
+		DefaultFormat(): printCertsTable,
+		"raw":           printCertsRaw,
 	}
 )
 
-// TODO(adam): How should we consolidate this file vs the new 'ui' package?
-// I can see '-ui cli' (or the default) being this code, but then '-ui web'
-// bringing up a web browser.
-//
-// For now I'm adding a check to `printCerts` which will just switch over
-// to the 'ui' package.
-
-func DefaultOutputFormat() string {
-	return defaultOutputFormat
-}
-func GetOutputFormats() []string {
-	out := make([]string, 0)
-	for k, _ := range outputFormats {
-		out = append(out, k)
-	}
-	return out
-}
-
-// PrintCerts outputs the slice of certificates in `format` to stdout
-// Format can be 'table' and any other value will output them in more detail
-func printCerts(certs []*x509.Certificate, cfg *Config) {
-	if len(certs) == 0 {
-		fmt.Println("No certififcates to display")
-		os.Exit(1)
-	}
-
-	// TODO(adam): Figure out cmd/print.go vs ui package
-	if cfg.UI == "web" {
-		err := ui.ListCertificates(certs)
-		if err != nil {
-			fmt.Println(err)
-		}
-		return
-	}
-
+// showCertsOnCli outputs the slice of certificates in `cfg.Format` to stdout
+func showCertsOnCli(certs []*x509.Certificate, cfg *Config) error {
 	fn, ok := outputFormats[strings.ToLower(cfg.Format)]
 	if !ok {
-		fmt.Printf("Unknown format %s specified", cfg.Format)
-		return
+		return fmt.Errorf("Unknown format %s specified", cfg.Format)
 	}
 	fn(certs)
+	return nil
 }
+
+type printer func([]*x509.Certificate)
 
 // printCertsTable outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.

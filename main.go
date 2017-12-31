@@ -25,11 +25,11 @@ var (
 	app = fs.String("app", "", "")
 
 	// Input
-	whatui = fs.String("ui", ui.DefaultFormat(), "")
+	whatui = fs.String("ui", ui.DefaultUI(), "")
 
 	// Output
 	count  = fs.Bool("count", false, "")
-	format = fs.String("format", cmd.DefaultOutputFormat(), "")
+	format = fs.String("format", ui.DefaultFormat(), "")
 )
 
 func init() {
@@ -66,10 +66,10 @@ DEBUG and TRACE
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			version,
+			ui.DefaultUI(),
+			strings.Join(ui.GetUIs(), ", "),
 			ui.DefaultFormat(),
-			ui.GetFormats(),
-			cmd.DefaultOutputFormat(),
-			strings.Join(cmd.GetOutputFormats(), ", "),
+			strings.Join(ui.GetFormats(), ", "),
 		)
 	}
 }
@@ -108,7 +108,7 @@ func main() {
 
 	// Lift config options into a higher-level
 	fs.Parse(os.Args[2:])
-	cfg := &cmd.Config{
+	cfg := &ui.Config{
 		Count:  *count,
 		Format: *format,
 		UI:     *whatui,
@@ -161,13 +161,6 @@ func main() {
 		},
 		appfn: func(_ string) error {
 			return nil
-		},
-	}
-
-	// TODO(adam): Remove after testing
-	cmds["ui"] = &command{
-		fn: func() error {
-			return ui.Launch()
 		},
 	}
 
