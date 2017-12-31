@@ -32,16 +32,17 @@ func showCertsOnCli(certs []*x509.Certificate, cfg *Config) error {
 	if !ok {
 		return fmt.Errorf("Unknown format %s specified", cfg.Format)
 	}
-	fn(certs)
+	fn(os.Stdout, certs)
 	return nil
 }
 
-type printer func([]*x509.Certificate)
+// printer accepts a writer (*os.File) and the certificates to write
+type printer func(*os.File, []*x509.Certificate)
 
 // printCertsTable outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
-func printCertsTable(certs []*x509.Certificate) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+func printCertsTable(fd *os.File, certs []*x509.Certificate) {
+	w := tabwriter.NewWriter(fd, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tSHA256 Fingerprint\tNot Before\tNot After")
 	defer func() {
 		err := w.Flush()
@@ -71,7 +72,9 @@ func printCertsTable(certs []*x509.Certificate) {
 	}
 }
 
-type openssl struct{}
+type openssl struct {
+	writer *os.File
+}
 
 func (o *openssl) installed() bool {
 	err := exec.Command("openssl", "version").Run()
@@ -82,13 +85,13 @@ func (o *openssl) printCertificate(path string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(out))
+	fmt.Fprintln(o.writer, string(out))
 	return nil
 }
 
 // printCertsOpenSSL shells out to openssl (if available) to print out each certificate
-func printCertsOpenSSL(certs []*x509.Certificate) {
-	ossl := openssl{}
+func printCertsOpenSSL(w *os.File, certs []*x509.Certificate) {
+	ossl := openssl{writer: w}
 
 	// fail if we can't find openssl
 	if !ossl.installed() {
@@ -123,49 +126,49 @@ func printCertsOpenSSL(certs []*x509.Certificate) {
 
 // printCertsRaw very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
-func printCertsRaw(certs []*x509.Certificate) {
+func printCertsRaw(w *os.File, certs []*x509.Certificate) {
 	for i := range certs {
-		fmt.Printf("Certificate\n")
-		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
-		fmt.Printf("  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
-		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
-		fmt.Printf("  Subject: %s\n", _x509.StringifyPKIXName(certs[i].Subject))
-		fmt.Printf("  Issuer: %s\n", _x509.StringifyPKIXName(certs[i].Issuer))
-		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
-		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
+		fmt.Fprintf(w, "Certificate\n")
+		fmt.Fprintf(w, "  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
+		fmt.Fprintf(w, "  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
+		fmt.Fprintf(w, "  SerialNumber: %d\n", certs[i].SerialNumber)
+		fmt.Fprintf(w, "  Subject: %s\n", _x509.StringifyPKIXName(certs[i].Subject))
+		fmt.Fprintf(w, "  Issuer: %s\n", _x509.StringifyPKIXName(certs[i].Issuer))
+		fmt.Fprintf(w, "  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
+		fmt.Fprintf(w, "  IsCA - %t\n", certs[i].IsCA)
 
 		if len(certs[i].DNSNames) > 0 {
-			fmt.Printf("  DNSNames\n")
+			fmt.Fprintf(w, "  DNSNames\n")
 			for j := range certs[i].DNSNames {
-				fmt.Printf("    %s\n", certs[i].DNSNames[j])
+				fmt.Fprintf(w, "    %s\n", certs[i].DNSNames[j])
 			}
 		}
 
 		if len(certs[i].EmailAddresses) > 0 {
-			fmt.Printf("  EmailAddresses\n")
+			fmt.Fprintf(w, "  EmailAddresses\n")
 			for j := range certs[i].EmailAddresses {
-				fmt.Printf("    %s\n", certs[i].EmailAddresses[j])
+				fmt.Fprintf(w, "    %s\n", certs[i].EmailAddresses[j])
 			}
 		}
 
 		if len(certs[i].IPAddresses) > 0 {
-			fmt.Printf("  IPAddresses\n")
+			fmt.Fprintf(w, "  IPAddresses\n")
 			for j := range certs[i].IPAddresses {
-				fmt.Printf("    %s\n", certs[i].IPAddresses[j])
+				fmt.Fprintf(w, "    %s\n", certs[i].IPAddresses[j])
 			}
 		}
 
 		if len(certs[i].PermittedDNSDomains) > 0 {
-			fmt.Printf("  PermittedDNSDomains\n")
+			fmt.Fprintf(w, "  PermittedDNSDomains\n")
 			for j := range certs[i].PermittedDNSDomains {
-				fmt.Printf("    %s\n", certs[i].PermittedDNSDomains[j])
+				fmt.Fprintf(w, "    %s\n", certs[i].PermittedDNSDomains[j])
 			}
 		}
 
 		if len(certs[i].CRLDistributionPoints) > 0 {
-			fmt.Printf("  CRLDistributionPoints\n")
+			fmt.Fprintf(w, "  CRLDistributionPoints\n")
 			for j := range certs[i].CRLDistributionPoints {
-				fmt.Printf("    %s\n", certs[i].CRLDistributionPoints[j])
+				fmt.Fprintf(w, "    %s\n", certs[i].CRLDistributionPoints[j])
 			}
 		}
 	}
