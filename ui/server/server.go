@@ -31,7 +31,6 @@ func Register() {
 	}
 
 	srv = &http.Server{
-		// TODO(adam): Can we pick a random port?
 		Addr: fmt.Sprintf("127.0.0.1:%d", getPort()),
 	}
 
