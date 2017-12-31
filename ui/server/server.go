@@ -20,8 +20,6 @@ func Address() string {
 	return fmt.Sprintf("http://%s/", srv.Addr)
 }
 
-// TODO(adam): Make Register, Start, and Stop private? (defer to Launch()) ??
-
 func Register() {
 	if srv != nil {
 		return // already initialized
