@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	printers = map[string]printer{
-		"openssl":       opensslPrinter{},
-		DefaultFormat(): tablePrinter{},
-		"raw":           rawPrinter{},
+	defaultFormat = "short"
+	printers      = map[string]printer{
+		"openssl":     opensslPrinter{},
+		"table":       tablePrinter{},
+		defaultFormat: rawPrinter{},
 	}
 
 	fingerprintPreviewLength = 16
@@ -27,7 +28,7 @@ var (
 
 // Formats - how the data is displayed on the UI
 func DefaultFormat() string {
-	return "table"
+	return defaultFormat
 }
 func GetFormats() []string {
 	out := make([]string, 0)
