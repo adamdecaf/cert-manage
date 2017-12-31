@@ -40,7 +40,7 @@ function toggle(sel) {
 {{range $idx, $cert := .Certificates}}
 Subject: {{ $cert.Subject }}<br />
 <a href="#" onclick="toggle('cert{{ $idx }}'); return false;" style="color: #000;">Details</a><br />
-<span class="certificate" id="cert{{ $idx }}" style="display:none;"><pre>{{ $cert.Raw }}</pre></span><br /><br />
+<span class="certificate" id="cert{{ $idx }}" style="display:none;"><pre>{{ $cert.Raw }}</pre></span><br />
 {{else}}
 <strong>No certificates</strong>
 {{end}}
