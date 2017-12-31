@@ -3,9 +3,11 @@ package ui
 import (
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/adamdecaf/cert-manage/tools/_x509"
@@ -36,15 +38,21 @@ func GetFormats() []string {
 }
 
 type printer interface {
-	// write will output the certificates to the given writer
-	write(*os.File, []*x509.Certificate)
+	close()
+	write(io.Writer, []*x509.Certificate)
+}
+
+func getPrinter(name string) (printer, bool) {
+	p, ok := printers[strings.ToLower(name)]
+	return p, ok
 }
 
 // tablePrinter outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
 type tablePrinter struct{}
 
-func (tablePrinter) write(fd *os.File, certs []*x509.Certificate) {
+func (tablePrinter) close() {}
+func (tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
 	w := tabwriter.NewWriter(fd, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tSHA256 Fingerprint\tNot Before\tNot After")
 	defer func() {
@@ -75,15 +83,17 @@ func (tablePrinter) write(fd *os.File, certs []*x509.Certificate) {
 	}
 }
 
-type opensslPrinter struct{}
+type opensslPrinter struct {
+	tmp *os.File
+}
 
-func (opensslPrinter) printCertificate(w *os.File, path string, cert []*x509.Certificate) error {
-	err := pem.ToFile(path, cert)
+func (p opensslPrinter) printCertificate(w io.Writer, cert []*x509.Certificate) error {
+	err := pem.ToFile(p.tmp.Name(), cert)
 	if err != nil {
 		return err
 	}
 
-	out, err := exec.Command("openssl", "x509", "-in", path, "-noout", "-text").CombinedOutput()
+	out, err := exec.Command("openssl", "x509", "-in", p.tmp.Name(), "-noout", "-text").CombinedOutput()
 	if err != nil {
 		return err
 	}
@@ -93,16 +103,18 @@ func (opensslPrinter) printCertificate(w *os.File, path string, cert []*x509.Cer
 }
 
 // printCertsOpenSSL shells out to openssl (if available) to print out each certificate
-func (p opensslPrinter) write(w *os.File, certs []*x509.Certificate) {
-	tmp, err := ioutil.TempFile("", "cert-mange-print-cert")
-	if err != nil {
-		fmt.Println(err)
-		return
+func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
+	if p.tmp == nil {
+		tmp, err := ioutil.TempFile("", "cert-mange-print-cert")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		p.tmp = tmp
 	}
-	defer os.Remove(tmp.Name())
 
 	for i := range certs {
-		err := p.printCertificate(w, tmp.Name(), certs[i:i+1])
+		err := p.printCertificate(w, certs[i:i+1])
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -111,11 +123,18 @@ func (p opensslPrinter) write(w *os.File, certs []*x509.Certificate) {
 	return
 }
 
+func (p opensslPrinter) close() {
+	if p.tmp != nil {
+		os.Remove(p.tmp.Name())
+	}
+}
+
 // printCertsRaw very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 type rawPrinter struct{}
 
-func (rawPrinter) write(w *os.File, certs []*x509.Certificate) {
+func (rawPrinter) close() {}
+func (rawPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Fprintf(w, "Certificate\n")
 		fmt.Fprintf(w, "  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
