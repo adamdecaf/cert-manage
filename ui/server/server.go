@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"math/rand"
 	"net/http"
@@ -15,6 +16,18 @@ var (
 	wg  sync.WaitGroup
 
 	seed sync.Once
+
+	doneTpl = `<!doctype html>
+<html>
+<head>
+  <title>cert-manage</title>
+</head>
+<body>
+  <h3>All Done!</h3>
+  <p>You can close this browser window now.</p>
+</body>
+</html>
+`
 )
 
 // Address returns the http://$server:$port/ representation for clients to load
@@ -35,8 +48,17 @@ func Register() {
 	}
 
 	http.HandleFunc("/done", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "finished\n")
-		wg.Done()
+		defer wg.Done()
+
+		t, err := template.New("contents").Parse(doneTpl)
+		if err != nil {
+			io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
+		}
 	})
 }
 
