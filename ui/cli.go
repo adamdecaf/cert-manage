@@ -2,16 +2,16 @@ package ui
 
 import (
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"fmt"
-	"github.com/adamdecaf/cert-manage/tools/_x509"
-	"github.com/adamdecaf/cert-manage/tools/file"
-	"github.com/adamdecaf/cert-manage/tools/pem"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/adamdecaf/cert-manage/tools/_x509"
+	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 )
 
 const (
@@ -54,8 +54,8 @@ func printCertsTable(certs []*x509.Certificate) {
 	for i := range certs {
 		fingerprint := _x509.GetHexSHA256Fingerprint(*certs[i])
 
-		c1 := fmtPkixName(certs[i].Subject)
-		c2 := fmtPkixName(certs[i].Issuer)
+		c1 := _x509.StringifyPKIXName(certs[i].Subject)
+		c2 := _x509.StringifyPKIXName(certs[i].Issuer)
 		c3 := _x509.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm)
 		c4 := fingerprint[:fingerprintPreviewLength]
 
@@ -129,8 +129,8 @@ func printCertsRaw(certs []*x509.Certificate) {
 		fmt.Printf("  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
 		fmt.Printf("  SHA256 Fingerprint - %s\n", _x509.GetHexSHA256Fingerprint(*certs[i]))
 		fmt.Printf("  SerialNumber: %d\n", certs[i].SerialNumber)
-		fmt.Printf("  Subject: %s\n", fmtPkixName(certs[i].Subject))
-		fmt.Printf("  Issuer: %s\n", fmtPkixName(certs[i].Issuer))
+		fmt.Printf("  Subject: %s\n", _x509.StringifyPKIXName(certs[i].Subject))
+		fmt.Printf("  Issuer: %s\n", _x509.StringifyPKIXName(certs[i].Issuer))
 		fmt.Printf("  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
 		fmt.Printf("  IsCA - %t\n", certs[i].IsCA)
 
@@ -169,11 +169,4 @@ func printCertsRaw(certs []*x509.Certificate) {
 			}
 		}
 	}
-}
-
-func fmtPkixName(name pkix.Name) string {
-	if len(name.OrganizationalUnit) > 0 {
-		return fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])
-	}
-	return strings.Join(name.Organization, " ")
 }
