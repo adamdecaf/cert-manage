@@ -132,3 +132,5 @@ You can build the sources with `make build`. Run tests with `make test`. Integra
 
 - [CACert Wiki](http://wiki.cacert.org/CAcert)
 - [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
+- [mozilla.dev.security.policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
+- [TLS Working Group](https://datatracker.ietf.org/wg/tls/charter/)
