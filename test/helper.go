@@ -15,5 +15,9 @@ func online(t *testing.T) bool {
 	if len(cmd.output) == 0 { // no output, check for error
 		defer cmd.SuccessT(t)
 	}
-	return cmd.Success() || os.Getenv("TRAVIS_OS_NAME") != ""
+	return cmd.Success() || inCI()
+}
+
+func inCI() bool {
+	return os.Getenv("TRAVIS_OS_NAME") != ""
 }

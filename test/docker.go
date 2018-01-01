@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -56,6 +57,16 @@ func (d *dockerfile) CertManage(args ...string) {
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		err := exec.Command("docker", "verison").Run()
+		if err == nil {
+			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
+		}
+		if inCI() {
+			t.Skip("travis-ci doesn't support docker on OSX - https://docs.travis-ci.com/user/docker/")
+		}
+	}
+
 	d.prep()
 	t.Helper()
 
