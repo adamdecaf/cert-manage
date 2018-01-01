@@ -68,8 +68,8 @@ func (d *dockerfile) SuccessT(t *testing.T) {
 	}
 }
 
-// DON'T CALL THIS DIRECTLY, CALL .prep()
 func (d *dockerfile) build() {
+	d.wg.Add(1)
 	defer d.wg.Done()
 
 	// Copy our original image's contents into the dst file
@@ -124,8 +124,8 @@ func (d *dockerfile) build() {
 	}
 }
 
-// DON'T CALL THIS DIRECTLY, CALL .prep()
 func (d *dockerfile) run() {
+	d.wg.Add(1)
 	defer d.wg.Done()
 
 	// don't attempt anything if we've already failed
@@ -143,10 +143,7 @@ func (d *dockerfile) run() {
 }
 
 func (d *dockerfile) prep() {
-	d.wg.Add(2) // .build() and .run()
-
 	d.build()
 	d.run()
-
 	d.wg.Wait()
 }
