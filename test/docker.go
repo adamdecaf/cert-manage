@@ -99,7 +99,7 @@ func (d *dockerfile) build() {
 		return
 	}
 
-	// Add all commands as RUN statements in the image
+	// Add all commands to the Dockerfile
 	command := "CMD exit 0"
 	for i := range d.commands {
 		command += fmt.Sprintf(" && %s %s", d.commands[i].command, strings.Join(d.commands[i].args, " "))
@@ -109,7 +109,7 @@ func (d *dockerfile) build() {
 		return
 	}
 
-	// Force all writes into our dockerfile
+	// Force all writes into our Dockerfile
 	if err := dst.Sync(); err != nil {
 		d.err = fmt.Errorf("dst fsync err=%v", err)
 		return
