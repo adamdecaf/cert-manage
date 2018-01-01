@@ -32,6 +32,11 @@ func TestIntegration__list(t *testing.T) {
 	cmd.CmpIntF(t, func(i int) bool { return i > 1 })
 }
 
+func TestIntegration__listFromFile(t *testing.T) {
+	cmd := CertManage("list", "-file", "../testdata/lots.crt", "-count").Trim()
+	cmd.CmpIntF(t, func(i int) bool { return i == 5 })
+}
+
 func TestIntegration__backup(t *testing.T) {
 	cmd := CertManage("backup").Trim()
 	cmd.EqualT(t, "Backup completed successfully")

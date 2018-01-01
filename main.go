@@ -40,7 +40,7 @@ SUB-COMMANDS
            Accepts: -app
 
   list     List the currently installed and trusted certificates
-           Accepts: -app, -count, -format
+           Accepts: -app, -count, -file, -format
 
   restore  Revert the certificate trust back to, optionally takes -file <path>
            Accepts: -app, -file
@@ -126,6 +126,9 @@ func main() {
 	}
 	cmds["list"] = &command{
 		fn: func() error {
+			if *file != "" {
+				return cmd.ListCertsFromFile(*file, cfg)
+			}
 			return cmd.ListCertsForPlatform(cfg)
 		},
 		appfn: func(a string) error {

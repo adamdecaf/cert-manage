@@ -5,8 +5,23 @@ import (
 	"os"
 
 	"github.com/adamdecaf/cert-manage/store"
+	"github.com/adamdecaf/cert-manage/tools/pem"
 	"github.com/adamdecaf/cert-manage/ui"
 )
+
+// ListCertsFromFile finds certificates at the given filepath
+// and lists them accroding to the ui/format options.
+// This assumes the certificates are in PEM format.
+//
+// Note: Currently URLs are not supported
+func ListCertsFromFile(where string, cfg *ui.Config) error {
+	certs, err := pem.FromFile(where)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return ui.ListCertificates(certs, cfg)
+}
 
 // ListCertsForPlatform finds certs for the given platform.
 // The supported platforms can be found in the readme. They're compiled in
@@ -17,12 +32,7 @@ func ListCertsForPlatform(cfg *ui.Config) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if cfg.Count {
-		fmt.Println(len(certificates))
-	} else {
-		ui.ListCertificates(certificates, cfg)
-	}
-	return nil
+	return ui.ListCertificates(certificates, cfg)
 }
 
 // ListCertsForApp finds certs for the given app.
@@ -48,10 +58,5 @@ func ListCertsForApp(app string, cfg *ui.Config) error {
 	}
 
 	// Output the certificates
-	if cfg.Count {
-		fmt.Println(len(certificates))
-	} else {
-		ui.ListCertificates(certificates, cfg)
-	}
-	return nil
+	return ui.ListCertificates(certificates, cfg)
 }
