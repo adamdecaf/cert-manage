@@ -17,8 +17,6 @@ import (
 // - debug, replay commands/output on failure
 
 type Cmd struct {
-	*Cmd
-
 	// Embed a `Once` so we can call `exec` only once
 	sync.Once
 
