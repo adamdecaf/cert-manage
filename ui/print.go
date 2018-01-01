@@ -20,7 +20,7 @@ var (
 	printers      = map[string]printer{
 		"openssl":     opensslPrinter{},
 		"table":       tablePrinter{},
-		defaultFormat: rawPrinter{},
+		defaultFormat: shortPrinter{},
 	}
 
 	fingerprintPreviewLength = 16
@@ -132,10 +132,10 @@ func (p opensslPrinter) close() {
 
 // printCertsRaw very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
-type rawPrinter struct{}
+type shortPrinter struct{}
 
-func (rawPrinter) close() {}
-func (rawPrinter) write(w io.Writer, certs []*x509.Certificate) {
+func (shortPrinter) close() {}
+func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Fprintf(w, "Certificate\n")
 		fmt.Fprintf(w, "  SHA1 Fingerprint - %s\n", _x509.GetHexSHA1Fingerprint(*certs[i]))
