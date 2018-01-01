@@ -14,15 +14,19 @@ Once there are released versions available you can download them from the "Relea
 
 ```
 $ go get github.com/adamdecaf/cert-manage
-$ make build
-...
 
 # List certificates trusted on your system (or app)
 $ cert-manage list
-
 $ cert-manage list -app java
-Subject                                                      Issuer                                                       Public Key Algorithm SHA256 Fingerprint Not Before Not After
-AAA Certificate Services                                     AAA Certificate Services                                     RSA                  d7a7a0fb5d7e2731   2004-01-01 2028-12-31
+Certificate
+  SHA1 Fingerprint - b3eac44776c9c81ceaf29d95b6cca0081b67ec9d
+  SHA256 Fingerprint - 3a43e220fe7f3ea9653d1e21742eac2b75c20fd8980305bc502caf8c2d9b41a1
+  SerialNumber: 246153180488710619953605749449532672687
+  Subject: VeriSign, Inc., Class 2 Public Primary Certification Authority - G2
+  Issuer: VeriSign, Inc., Class 2 Public Primary Certification Authority - G2
+  NotBefore - 1998-05-18 00:00:00 +0000 UTC, NotAfter - 2028-08-01 23:59:59 +0000 UTC
+  IsCA - false
+...
 
 # Trim down what CA's are trusted on your system
 $ cert-manage whitelist -file digicert.json
