@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 // Exists returns true if the give path represents a file or directory
@@ -150,7 +151,7 @@ func SudoCopyFile(src, dst string) error {
 	}
 	// Paths of just / or C:\
 	// Clean(p) returns '.' if p is blank
-	if len(src) <= 3 || len(dst) <= 3 {
+	if utf8.RuneCountInString(src) <= 3 || utf8.RuneCountInString(dst) <= 3 {
 		return fmt.Errorf("either src='%s' and dst='%s' doesn't seem like a valid path", src, dst)
 	}
 

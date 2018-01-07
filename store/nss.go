@@ -241,7 +241,7 @@ func (s nssStore) Restore(where string) error {
 type cert8db string
 
 func (c cert8db) empty() bool {
-	return len(string(c)) == 0
+	return string(c) == ""
 }
 
 // cert8Item represents an x509 Certificate with the NSS trust attributes
