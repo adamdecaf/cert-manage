@@ -63,12 +63,8 @@ func launch() (err error) {
 }
 
 func write(w io.Writer, tpl string, data interface{}) error {
-	t, err := template.New("contents").Parse(tpl)
-	if err != nil {
-		io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
-		return err
-	}
-	err = t.Execute(w, data)
+	t := template.Must(template.New("contents").Parse(tpl))
+	err := t.Execute(w, data)
 	if err != nil {
 		io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
 		return err

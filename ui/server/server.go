@@ -53,12 +53,8 @@ func Register() {
 	http.HandleFunc("/done", func(w http.ResponseWriter, r *http.Request) {
 		defer wg.Done()
 
-		t, err := template.New("contents").Parse(doneTpl)
-		if err != nil {
-			io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
-			return
-		}
-		err = t.Execute(w, nil)
+		t := template.Must(template.New("contents").Parse(doneTpl))
+		err := t.Execute(w, nil)
 		if err != nil {
 			io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
 		}
