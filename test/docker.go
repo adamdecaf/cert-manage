@@ -67,6 +67,10 @@ func (d *dockerfile) SuccessT(t *testing.T) {
 		}
 	}
 
+	if !d.enabled() {
+		t.Skip("docker isn't enabled")
+	}
+
 	d.prep()
 	t.Helper()
 
@@ -157,4 +161,12 @@ func (d *dockerfile) prep() {
 	d.build()
 	d.run()
 	d.wg.Wait()
+}
+
+func (d *dockerfile) enabled() bool {
+	out, _ := exec.Command("docker", "ps").CombinedOutput()
+	if bytes.Contains(out, []byte("Cannot connect to the Docker daemon")) {
+		return false
+	}
+	return true
 }
