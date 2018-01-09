@@ -155,12 +155,9 @@ func (d *dockerfile) build() {
 		return
 	}
 
-	cmd := exec.Command("docker", "build", "-t", d.tag, dir)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, stderr.String())
+	out, err := exec.Command("docker", "build", "-t", d.tag, dir).CombinedOutput()
+	if err != nil {
+		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
 	}
 }
 
@@ -173,12 +170,9 @@ func (d *dockerfile) run() {
 		return
 	}
 
-	cmd := exec.Command("docker", "run", "-t", d.tag)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, stderr.String())
+	out, err := exec.Command("docker", "run", "-t", d.tag).CombinedOutput()
+	if err != nil {
+		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
 	}
 }
 
