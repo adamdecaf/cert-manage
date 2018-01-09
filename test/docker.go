@@ -98,11 +98,15 @@ func (d *dockerfile) build() {
 		return
 	}
 
-	// Copy cert-manage to the temp directory and assume it's linux
-	err = file.CopyFile("../bin/cert-manage-linux-amd64", filepath.Join(dir, "cert-manage"))
-	if err != nil {
-		d.err = fmt.Errorf("error copying cert-manage to tmp dir, err=%v", err)
-		return
+	// Copy cert-manage and whitelist to the temp directory and assume it's linux
+	copyable := []string{"../bin/cert-manage-linux-amd64", "../testdata/globalsign-whitelist.json"}
+	for i := range copyable {
+		name := filepath.Base(copyable[i])
+		err = file.CopyFile(copyable[i], filepath.Join(dir, name))
+		if err != nil {
+			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", name, err)
+			return
+		}
 	}
 
 	dst, err := os.Create(filepath.Join(dir, "Dockerfile"))
