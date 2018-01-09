@@ -13,6 +13,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/adamdecaf/cert-manage/tools/file"
 )
 
 type dockerfile struct {
@@ -30,6 +32,9 @@ type dockerfile struct {
 
 	// only run build, tag and run steps once
 	wg sync.WaitGroup
+
+	// used for cert-manage init
+	sync.Once
 }
 
 func Dockerfile(where string) *dockerfile {
@@ -38,7 +43,7 @@ func Dockerfile(where string) *dockerfile {
 	}
 
 	// Grab the env name (e.g. envs/$env_name/Dockerfile)
-	dir, _ := filepath.Split(where)
+	dir := filepath.Dir(where)
 	now := time.Now().Unix()
 	tag := fmt.Sprintf("cert-manage:%s-%d", filepath.Base(dir), now)
 
@@ -53,7 +58,10 @@ func (d *dockerfile) Run(cmd string, args ...string) {
 }
 
 func (d *dockerfile) CertManage(args ...string) {
-	d.Run("/cert-manage", args...)
+	d.Do(func() {
+		d.Run("chmod", "+x", "/bin/cert-manage")
+	})
+	d.Run("/bin/cert-manage", args...)
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
@@ -77,10 +85,6 @@ func (d *dockerfile) SuccessT(t *testing.T) {
 	if d.err != nil {
 		t.Fatal(d.err)
 	}
-
-	for i := range d.commands {
-		d.commands[i].SuccessT(t)
-	}
 }
 
 func (d *dockerfile) build() {
@@ -93,6 +97,14 @@ func (d *dockerfile) build() {
 		d.err = fmt.Errorf("tempfile create err=%v", err)
 		return
 	}
+
+	// Copy cert-manage to the temp directory and assume it's linux
+	err = file.CopyFile("../bin/cert-manage-linux-amd64", filepath.Join(dir, "cert-manage"))
+	if err != nil {
+		d.err = fmt.Errorf("error copying cert-manage to tmp dir, err=%v", err)
+		return
+	}
+
 	dst, err := os.Create(filepath.Join(dir, "Dockerfile"))
 	if err != nil {
 		d.err = fmt.Errorf("tmp Dockerfile create err=%v", err)
@@ -115,9 +127,13 @@ func (d *dockerfile) build() {
 	}
 
 	// Add all commands to the Dockerfile
-	command := "CMD exit 0"
+	initial := "CMD "
+	command := initial
 	for i := range d.commands {
-		command += fmt.Sprintf(" && %s %s", d.commands[i].command, strings.Join(d.commands[i].args, " "))
+		if command != initial {
+			command += " && "
+		}
+		command += fmt.Sprintf("%s %s", d.commands[i].command, strings.Join(d.commands[i].args, " "))
 	}
 	if _, err := dst.WriteString(command); err != nil {
 		d.err = fmt.Errorf("command=%s err=%v", command, err)
