@@ -139,6 +139,7 @@ func (c *Cmd) Success() bool {
 }
 
 func (c *Cmd) SuccessT(t *testing.T) {
+	t.Helper()
 	if !c.Success() {
 		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
 	}
