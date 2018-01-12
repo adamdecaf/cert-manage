@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/adamdecaf/cert-manage/cmd"
-	"github.com/adamdecaf/cert-manage/ui"
+	"github.com/adamdecaf/cert-manage/pkg/cmd"
+	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
 const (
@@ -115,8 +115,8 @@ func main() {
 	}
 
 	// Build up sub-commands
-	cmds := make(map[string]*command, 0)
-	cmds["backup"] = &command{
+	commands := make(map[string]*command, 0)
+	commands["backup"] = &command{
 		fn: func() error {
 			return cmd.BackupForPlatform()
 		},
@@ -124,7 +124,7 @@ func main() {
 			return cmd.BackupForApp(a)
 		},
 	}
-	cmds["list"] = &command{
+	commands["list"] = &command{
 		fn: func() error {
 			if *file != "" {
 				return cmd.ListCertsFromFile(*file, cfg)
@@ -135,7 +135,7 @@ func main() {
 			return cmd.ListCertsForApp(a, cfg)
 		},
 	}
-	cmds["restore"] = &command{
+	commands["restore"] = &command{
 		fn: func() error {
 			return cmd.RestoreForPlatform(*file)
 		},
@@ -143,7 +143,7 @@ func main() {
 			return cmd.RestoreForApp(a, *file)
 		},
 	}
-	cmds["whitelist"] = &command{
+	commands["whitelist"] = &command{
 		fn: func() error {
 			if *file == "" {
 				return errors.New("no -file specified")
@@ -157,7 +157,7 @@ func main() {
 			return cmd.WhitelistForApp(a, *file)
 		},
 	}
-	cmds["version"] = &command{
+	commands["version"] = &command{
 		fn: func() error {
 			fmt.Printf("%s\n", version)
 			return nil
@@ -168,8 +168,8 @@ func main() {
 	}
 
 	// Run whatever function we've got here..
-	c, ok := cmds[strings.ToLower(os.Args[1])]
-	if !ok { // sub-cmd wasn't found
+	c, ok := commands[strings.ToLower(os.Args[1])]
+	if !ok { // sub-command wasn't found
 		fs.Usage()
 		os.Exit(1)
 	}

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/tools/file"
+	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 type dockerfile struct {

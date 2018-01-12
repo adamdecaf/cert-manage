@@ -20,8 +20,6 @@ check:
 
 test: check dist
 	go test -v ./...
-	go test -v github.com/adamdecaf/cert-manage/test
-	go test -v github.com/adamdecaf/cert-manage/tools/_x509
 
 ci: check dist test
 
