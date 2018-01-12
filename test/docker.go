@@ -17,6 +17,10 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
+var (
+	debug = os.Getenv("DEBUG") != ""
+)
+
 type dockerfile struct {
 	// Local fs path to the Dockerfile
 	base string
@@ -104,7 +108,11 @@ func (d *dockerfile) build() {
 	}
 
 	// Copy cert-manage and whitelist to the temp directory and assume it's linux
-	copyable := []string{"../bin/cert-manage-linux-amd64", "../testdata/globalsign-whitelist.json"}
+	copyable := []string{
+		"../bin/cert-manage-linux-amd64",
+		"../testdata/Download.java",
+		"../testdata/globalsign-whitelist.json",
+	}
 	for i := range copyable {
 		name := filepath.Base(copyable[i])
 		err = file.CopyFile(copyable[i], filepath.Join(dir, name))
@@ -173,6 +181,9 @@ func (d *dockerfile) run() {
 	out, err := exec.Command("docker", "run", "-t", d.tag).CombinedOutput()
 	if err != nil {
 		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
+	}
+	if debug {
+		fmt.Println(string(out))
 	}
 }
 

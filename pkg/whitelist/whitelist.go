@@ -10,7 +10,7 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
-// TOOD(adam): Read and review this code
+// TODO(adam): Read and review this code
 // https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html
 
 // item can be compared against an x509 Certificate to see if the cert represents

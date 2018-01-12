@@ -13,5 +13,6 @@ var ktool = keytool{
 	},
 	relativeKeystorePaths: []string{
 		"/lib/security/cacerts",
+		"/jre/lib/security/cacerts", // alpine
 	},
 }
