@@ -83,7 +83,8 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
 - DigiCert
   - [Certificate with invalid dnsName issued from Baltimore intermediate](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/5bpr9yBgaYo)
 - [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
-- [DYMO Root CA](https://github.com/njh/dymo-root-ca-security-risk)
+- DYMO
+  - [Installs a Root CA Certificate](https://github.com/njh/dymo-root-ca-security-risk)
 - GlobalSign
   - [Accidental cross-signing intermediate certificate](https://downloads.globalsign.com/acton/fs/blocks/showLandingPage/a/2674/p/p-008f/t/page/fm/0)
 - GoDaddy
@@ -99,6 +100,8 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
   - [DNSSEC](https://groups.google.com/d/msg/mozilla.dev.security.policy/r9QM8tNqxx0/ZmnWwTXoAQAJ)
   - [Debian Weak Key](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/WL_-9pVhZf8)
 - [PROCERT](https://wiki.mozilla.org/CA:PROCERT_Issues)
+- Savitech USB audio drivers
+  - [Installs a Root CA Certificate](https://www.kb.cert.org/vuls/id/446847)
 - StartCom
   - [StartEncrypt](https://www.computest.nl/blog/startencrypt-considered-harmful-today/)
   - [StartCom & Qihoo Incidents](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E)
@@ -110,9 +113,6 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
 - [WoSign and WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
 - [Visa](https://groups.google.com/d/msg/mozilla.dev.security.policy/NNV3zvX43vE/rae9kNkWAgAJ)
 
-There have also been crazy modifications done by other software components/vendors, which don't relate to secure x509 communication.
-
-- Savitech USB audio drivers [install a new root CA certificate](https://www.kb.cert.org/vuls/id/446847)
 
 ## Building / Developing
 
