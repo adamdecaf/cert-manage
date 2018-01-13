@@ -12,3 +12,7 @@ COPY globalsign-whitelist.json /whitelist.json
 
 COPY Download.java /Download.java
 RUN cd / && javac Download.java
+
+COPY script.sh /bin/script.sh
+RUN chmod +x /bin/script.sh
+CMD /bin/script.sh

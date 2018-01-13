@@ -4,10 +4,16 @@ import (
 	"testing"
 )
 
-func TestUbuntu(t *testing.T) {
+func TestUbuntu__suite(t *testing.T) {
 	img := Dockerfile("envs/ubuntu")
-	linuxSuite(t, img, "148", "5")
+	linuxSuite(t, img, cfg{
+		total: "148",
+		after: "5",
+		curlExitCode: "35",
+	})
+}
 
-	img = Dockerfile("envs/ubuntu")
+func TestUbuntu__java(t *testing.T) {
+	img := Dockerfile("envs/ubuntu")
 	javaSuite(t, img, "148", "9")
 }

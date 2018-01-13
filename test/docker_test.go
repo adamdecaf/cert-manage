@@ -25,3 +25,10 @@ func TestDocker_shouldFail(t *testing.T) {
 	img.ShouldFail("nothing", "other")
 	img.SuccessT(t)
 }
+
+func TestDocker__exitCode(t *testing.T) {
+	img := Dockerfile("envs/basic")
+	img.ExitCode("0", "date")
+	img.ExitCode("127", "asjdsfjsafkjas")
+	img.SuccessT(t)
+}

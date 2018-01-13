@@ -1,32 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "Platform tests"
-# Verify we're starting with the correct number of certs
-/bin/cert-manage list -count | grep 148
-
-# Make a backup
-/bin/cert-manage backup
-
-# Quick check
-ls -1 /usr/share/ca-certificates/* | wc -l | grep 148
-ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep 148
-
-# Whitelist and verify
-/bin/cert-manage whitelist -file /whitelist.json
-/bin/cert-manage list -count | grep 5
-
-# Verify google.com fails to load
-set +e
-curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
-code=$?
-set -e
-if [ "$code" -ne "35" ];
-then
-    echo "Got other status code from google.com request, code=$code"
-    exit 1
-fi
-
 # Restore
 /bin/cert-manage restore
 /bin/cert-manage list -count | grep 148

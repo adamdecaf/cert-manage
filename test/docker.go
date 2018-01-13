@@ -72,6 +72,14 @@ func (d *dockerfile) ShouldFail(cmd string, args ...string) {
 	d.Run("set -e")
 }
 
+func (d *dockerfile) ExitCode(code, cmd string, args ...string) {
+	d.Run("set +e")
+	d.Run(cmd, args...)
+	d.Run("code=$?")
+	d.Run("set -e")
+	d.Run("echo", "$code", "|", "grep", code)
+}
+
 func (d *dockerfile) CertManage(args ...string) {
 	d.Do(func() {
 		d.Run("chmod", "+x", "/bin/cert-manage")
@@ -148,30 +156,37 @@ func (d *dockerfile) build() {
 		d.err = fmt.Errorf("src close err=%v", err)
 		return
 	}
-
-	// Add all commands to the Dockerfile
-	initial := "CMD "
-	command := initial
-	if debug {
-		command = initial + "set -x"
-	}
-	for i := range d.commands {
-		if command != initial {
-			command += " && "
-		}
-		command += fmt.Sprintf("%s %s", d.commands[i].command, strings.Join(d.commands[i].args, " "))
-	}
-	if _, err := dst.WriteString(command); err != nil {
-		d.err = fmt.Errorf("command=%s err=%v", command, err)
-		return
-	}
-
 	// Force all writes into our Dockerfile
 	if err := dst.Sync(); err != nil {
 		d.err = fmt.Errorf("dst fsync err=%v", err)
 		return
 	}
 
+	// Add all commands to a script copied Dockerfile
+	script, err := os.Create(filepath.Join(dir, "script.sh"))
+	if err != nil {
+		d.err = err
+		return
+	}
+	defer os.Remove(script.Name())
+	_, err = script.WriteString(`#!/bin/sh` + "\n")
+	if err != nil {
+		d.err = err
+		return
+	}
+	for i := range d.commands {
+		line := fmt.Sprintf("%s %s\n", d.commands[i].command, strings.Join(d.commands[i].args, " "))
+		if _, err := script.WriteString(line); err != nil {
+			d.err = fmt.Errorf("command=%q err=%v", line, err)
+			return
+		}
+	}
+	d.err = script.Sync()
+	if d.err != nil {
+		return
+	}
+
+	// Build docker image now
 	out, err := exec.Command("docker", "build", "-t", d.tag, dir).CombinedOutput()
 	if err != nil {
 		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))

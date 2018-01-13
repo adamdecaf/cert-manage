@@ -4,10 +4,16 @@ import (
 	"testing"
 )
 
-func TestDebian(t *testing.T) {
+func TestDebian__suite(t *testing.T) {
 	img := Dockerfile("envs/debian")
-	linuxSuite(t, img, "166", "5")
+	linuxSuite(t, img, cfg{
+		total: "166",
+		after: "5",
+		curlExitCode: "35",
+	})
+}
 
-	img = Dockerfile("envs/debian")
+func TestDebian__java(t *testing.T) {
+	img := Dockerfile("envs/debian")
 	javaSuite(t, img, "166", "12")
 }

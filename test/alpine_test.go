@@ -4,12 +4,16 @@ import (
 	"testing"
 )
 
-func TestAlpine(t *testing.T) {
-	// os specific tests (and values), will change on each release
+func TestAlpine__suite(t *testing.T) {
 	img := Dockerfile("envs/alpine")
-	linuxSuite(t, img, "151", "5")
+	linuxSuite(t, img, cfg{
+		total: "151",
+		after: "5",
+		curlExitCode: "60",
+	})
+}
 
-	// App specific tests
-	img = Dockerfile("envs/alpine")
+func TestAlpine__java(t *testing.T) {
+	img := Dockerfile("envs/alpine")
 	javaSuite(t, img, "150", "5")
 }
