@@ -152,6 +152,9 @@ func (d *dockerfile) build() {
 	// Add all commands to the Dockerfile
 	initial := "CMD "
 	command := initial
+	if debug {
+		command = initial + "set -x"
+	}
 	for i := range d.commands {
 		if command != initial {
 			command += " && "
