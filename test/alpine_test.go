@@ -7,8 +7,8 @@ import (
 func TestAlpine__suite(t *testing.T) {
 	img := Dockerfile("envs/alpine")
 	linuxSuite(t, img, cfg{
-		total: "151",
-		after: "5",
+		total:        "151",
+		after:        "5",
 		curlExitCode: "60",
 	})
 }

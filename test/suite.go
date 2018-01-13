@@ -9,6 +9,7 @@ type cfg struct {
 	total, after string
 	curlExitCode string
 }
+
 func (c *cfg) failIfEmpty(t *testing.T) {
 	t.Helper()
 

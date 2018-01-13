@@ -7,8 +7,8 @@ import (
 func TestUbuntu__suite(t *testing.T) {
 	img := Dockerfile("envs/ubuntu")
 	linuxSuite(t, img, cfg{
-		total: "148",
-		after: "5",
+		total:        "148",
+		after:        "5",
 		curlExitCode: "35",
 	})
 }

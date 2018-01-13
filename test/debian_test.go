@@ -7,8 +7,8 @@ import (
 func TestDebian__suite(t *testing.T) {
 	img := Dockerfile("envs/debian")
 	linuxSuite(t, img, cfg{
-		total: "166",
-		after: "5",
+		total:        "166",
+		after:        "5",
 		curlExitCode: "35",
 	})
 }
