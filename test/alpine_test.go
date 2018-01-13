@@ -11,5 +11,5 @@ func TestAlpine(t *testing.T) {
 
 	// App specific tests
 	img = Dockerfile("envs/alpine")
-	javaSuite(t, img, "150", "") // TODO(adam): `after` param
+	javaSuite(t, img, "150", "5")
 }
