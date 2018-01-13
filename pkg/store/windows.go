@@ -13,6 +13,7 @@ import (
 // Docs:
 // https://msdn.microsoft.com/en-us/library/e78byta0(v=vs.110).aspx
 // https://social.technet.microsoft.com/wiki/contents/articles/31633.microsoft-trusted-root-program-requirements.aspx
+// https://social.technet.microsoft.com/wiki/contents/articles/31680.microsoft-trusted-root-certificate-program-updates.aspx
 
 // Certificate store locations:
 // - https://superuser.com/questions/411909/where-is-the-certificate-folder-in-windows-7
