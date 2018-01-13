@@ -6,6 +6,9 @@ import (
 )
 
 func linuxSuite(t *testing.T, img *dockerfile, total, after string) {
+	if total == "" || after == "" {
+		t.Fatalf("total=%q or after=%q is blank", total, after)
+	}
 	if debug {
 		fmt.Println("Linux start")
 	}
@@ -30,6 +33,9 @@ func linuxSuite(t *testing.T, img *dockerfile, total, after string) {
 }
 
 func javaSuite(t *testing.T, img *dockerfile, total, after string) {
+	if total == "" || after == "" {
+		t.Fatalf("total=%q or after=%q is blank", total, after)
+	}
 	if debug {
 		fmt.Println("Java start")
 	}
