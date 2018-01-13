@@ -1,13 +1,6 @@
 #!/bin/bash
 set -e
 
-# Restore
-/bin/cert-manage restore
-/bin/cert-manage list -count | grep 148
-
-# Verify google.com loads now
-curl -v -I https://www.google.com/images/branding/product/ico/googleg_lodp.ico
-
 # Chrome
 # echo "Chrome tests"
 # timeout 15s chromium-browser --no-sandbox --headless https://google.com 2>&1 >> /var/log/chrome.log

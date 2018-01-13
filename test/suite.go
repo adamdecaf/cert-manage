@@ -41,7 +41,9 @@ func linuxSuite(t *testing.T, img *dockerfile, config cfg) {
 	img.ExitCode(config.curlExitCode, "curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
 	// Restore
 	img.CertManage("restore")
+	// Verify Restore
 	img.CertManage("list", "-count", "|", "grep", config.total)
+	img.Run("curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
 	img.SuccessT(t)
 
 	if debug {
