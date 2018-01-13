@@ -41,19 +41,17 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 	img.RunSplit("ls -1 ~/.cert-manage/java | wc -l | grep 1")
 	// Check java
 	img.RunSplit("cd / && java Download")
-	// Break java
-	// img.RunSplit("echo a > /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts")     // TODO
-	// img.RunSplit("cd / && java Download") // Verify this fails, 'PKIX path building failed' // TODO
-	// Restore
-	img.CertManage("restore", "-app", "java")
-	img.CertManage("list", "-app", "java", "-count", "|", "grep", total)
-	// Verify restore
-	// size=$(stat --printf="%s" /usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts)   // TODO
+	// Whitelist java
 	img.CertManage("whitelist", "-file", "/whitelist.json", "-app", "java")
 	img.CertManage("list", "-app", "java", "-count", "|", "grep", after)
 	// Verify google.com fails to load
-	// out=$(java Download 2>&1); if ! echo "$out" | grep 'PKIX path building failed';         // TODO
-
+	img.Run("cd", "/")
+	img.ShouldFail("java", "Download", "2>&1", "|", "grep", `'PKIX path building failed'`)
+	// Restore
+	img.CertManage("restore", "-app", "java")
+	img.CertManage("list", "-app", "java", "-count", "|", "grep", total)
+	// Verify Restore
+	img.RunSplit("cd / && java Download")
 	img.SuccessT(t)
 
 	if debug {

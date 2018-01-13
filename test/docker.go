@@ -66,6 +66,12 @@ func (d *dockerfile) RunSplit(stmt string) {
 	d.Run(parts[0], parts[1:]...)
 }
 
+func (d *dockerfile) ShouldFail(cmd string, args ...string) {
+	d.Run("set +e")
+	d.Run(cmd, args...)
+	d.Run("set -e")
+}
+
 func (d *dockerfile) CertManage(args ...string) {
 	d.Do(func() {
 		d.Run("chmod", "+x", "/bin/cert-manage")
