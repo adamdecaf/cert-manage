@@ -10,9 +10,6 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
-// TODO(adam): Read and review this code
-// https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html
-
 // item can be compared against an x509 Certificate to see if the cert represents
 // some value presented by the whitelist item. This is useful in comparing specific fields of
 // Certificate against multiple whitelist candidates.

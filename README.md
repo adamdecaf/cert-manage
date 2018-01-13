@@ -134,3 +134,7 @@ You can build the sources with `make build`. Run tests with `make test`. Integra
 - [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
 - [mozilla.dev.security.policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
 - [TLS Working Group](https://datatracker.ietf.org/wg/tls/charter/)
+
+## Other x509 Related Articles
+
+- [How I tricked Symantec with a Fake Private Key](https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html)
