@@ -5,6 +5,8 @@ import (
 )
 
 func TestAlpine__suite(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/alpine")
 	linuxSuite(t, img, cfg{
 		total:        "151",
@@ -14,6 +16,8 @@ func TestAlpine__suite(t *testing.T) {
 }
 
 func TestAlpine__java(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/alpine")
 	javaSuite(t, img, "150", "5")
 }

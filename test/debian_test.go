@@ -5,6 +5,8 @@ import (
 )
 
 func TestDebian__suite(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/debian")
 	linuxSuite(t, img, cfg{
 		total:        "166",
@@ -14,6 +16,8 @@ func TestDebian__suite(t *testing.T) {
 }
 
 func TestDebian__java(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/debian")
 	javaSuite(t, img, "166", "12")
 }
