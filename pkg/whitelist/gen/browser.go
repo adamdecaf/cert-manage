@@ -5,7 +5,8 @@ import (
 )
 
 func FromAllBrowsers() ([]*url.URL, error) {
-	return nil, nil
+	u, err := url.Parse("http://apple.com")
+	return []*url.URL{u}, err
 }
 
 func FromBrowser(name string) ([]*url.URL, error) {

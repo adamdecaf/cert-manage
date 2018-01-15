@@ -23,6 +23,12 @@ type Whitelist struct {
 	fingerprints []item
 }
 
+// TODO(adam): redo `Whitelist`
+// type Whitelist struct {
+// 	// sha256 fingerprint -> *x509.Certificate
+// 	Certificates map[string]*x509.Certificate
+// }
+
 // Matches checks a given x509 certificate against the criteria and
 // returns if it's matched by an item in the whitelist
 func (w Whitelist) Matches(inc *x509.Certificate) bool {
@@ -103,4 +109,16 @@ func validWhitelistPath(path string) bool {
 	}
 
 	return true
+}
+
+// ToFile take a Whitelist, encods it to json and writes the result
+func ToFile(path string, wh Whitelist) error {
+	w := jsonWhitelist{
+	// Fingerprints: wh.fingerprints, // TODO(adam): `Whitelist` needs a redo..
+	}
+	out, err := json.Marshal(&w)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(path, out, 0644)
 }

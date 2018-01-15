@@ -1,6 +1,7 @@
 package whitelist
 
 import (
+	"os"
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/pem"
@@ -74,5 +75,25 @@ func TestWhitelist__emptyfile(t *testing.T) {
 	}
 	if len(wh.fingerprints) != 0 {
 		t.Fatalf("empty whitelist was not parsed as empty! had %d fingerprints", len(wh.fingerprints))
+	}
+}
+
+func TestWhitelist_filecycle(t *testing.T) {
+	wh, err := FromFile("../../testdata/complete-whitelist.json")
+	wh.fingerprints = []item{} // TODO(adam): `Whitelist` needs a redo
+	if err != nil {
+		t.Fatal(err)
+	}
+	where := "../../test-whitelist.json"
+	defer os.Remove(where)
+	if err = ToFile(where, wh); err != nil {
+		t.Fatal(err)
+	}
+	wh2, err := FromFile(where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wh.fingerprints) != len(wh2.fingerprints) {
+		t.Errorf("%d != %d", len(wh.fingerprints), len(wh2.fingerprints))
 	}
 }

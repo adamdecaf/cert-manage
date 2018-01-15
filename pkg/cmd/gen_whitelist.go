@@ -69,6 +69,11 @@ func GenerateWhitelist(from, file string) error {
 	close(uacc)
 	close(eacc)
 	fmt.Printf("out=%q\n", accum)
+
+	// TODO(adam): capture CA's from urls
+	// then create whitelist
+	// and whitelist.ToFile(path, wh)
+
 	return err
 }
 
