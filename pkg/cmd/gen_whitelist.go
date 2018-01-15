@@ -71,7 +71,7 @@ func GenerateWhitelist(from, file string) error {
 		return err
 	}
 	wh := whitelist.FromCertificates(certs)
-	return wh.ToFile("out")
+	return wh.ToFile("out") // TODO(adam): needs flag
 }
 
 func getChoices(from, file string) []string {
