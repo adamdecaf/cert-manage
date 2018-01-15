@@ -18,42 +18,47 @@ const (
 var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
 
-	// Qualifiers
-	file = fs.String("file", "", "")
+	// -file is used to specify an input file path
+	flagFile = fs.String("file", "", "")
 
-	// Filters
-	app = fs.String("app", "", "")
+	// -app is used for operating on an installed application
+	flagApp = fs.String("app", "", "")
 
-	// Input
-	whatui = fs.String("ui", ui.DefaultUI(), "")
+	// -ui is used for choosing a different ui
+	flagUi = fs.String("ui", ui.DefaultUI(), "")
+
+	// -from is used by 'gen-whitelist' to specify url sources
+	flagFrom = fs.String("from", "", "")
 
 	// Output
-	count  = fs.Bool("count", false, "")
-	format = fs.String("format", ui.DefaultFormat(), "")
+	flagCount  = fs.Bool("count", false, "")
+	flagFormat = fs.String("format", ui.DefaultFormat(), "")
 )
 
 func init() {
 	fs.Usage = func() {
 		fmt.Printf(`Usage of cert-manage (version %s)
 SUB-COMMANDS
-  backup   Take a backup of the specified certificate store
-           Accepts: -app
+  backup        Take a backup of the specified certificate store
+                Accepts: -app
 
-  list     List the currently installed and trusted certificates
-           Accepts: -app, -count, -file, -format
+  gen-whitelist Create a whitelist from various sources
+                Accepts: -file, -from
 
-  restore  Revert the certificate trust back to, optionally takes -file <path>
-           Accepts: -app, -file
+  list          List the currently installed and trusted certificates
+                Accepts: -app, -count, -file, -format
 
-  version  Show the version of cert-manage
+  restore       Revert the certificate trust back to, optionally takes -file <path>
+                Accepts: -app, -file
 
-  whitelist -file <path>   Remove trust from certificates which do not match the whitelist in <path>
-                           Accepts: -app, -file
+  version       Show the version of cert-manage
 
-FILTERS
+  whitelist     Remove trust from certificates which do not match the whitelist in <path>
+                Requires: -file, Optional: -app
+
+FLAGS
   -app <name> The name of an application which to perform the given command on. (Examples: chrome, java)
-
-INPUT
+  -from <type(s)> Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
   -ui <type> Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
 
 OUTPUT
@@ -109,9 +114,9 @@ func main() {
 	// Lift config options into a higher-level
 	fs.Parse(os.Args[2:])
 	cfg := &ui.Config{
-		Count:  *count,
-		Format: *format,
-		UI:     *whatui,
+		Count:  *flagCount,
+		Format: *flagFormat,
+		UI:     *flagUi,
 	}
 
 	// Build up sub-commands
@@ -124,10 +129,15 @@ func main() {
 			return cmd.BackupForApp(a)
 		},
 	}
+	commands["gen-whitelist"] = &command{
+		fn: func() error {
+			return cmd.GenerateWhitelist(*flagFrom, *flagFile)
+		},
+	}
 	commands["list"] = &command{
 		fn: func() error {
-			if *file != "" {
-				return cmd.ListCertsFromFile(*file, cfg)
+			if *flagFile != "" {
+				return cmd.ListCertsFromFile(*flagFile, cfg)
 			}
 			return cmd.ListCertsForPlatform(cfg)
 		},
@@ -137,24 +147,24 @@ func main() {
 	}
 	commands["restore"] = &command{
 		fn: func() error {
-			return cmd.RestoreForPlatform(*file)
+			return cmd.RestoreForPlatform(*flagFile)
 		},
 		appfn: func(a string) error {
-			return cmd.RestoreForApp(a, *file)
+			return cmd.RestoreForApp(a, *flagFile)
 		},
 	}
 	commands["whitelist"] = &command{
 		fn: func() error {
-			if *file == "" {
+			if *flagFile == "" {
 				return errors.New("no -file specified")
 			}
-			return cmd.WhitelistForPlatform(*file)
+			return cmd.WhitelistForPlatform(*flagFile)
 		},
 		appfn: func(a string) error {
-			if *file == "" {
+			if *flagFile == "" {
 				return errors.New("no -file specified")
 			}
-			return cmd.WhitelistForApp(a, *file)
+			return cmd.WhitelistForApp(a, *flagFile)
 		},
 	}
 	commands["version"] = &command{
@@ -175,8 +185,8 @@ func main() {
 	}
 
 	// sub-command found, try and exec something off it
-	if app != nil && *app != "" {
-		err := c.appfn(*app)
+	if flagApp != nil && *flagApp != "" {
+		err := c.appfn(*flagApp)
 		if err != nil {
 			fmt.Printf("ERROR: %v\n", err)
 			os.Exit(1)
