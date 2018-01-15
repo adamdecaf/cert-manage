@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist/gen"
 )
 
@@ -21,7 +22,6 @@ func GenerateWhitelist(from, file string) error {
 	}
 
 	var accum []*url.URL
-	var err error
 	var mu sync.Mutex
 	uacc := make(chan []*url.URL)
 	eacc := make(chan error)
@@ -57,24 +57,21 @@ func GenerateWhitelist(from, file string) error {
 			debugLog("accumulating %d urls", len(urls))
 			accum = append(accum, urls...)
 			mu.Unlock()
-		case err1 := <-eacc:
-			mu.Lock()
-			if err1 != nil {
-				err = err1
-			}
-			mu.Unlock()
+		case err := <-eacc:
+			return err
 		}
 	}
 	debugLog("cleaning up")
 	close(uacc)
 	close(eacc)
-	fmt.Printf("out=%q\n", accum)
 
-	// TODO(adam): capture CA's from urls
-	// then create whitelist
-	// and whitelist.ToFile(path, wh)
-
-	return err
+	// Generate whitelist and write to file
+	certs, err := gen.FindCACertificates(accum)
+	if err != nil {
+		return err
+	}
+	wh := whitelist.FromCertificates(certs)
+	return wh.ToFile("out")
 }
 
 func getChoices(from, file string) []string {

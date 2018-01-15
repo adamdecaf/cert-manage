@@ -40,6 +40,18 @@ func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
 	return true
 }
 
+func FromCertificates(certs []*x509.Certificate) Whitelist {
+	wh := Whitelist{}
+	for i := range certs {
+		if certs[i] == nil {
+			continue
+		}
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		wh.Fingerprints = append(wh.Fingerprints, fp)
+	}
+	return wh
+}
+
 // FromFile reads a whitelist file and parses it into items
 func FromFile(path string) (Whitelist, error) {
 	wh := Whitelist{}
