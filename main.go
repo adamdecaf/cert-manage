@@ -30,6 +30,9 @@ var (
 	// -from is used by 'gen-whitelist' to specify url sources
 	flagFrom = fs.String("from", "", "")
 
+	// -out is used by 'gen-whitelist' to specify output file location
+	flagOutFile = fs.String("out", "", "")
+
 	// Output
 	flagCount  = fs.Bool("count", false, "")
 	flagFormat = fs.String("format", ui.DefaultFormat(), "")
@@ -43,7 +46,7 @@ SUB-COMMANDS
                 Accepts: -app
 
   gen-whitelist Create a whitelist from various sources
-                Accepts: -file, -from
+                Requires: -out, Optional: -file, -from
 
   list          List the currently installed and trusted certificates
                 Accepts: -app, -count, -file, -format
@@ -131,7 +134,7 @@ func main() {
 	}
 	commands["gen-whitelist"] = &command{
 		fn: func() error {
-			return cmd.GenerateWhitelist(*flagFrom, *flagFile)
+			return cmd.GenerateWhitelist(*flagOutFile, *flagFrom, *flagFile)
 		},
 	}
 	commands["list"] = &command{

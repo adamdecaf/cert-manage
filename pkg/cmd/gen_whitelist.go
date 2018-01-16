@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -16,9 +18,16 @@ var (
 	debug = os.Getenv("DEBUG") != ""
 )
 
-func GenerateWhitelist(from, file string) error {
+func GenerateWhitelist(output string, from, file string) error {
 	if from == "" && file == "" {
 		return errors.New("you need to specify either -from or -file")
+	}
+	if output == "" {
+		return errors.New("you need to specify -out <path>")
+	}
+	output, err := filepath.Abs(output)
+	if err != nil {
+		return err
 	}
 
 	var accum []*url.URL
@@ -70,8 +79,12 @@ func GenerateWhitelist(from, file string) error {
 	if err != nil {
 		return err
 	}
-	wh := whitelist.FromCertificates(certs)
-	return wh.ToFile("out") // TODO(adam): needs flag
+	var acc []*x509.Certificate
+	for i := range certs {
+		acc = append(acc, certs[i].Certificate)
+	}
+	wh := whitelist.FromCertificates(acc)
+	return wh.ToFile(output)
 }
 
 func getChoices(from, file string) []string {
