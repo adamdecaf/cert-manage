@@ -3,24 +3,16 @@ package whitelist
 import (
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"strings"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 )
-
-// item can be compared against an x509 Certificate to see if the cert represents
-// some value presented by the whitelist item. This is useful in comparing specific fields of
-// Certificate against multiple whitelist candidates.
-type item interface {
-	Matches(x509.Certificate) bool
-}
 
 // Whitelist is the structure holding various `item` types that match against
 // x509 certificates
 type Whitelist struct {
-	fingerprints []item
+	// sha256 fingerprints
+	Fingerprints []string `json:"Fingerprints,omitempty"`
 }
 
 // Matches checks a given x509 certificate against the criteria and
@@ -29,9 +21,9 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	if inc == nil {
 		return false
 	}
-
-	for _, f := range w.fingerprints {
-		if f.Matches(*inc) {
+	fp := certutil.GetHexSHA256Fingerprint(*inc)
+	for i := range w.Fingerprints {
+		if w.Fingerprints[i] == fp {
 			return true
 		}
 	}
@@ -48,59 +40,34 @@ func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
 	return true
 }
 
-// Json structure in struct form
-type jsonWhitelist struct {
-	Fingerprints jsonFingerprints `json:"Fingerprints,omitempty"`
-}
-type jsonFingerprints struct {
-	Hex []string `json:"Hex"`
+func FromCertificates(certs []*x509.Certificate) Whitelist {
+	wh := Whitelist{}
+	for i := range certs {
+		if certs[i] == nil {
+			continue
+		}
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		wh.Fingerprints = append(wh.Fingerprints, fp)
+	}
+	return wh
 }
 
 // FromFile reads a whitelist file and parses it into items
 func FromFile(path string) (Whitelist, error) {
 	wh := Whitelist{}
-
-	if !validWhitelistPath(path) {
-		return wh, fmt.Errorf("The path '%s' doesn't seem to contain a whitelist.", path)
-	}
-
-	// read file
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return wh, err
 	}
-
-	var parsed jsonWhitelist
-	err = json.Unmarshal(b, &parsed)
-	if err != nil {
-		return wh, err
-	}
-
-	// Read parsed format into structs
-	for _, v := range parsed.Fingerprints.Hex {
-		wh.fingerprints = append(wh.fingerprints, fingerprint(v))
-	}
-
-	return wh, nil
+	err = json.Unmarshal(b, &wh)
+	return wh, err
 }
 
-// validWhitelistPath verifies that the given whitelist filepath is properly defined
-// and exists on the given filesystem.
-func validWhitelistPath(path string) bool {
-	if !file.Exists(path) {
-		fmt.Printf("The path %s doesn't seem to exist.\n", path)
+// ToFile take a Whitelist, encods it to json and writes the result
+func (w Whitelist) ToFile(path string) error {
+	out, err := json.Marshal(&w)
+	if err != nil {
+		return err
 	}
-
-	isFlag := strings.HasPrefix(path, "-")
-	if path == "" || isFlag {
-		fmt.Printf("The given whitelist file path '%s' doesn't look correct.\n", path)
-		if isFlag {
-			fmt.Println("The path looks like a cli flag, but -whitelist requires -file to the whitelist file.")
-		} else {
-			fmt.Println("The given whitelist file path is empty.")
-		}
-		return false
-	}
-
-	return true
+	return ioutil.WriteFile(path, out, 0644)
 }

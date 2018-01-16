@@ -111,11 +111,9 @@ Whitelists are stored in json files. There is a basic structure to them which al
 
 ```json
 {
-  "Fingerprints": {
-    "Hex": [
-      "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
-    ]
-  }
+  "Fingerprints": [
+    "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
+  ]
 }
 ```
 
