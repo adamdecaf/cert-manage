@@ -1,10 +1,24 @@
 package gen
 
 import (
+	"net/url"
 	"sync"
 	"testing"
 	"time"
 )
+
+func TestGen__getChain(t *testing.T) {
+	u, _ := url.Parse("https://google.com")
+	c := getChain(u)
+	if len(c) == 0 {
+		t.Error("expected cert chain")
+	}
+	for i := range c {
+		if c[i] == nil {
+			t.Fatalf("%v has nil-cert", c)
+		}
+	}
+}
 
 func TestGen__gate(t *testing.T) {
 	workers := newgate(2)

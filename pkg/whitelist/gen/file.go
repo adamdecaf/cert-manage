@@ -11,6 +11,7 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
+// FromFile reads a text file and grabs urls separated by newlines
 func FromFile(path string) ([]*url.URL, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {

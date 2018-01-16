@@ -53,6 +53,7 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 		go func(wrk *gate, u *url.URL) {
 			defer wg.Done()
 
+			// skip non https:// addresses, such as ftp, http, etc
 			if u.Scheme != "https" {
 				return
 			}
@@ -132,6 +133,7 @@ func getChain(u *url.URL) chain {
 	return resp.TLS.PeerCertificates
 }
 
+// gate is a worker pool impl
 type gate struct {
 	c chan struct{}
 }
