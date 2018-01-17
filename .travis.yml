@@ -1,13 +1,8 @@
 language: go
 sudo: required
 
-os:
-  - linux
-  - osx
-
-go:
-  - 1.9.x
-  - master
+git:
+  depth: 1
 
 osx_image: xcode9.1
 
@@ -15,6 +10,18 @@ matrix:
   allow_failures:
     - go: master
   fast_finish: true
+  include:
+    - os: linux
+      go:
+        - 1.9.x
+        - master
+        - go1.10beta2
+      allow_failures:
+        - go: master
+        - go: go1.10beta2
+    - os: osx
+      go:
+        - 1.9.x
 
 script:
   - make ci
