@@ -19,11 +19,8 @@ var (
 )
 
 func GenerateWhitelist(output string, from, file string) error {
-	if from == "" && file == "" {
-		return errors.New("you need to specify either -from or -file")
-	}
-	if output == "" {
-		return errors.New("you need to specify -out <path>")
+	if output == "" || (from == "" && file == "") {
+		return errors.New("you need to specify -out <path> and either -from or -file")
 	}
 	output, err := filepath.Abs(output)
 	if err != nil {
