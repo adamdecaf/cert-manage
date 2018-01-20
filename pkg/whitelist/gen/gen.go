@@ -6,12 +6,15 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"sync"
 	"time"
 )
 
 var (
 	maxWorkers = 25
+
+	debug = os.Getenv("DEBUG") != ""
 )
 
 // CA holds the x509 certificate representing a signer of another x509

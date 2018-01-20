@@ -1,66 +1,49 @@
 package gen
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
-
-	"github.com/go-sqlite/sqlite3"
+	"strings"
+	"sync"
 )
 
-// TODO(adam): impl
+type getter func() ([]*url.URL, error)
+
 func FromAllBrowsers() ([]*url.URL, error) {
-	u, err := url.Parse("http://apple.com")
-	return []*url.URL{u}, err
+	gets := []getter{
+		chrome,
+		firefox,
+	}
+
+	var acc []*url.URL
+	mu := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(gets))
+
+	for i := range gets {
+		go func(i int) {
+			urls, _ := gets[i]()
+			mu.Lock()
+			acc = append(acc, urls...)
+			mu.Unlock()
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	if len(acc) == 0 {
+		return acc, errors.New("no browser history found")
+	}
+	return acc, nil
 }
 
-// TODO(adam): impl
 func FromBrowser(name string) ([]*url.URL, error) {
-	// firefox()
-	chrome()
-
+	switch strings.ToLower(name) {
+	case "firefox":
+		return firefox()
+	case "chrome":
+		return chrome()
+	}
 	return nil, nil
-}
-
-func firefox() error {
-	db, err := sqlite3.Open("/Users/adam/Library/Application Support/Firefox/Profiles/rrdlhe7o.default/places.sqlite")
-	if err != nil {
-		return err
-	}
-
-	err = db.VisitTableRecords("moz_places", func(rowId *int64, rec sqlite3.Record) error {
-		if rowId == nil {
-			return fmt.Errorf("unexpected nil RowID in Chrome sqlite database")
-		}
-
-		url, ok := rec.Values[1].(string)
-		if !ok {
-			fmt.Println(rec.Values)
-		}
-		fmt.Println(url)
-
-		return nil
-	})
-	return nil
-}
-
-func chrome() error {
-	db, err := sqlite3.Open("/Users/adam/Library/Application Support/Google/Chrome/Default/History")
-	if err != nil {
-		return err
-	}
-
-	err = db.VisitTableRecords("urls", func(rowId *int64, rec sqlite3.Record) error {
-		if rowId == nil {
-			return fmt.Errorf("unexpected nil RowID in Chrome sqlite database")
-		}
-
-		url, ok := rec.Values[1].(string)
-		if !ok {
-			fmt.Println(rec.Values)
-		}
-		fmt.Println(url)
-
-		return nil
-	})
-	return nil
 }
