@@ -67,9 +67,13 @@ func GenerateWhitelist(output string, from, file string) error {
 			return err
 		}
 	}
-	debugLog("cleaning up")
+	debugLog("cleaning up from url retrieval")
 	close(uacc)
 	close(eacc)
+
+	if debug {
+		fmt.Printf("getting chains for %d urls\n", len(accum))
+	}
 
 	// Generate whitelist and write to file
 	certs, err := gen.FindCACertificates(accum)
