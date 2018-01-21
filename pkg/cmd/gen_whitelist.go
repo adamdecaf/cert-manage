@@ -19,11 +19,8 @@ var (
 )
 
 func GenerateWhitelist(output string, from, file string) error {
-	if from == "" && file == "" {
-		return errors.New("you need to specify either -from or -file")
-	}
-	if output == "" {
-		return errors.New("you need to specify -out <path>")
+	if output == "" || (from == "" && file == "") {
+		return errors.New("you need to specify -out <path> and either -from or -file")
 	}
 	output, err := filepath.Abs(output)
 	if err != nil {
@@ -70,9 +67,13 @@ func GenerateWhitelist(output string, from, file string) error {
 			return err
 		}
 	}
-	debugLog("cleaning up")
+	debugLog("cleaning up from url retrieval")
 	close(uacc)
 	close(eacc)
+
+	if debug {
+		fmt.Printf("getting chains for %d urls\n", len(accum))
+	}
 
 	// Generate whitelist and write to file
 	certs, err := gen.FindCACertificates(accum)

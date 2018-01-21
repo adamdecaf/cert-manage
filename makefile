@@ -14,6 +14,10 @@ win_64:
 
 dist: build linux osx win
 
+deps:
+	dep ensure -update
+	dep prune
+
 check:
 	go vet ./...
 	go fmt ./...
