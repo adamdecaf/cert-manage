@@ -12,9 +12,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
-	"golang.org/x/crypto/pkcs12"
 )
 
 // Docs:
@@ -138,10 +138,17 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 
 	// export cert into PKCS #12 format
 	out, err := exec.Command("certutil", "-exportPFX", "-f", "-p", pfxPassword, store, serial, tmp.Name()).CombinedOutput()
-	fmt.Printf("%q\n", string(out))
+	if debug {
+		fmt.Printf("%q\n", string(out))
+	}
 	if err != nil {
-		if bytes.Contains(out, []byte("Keyset does not exist")) {
+		if debug && bytes.Contains(out, []byte("Keyset does not exist")) {
 			// TODO(adam): Issue repair? That might muck with the store(s)
+			return nil, nil
+		}
+		if debug && bytes.Contains(out, []byte("Cannot find object or property.")) {
+			// TODO(adam): uhh..?
+			// CertUtil: -exportPFX command FAILED: 0x80092004 (-2146885628 CRYPT_E_NOT_FOUND)\r\nCertUtil: Cannot find object or property.
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12 err=%q", serial, store, err)
@@ -151,8 +158,16 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 	if err != nil {
 		return nil, fmt.Errorf("error reading temp file, err=%v", err)
 	}
-	_, cert, err := pkcs12.Decode(bs, pfxPassword)
+	cert, err := certutil.DecodePKCS12(bs, pfxPassword)
 	if err != nil {
+		if debug && strings.Contains(err.Error(), "expected exactly two items in the authenticated safe") {
+			// TODO(adam): https://github.com/golang/go/issues/23499
+			return nil, nil
+		}
+		if debug && strings.Contains(err.Error(), "OID 1.3.6.1.4.1.311.17.2") {
+			// TODO(adam): http://oidref.com/1.3.6.1.4.1.311.17.2
+			return nil, nil
+		}
 		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
 	}
 	return cert, nil
