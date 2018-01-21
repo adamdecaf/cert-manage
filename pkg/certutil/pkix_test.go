@@ -6,7 +6,7 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/pem"
 )
 
-func Test509__StringifyPKIXName(t *testing.T) {
+func TestCertutil__StringifyPKIXName(t *testing.T) {
 	certs, err := pem.FromFile("../../testdata/lots.crt")
 	if err != nil {
 		t.Fatal(err)

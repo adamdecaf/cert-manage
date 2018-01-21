@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func Test509__sha1Fingerprint(t *testing.T) {
+func TestCertutil__sha1Fingerprint(t *testing.T) {
 	certs, _ := pem.FromFile("../../testdata/example.crt")
 	if len(certs) != 1 {
 		t.Errorf("didn't expect %d certs", len(certs))
@@ -22,7 +22,7 @@ func Test509__sha1Fingerprint(t *testing.T) {
 	verify("../../testdata/example.crt", "sha1", "SHA1 Fingerprint=7E:18:74:A9:8F:AA:5D:6D:2F:50:6A:89:20:FF:22:FB:D1:66:52:D9", t)
 }
 
-func Test509__sha256Fingerprint(t *testing.T) {
+func TestCertutil__sha256Fingerprint(t *testing.T) {
 	certs, _ := pem.FromFile("../../testdata/example.crt")
 	if len(certs) != 1 {
 		t.Errorf("didn't expect %d certs", len(certs))
