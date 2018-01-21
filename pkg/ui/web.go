@@ -108,12 +108,11 @@ func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 				Raw:     buf.String(),
 			}
 		}
-		err = write(w, list, struct {
+		write(w, list, struct {
 			Certificates []cert
 		}{
 			Certificates: contents,
 		})
-
 		write(w, footer, nil)
 	})
 

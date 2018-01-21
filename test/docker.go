@@ -89,7 +89,7 @@ func (d *dockerfile) CertManage(args ...string) {
 
 func (d *dockerfile) SuccessT(t *testing.T) {
 	if runtime.GOOS == "darwin" {
-		err := exec.Command("docker", "verison").Run()
+		err := exec.Command("docker", "version").Run()
 		if err == nil {
 			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
 		}

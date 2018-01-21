@@ -32,7 +32,7 @@ func DefaultFormat() string {
 }
 func GetFormats() []string {
 	out := make([]string, 0)
-	for k, _ := range printers {
+	for k := range printers {
 		out = append(out, k)
 	}
 	return out

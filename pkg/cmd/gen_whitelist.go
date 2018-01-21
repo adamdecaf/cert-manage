@@ -56,7 +56,7 @@ func GenerateWhitelist(output string, from, file string) error {
 		}
 	}
 
-	for _ = range choices {
+	for range choices {
 		select {
 		case urls := <-uacc:
 			mu.Lock()
