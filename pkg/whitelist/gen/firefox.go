@@ -66,5 +66,8 @@ func getFirefoxUrls(placesPath string) ([]*url.URL, error) {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	return acc, nil
 }

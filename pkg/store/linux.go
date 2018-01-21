@@ -40,7 +40,7 @@ var (
 	// From Go's source, src/crypto/x509/root_linux.go
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
-		cadir{
+		{
 			dir:    "/usr/share/ca-certificates",
 			all:    "/etc/ssl/certs/ca-certificates.crt",
 			backup: "/usr/share/ca-certificates.backup",

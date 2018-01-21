@@ -10,7 +10,7 @@ import (
 )
 
 // ListCertsFromFile finds certificates at the given filepath
-// and lists them accroding to the ui/format options.
+// and lists them according to the ui/format options.
 // This assumes the certificates are in PEM format.
 //
 // Note: Currently URLs are not supported
