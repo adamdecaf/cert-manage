@@ -13,6 +13,7 @@ import (
 var (
 	chromeProfileLocations = []string{
 		filepath.Join(file.HomeDir(), `/Library/Application Support/Google/Chrome/Default/History`), // OSX not signed in
+		// C:\Users\%USERNAME%\AppData\Local\Google\Chrome\User Data\Default\Preferences // TODO
 	}
 )
 
