@@ -3,12 +3,16 @@ package gen
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 )
 
 var (
@@ -21,14 +25,131 @@ var (
 // certificate encountered.
 type CA struct {
 	Certificate *x509.Certificate
+
+	// pre-computed sha256 fingerprint
+	fingerprint string
+
+	// dnsNames represents known fqdns (or wildcards) which this
+	// CA has created a certificate for
+	dnsNames []string
 }
 
+// signs checks if a given
+func (c *CA) signs(dnsName string) bool {
+	dnsName = strings.ToLower(dnsName)
+	// TODO(adam): In go1.10 we can check if the cert is even allowed to sign dnsName
+	for i := range c.dnsNames {
+		if c.dnsNames[i] == dnsName {
+			return true
+		}
+		// TODO(adam): crude wildcard match, it's probably wrong
+		if strings.HasPrefix(c.dnsNames[i], "*.") {
+			idx := strings.Index(dnsName, ".")
+			if c.dnsNames[i][1:] == dnsName[idx:] {
+				return true
+			}
+		}
+	}
+	return false
+}
+func (c *CA) addDNSNames(dnsNames []string) {
+	// lowercase incoming dnsNames
+	for i := range dnsNames {
+		dnsNames[i] = strings.ToLower(dnsNames[i])
+	}
+
+	// Add each dnsName
+	for i := range dnsNames {
+		var exists bool
+		for j := range c.dnsNames {
+			if dnsNames[i] == c.dnsNames[j] {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			c.dnsNames = append(c.dnsNames, dnsNames[i])
+		}
+	}
+}
+
+type CAs struct {
+	sync.RWMutex
+	items []*CA
+}
+
+// find locates a CA certificate from our collection
+// It's designed to be called first and .addDNSNames called
+//
+// Never returns nil, create the CA if it doesn't exist
+func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
+	c.RLock()
+	incfp := certutil.GetHexSHA256Fingerprint(*inc)
+	for i := range c.items {
+		if c.items[i].fingerprint == incfp {
+			c.RUnlock()
+			return c.items[i], true
+		}
+	}
+	c.RUnlock()
+
+	// Create a new CA and add
+	c.Lock()
+	ca = &CA{
+		Certificate: inc,
+		fingerprint: certutil.GetHexSHA256Fingerprint(*inc),
+	}
+	ca.addDNSNames(inc.DNSNames)
+	c.items = append(c.items, ca)
+	c.Unlock()
+	return ca, false
+}
+
+// findSigners locates all CA records that have signed for a given dns name
+//
+// There's a bug with this code in that having the same dnsName signed by
+// multiple chains won't record all those paths.
+//
+// 2018-01-21: I'm not sure how frequent that situation is, but I can see
+// this happening when dnsNames change their CA.
+func (c *CAs) findSigners(dnsName string) []*CA {
+	c.RLock()
+	defer c.RUnlock()
+
+	var out []*CA
+	for i := range c.items {
+		ca := c.items[i]
+		if ca.signs(dnsName) {
+			var exists bool
+			for j := range out { // Add to accumulator only if we don't already have it
+				if ca.fingerprint == out[j].fingerprint {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				out = append(out, ca)
+				ca.addDNSNames([]string{dnsName})
+			}
+		}
+	}
+	return out
+}
+
+// chain represents a x509 certificate chain
 type chain []*x509.Certificate
 
 func (c chain) getRoot() *x509.Certificate {
 	// TODO(adam): Should this grab all CA:TRUE certificates instead?
 	// Maybe call it `getCAChain()` then?
 	return c[len(c)-1] // last item in slice
+}
+
+func (c chain) getLeaf() *x509.Certificate {
+	if len(c) == 0 {
+		return nil
+	}
+	return c[0]
 }
 
 // FindCACertificates accepts a slice of urls (expected to be "large") and
@@ -43,12 +164,7 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 	workers := newgate(maxWorkers)
 
 	// Grab unique hostnames from urls
-	// Do this in a naive way with a RWMutex around a map[string]chain
-	mu := sync.RWMutex{}
-	// TODO(adam): We should be smarter about not re-grabbing certificates if
-	// we already found one covered by SAN, wildcard, etc
-	hostChains := make(map[string]chain, 0)
-
+	authorities := CAs{}
 	wg := sync.WaitGroup{}
 	for i := range urls {
 		wg.Add(1)
@@ -57,41 +173,35 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 			defer wg.Done()
 
 			// skip non https:// addresses, such as ftp, http, etc
-			if u.Scheme != "https" {
+			// and invalid Host values
+			if u.Scheme != "https" || u.Host == "" {
 				return
 			}
 
-			// grab a worker slot
 			workers.begin()
-
-			mu.RLock()
-			_, exists := hostChains[u.Host]
-			mu.RUnlock()
-
-			if !exists {
+			cas := authorities.findSigners(u.Host)
+			if len(cas) == 0 {
+				// We didn't find an existing CA, so we need to get one
 				chain := getChain(u)
-				if len(chain) > 0 {
-					mu.Lock()
-					hostChains[u.Host] = chain
-					mu.Unlock()
+				if len(chain) == 0 {
+					// We didn't find a chain, error perhaps?
+					// TODO(adam): log or something, this is kinda bad
+					return
+				}
+
+				// With a chain, cache the leaf cert
+				leaf := chain.getLeaf()
+				ca, exists := authorities.find(leaf) // DNSNames from leaf are added for us
+				if debug && !exists {
+					fmt.Printf("whitelist/gen: added %s leaf (%s)\n", u.Host, ca.fingerprint[:16])
 				}
 			}
-
-			// cleanup
 			workers.done()
 		}(workers, urls[i])
 	}
 
 	wg.Wait()
-
-	// Build model for return
-	var cas []*CA
-	for _, v := range hostChains {
-		cas = append(cas, &CA{
-			Certificate: v.getRoot(),
-		})
-	}
-	return cas, nil
+	return authorities.items, nil
 }
 
 var (
