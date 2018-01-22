@@ -87,15 +87,16 @@ func (d *dockerfile) CertManage(args ...string) {
 	d.Run("/bin/cert-manage", args...)
 }
 
+func (d *dockerfile) supported(t *testing.T) error {
+	return exec.Command("docker", "version").Run()
+}
+
 func (d *dockerfile) SuccessT(t *testing.T) {
-	if runtime.GOOS == "darwin" {
-		err := exec.Command("docker", "version").Run()
-		if err == nil {
+	if runtime.GOOS == "darwin" && inCI() {
+		if d.enabled() {
 			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
 		}
-		if inCI() {
-			t.Skip("travis-ci doesn't support docker on OSX - https://docs.travis-ci.com/user/docker/")
-		}
+		t.Skip("travis-ci doesn't support docker on OSX - https://docs.travis-ci.com/user/docker/")
 	}
 
 	if !d.enabled() {
