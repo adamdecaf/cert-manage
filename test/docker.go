@@ -92,14 +92,11 @@ func (d *dockerfile) supported(t *testing.T) error {
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
-	if runtime.GOOS == "darwin" && inCI() {
-		if d.enabled() {
+	if d.enabled() {
+		if runtime.GOOS == "darwin" && inCI() {
 			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
 		}
-		t.Skip("travis-ci doesn't support docker on OSX - https://docs.travis-ci.com/user/docker/")
-	}
-
-	if !d.enabled() {
+	} else {
 		t.Skip("docker isn't enabled")
 	}
 
