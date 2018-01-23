@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -88,16 +87,6 @@ func (d *dockerfile) CertManage(args ...string) {
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
-	if runtime.GOOS == "darwin" {
-		err := exec.Command("docker", "version").Run()
-		if err == nil {
-			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
-		}
-		if inCI() {
-			t.Skip("travis-ci doesn't support docker on OSX - https://docs.travis-ci.com/user/docker/")
-		}
-	}
-
 	if !d.enabled() {
 		t.Skip("docker isn't enabled")
 	}
@@ -218,8 +207,8 @@ func (d *dockerfile) prep() {
 }
 
 func (d *dockerfile) enabled() bool {
-	out, _ := exec.Command("docker", "ps").CombinedOutput()
-	if bytes.Contains(out, []byte("Cannot connect to the Docker daemon")) {
+	out, err := exec.Command("docker", "ps").CombinedOutput()
+	if err != nil || bytes.Contains(out, []byte("Cannot connect to the Docker daemon")) {
 		return false
 	}
 	return true
