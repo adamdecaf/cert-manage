@@ -87,10 +87,6 @@ func (d *dockerfile) CertManage(args ...string) {
 	d.Run("/bin/cert-manage", args...)
 }
 
-func (d *dockerfile) supported(t *testing.T) error {
-	return exec.Command("docker", "version").Run()
-}
-
 func (d *dockerfile) SuccessT(t *testing.T) {
 	if d.enabled() {
 		if runtime.GOOS == "darwin" && inCI() {
