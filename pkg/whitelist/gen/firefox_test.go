@@ -19,17 +19,17 @@ func TestWhitelistGen__findFirefoxPlacesFile(t *testing.T) {
 }
 
 func TestWhitelistGen__getFirefoxUrls(t *testing.T) {
-	cases := []struct{
+	cases := []struct {
 		count int
-		path string
+		path  string
 	}{
 		{
 			count: 10,
-			path: "../../../testdata/firefox-history.sqlite",
+			path:  "../../../testdata/firefox-history.sqlite",
 		},
 		{
 			count: 10,
-			path: "../../../testdata/firefox-history-win.sqlite",
+			path:  "../../../testdata/firefox-history-win.sqlite",
 		},
 	}
 	for i := range cases {

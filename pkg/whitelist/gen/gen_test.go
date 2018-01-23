@@ -38,14 +38,14 @@ func TestGen__caSigns(t *testing.T) {
 	// Check signers now
 	cases := []struct {
 		dnsName string
-		valid bool
+		valid   bool
 	}{
-		{ "yahoo.com", false },
-		{ "mail.yahoo.com", false },
-		{ "google.com", true },
-		{ "mail.gmail.com", true },
-		{ "foo.mail.google.com", false },
-		{ "foo.mail.gmail.com", false },
+		{"yahoo.com", false},
+		{"mail.yahoo.com", false},
+		{"google.com", true},
+		{"mail.gmail.com", true},
+		{"foo.mail.google.com", false},
+		{"foo.mail.gmail.com", false},
 	}
 	for i := range cases {
 		if res := ca.signs(cases[i].dnsName); res != cases[i].valid {
