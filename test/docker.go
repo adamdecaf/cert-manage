@@ -88,11 +88,7 @@ func (d *dockerfile) CertManage(args ...string) {
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
-	if d.enabled() {
-		if runtime.GOOS == "darwin" && inCI() {
-			t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
-		}
-	} else {
+	if !d.enabled() {
 		t.Skip("docker isn't enabled")
 	}
 
