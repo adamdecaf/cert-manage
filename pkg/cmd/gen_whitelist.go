@@ -46,18 +46,17 @@ func GenerateWhitelist(output string, from, file string) error {
 			debugLog("starting browser url retrieval")
 			go accumulateUrls(gen.FromAllBrowsers, uacc, eacc)
 
-		case "chrome", "edge", "firefox", "ie", "opera", "safari":
-			debugLog("starting %s url retrieval", opt)
-			go accumulateUrls(func() ([]*url.URL, error) {
-				return gen.FromBrowser(opt)
-			}, uacc, eacc)
 		case "file":
 			debugLog("grabbing urls from %s", file)
 			go accumulateUrls(func() ([]*url.URL, error) {
 				return gen.FromFile(file)
 			}, uacc, eacc)
+
 		default:
-			fmt.Printf("WARNING: Unknown -from option %q\n", opt)
+			debugLog("starting %s url retrieval", opt)
+			go accumulateUrls(func() ([]*url.URL, error) {
+				return gen.FromBrowser(opt)
+			}, uacc, eacc)
 		}
 	}
 
