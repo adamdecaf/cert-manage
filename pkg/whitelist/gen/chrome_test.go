@@ -19,17 +19,17 @@ func TestWhitelistGen__findChromeHistoryFile(t *testing.T) {
 }
 
 func TestWhitelistGen__getChromeUrls(t *testing.T) {
-	cases := []struct{
+	cases := []struct {
 		count int
-		path string
+		path  string
 	}{
 		{
 			count: 3,
-			path: "../../../testdata/chrome-history.sqlite",
+			path:  "../../../testdata/chrome-history.sqlite",
 		},
 		{
 			count: 8,
-			path: "../../../testdata/chrome-history-win.sqlite",
+			path:  "../../../testdata/chrome-history-win.sqlite",
 		},
 	}
 	for i := range cases {

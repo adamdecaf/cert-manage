@@ -31,21 +31,21 @@ func TestGen__caSigns(t *testing.T) {
 		"google.com", "*.gmail.com",
 	})
 	// check we didn't add duplicates
-	if len(ca.dnsNames) != 2 {
-		t.Errorf("got %d", len(ca.dnsNames))
+	if len(ca.DNSNames) != 2 {
+		t.Errorf("got %d", len(ca.DNSNames))
 	}
 
 	// Check signers now
 	cases := []struct {
 		dnsName string
-		valid bool
+		valid   bool
 	}{
-		{ "yahoo.com", false },
-		{ "mail.yahoo.com", false },
-		{ "google.com", true },
-		{ "mail.gmail.com", true },
-		{ "foo.mail.google.com", false },
-		{ "foo.mail.gmail.com", false },
+		{"yahoo.com", false},
+		{"mail.yahoo.com", false},
+		{"google.com", true},
+		{"mail.gmail.com", true},
+		{"foo.mail.google.com", false},
+		{"foo.mail.gmail.com", false},
 	}
 	for i := range cases {
 		if res := ca.signs(cases[i].dnsName); res != cases[i].valid {
@@ -64,16 +64,16 @@ func TestGen__caFind(t *testing.T) {
 	if exists {
 		t.Error("ca couldn't have existed")
 	}
-	if ca.fingerprint != certutil.GetHexSHA256Fingerprint(*certs[0]) {
-		t.Errorf("bad fingerprint, got %q", ca.fingerprint)
+	if ca.Fingerprint != certutil.GetHexSHA256Fingerprint(*certs[0]) {
+		t.Errorf("bad fingerprint, got %q", ca.Fingerprint)
 	}
 
-	if len(ca.dnsNames) != 2 {
-		t.Errorf("got %d", len(ca.dnsNames))
+	if len(ca.DNSNames) != 2 {
+		t.Errorf("got %d", len(ca.DNSNames))
 	}
 	ans := []string{"*.banno.com", "banno.com"}
-	if !reflect.DeepEqual(ca.dnsNames, ans) {
-		t.Errorf("got %q", ca.dnsNames)
+	if !reflect.DeepEqual(ca.DNSNames, ans) {
+		t.Errorf("got %q", ca.DNSNames)
 	}
 
 	// check .findSigners

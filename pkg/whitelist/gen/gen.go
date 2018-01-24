@@ -27,25 +27,25 @@ type CA struct {
 	Certificate *x509.Certificate
 
 	// pre-computed sha256 fingerprint
-	fingerprint string
+	Fingerprint string
 
 	// dnsNames represents known fqdns (or wildcards) which this
 	// CA has created a certificate for
-	dnsNames []string
+	DNSNames []string
 }
 
 // signs checks if a given
 func (c *CA) signs(dnsName string) bool {
 	dnsName = strings.ToLower(dnsName)
 	// TODO(adam): In go1.10 we can check if the cert is even allowed to sign dnsName
-	for i := range c.dnsNames {
-		if c.dnsNames[i] == dnsName {
+	for i := range c.DNSNames {
+		if c.DNSNames[i] == dnsName {
 			return true
 		}
 		// TODO(adam): crude wildcard match, it's probably wrong
-		if strings.HasPrefix(c.dnsNames[i], "*.") {
+		if strings.HasPrefix(c.DNSNames[i], "*.") {
 			idx := strings.Index(dnsName, ".")
-			if c.dnsNames[i][1:] == dnsName[idx:] {
+			if c.DNSNames[i][1:] == dnsName[idx:] {
 				return true
 			}
 		}
@@ -61,14 +61,14 @@ func (c *CA) addDNSNames(dnsNames []string) {
 	// Add each dnsName
 	for i := range dnsNames {
 		var exists bool
-		for j := range c.dnsNames {
-			if dnsNames[i] == c.dnsNames[j] {
+		for j := range c.DNSNames {
+			if dnsNames[i] == c.DNSNames[j] {
 				exists = true
 				break
 			}
 		}
 		if !exists {
-			c.dnsNames = append(c.dnsNames, dnsNames[i])
+			c.DNSNames = append(c.DNSNames, dnsNames[i])
 		}
 	}
 }
@@ -86,7 +86,7 @@ func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
 	c.RLock()
 	incfp := certutil.GetHexSHA256Fingerprint(*inc)
 	for i := range c.items {
-		if c.items[i].fingerprint == incfp {
+		if c.items[i].Fingerprint == incfp {
 			c.RUnlock()
 			return c.items[i], true
 		}
@@ -97,7 +97,7 @@ func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
 	c.Lock()
 	ca = &CA{
 		Certificate: inc,
-		fingerprint: certutil.GetHexSHA256Fingerprint(*inc),
+		Fingerprint: certutil.GetHexSHA256Fingerprint(*inc),
 	}
 	ca.addDNSNames(inc.DNSNames)
 	c.items = append(c.items, ca)
@@ -122,7 +122,7 @@ func (c *CAs) findSigners(dnsName string) []*CA {
 		if ca.signs(dnsName) {
 			var exists bool
 			for j := range out { // Add to accumulator only if we don't already have it
-				if ca.fingerprint == out[j].fingerprint {
+				if ca.Fingerprint == out[j].Fingerprint {
 					exists = true
 					break
 				}
@@ -193,7 +193,7 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 				leaf := chain.getLeaf()
 				ca, exists := authorities.find(leaf) // DNSNames from leaf are added for us
 				if debug && !exists {
-					fmt.Printf("whitelist/gen: added %s leaf (%s)\n", u.Host, ca.fingerprint[:16])
+					fmt.Printf("whitelist/gen: added %s leaf (%s)\n", u.Host, ca.Fingerprint[:16])
 				}
 			}
 			workers.done()
