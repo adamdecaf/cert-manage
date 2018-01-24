@@ -152,14 +152,14 @@ func (c chain) getLeaf() *x509.Certificate {
 	return c[0]
 }
 
-// FindCACertificates accepts a slice of urls (expected to be "large") and
+// FindCAs accepts a slice of urls (expected to be "large") and
 // finds all the CA certificates signing the urls.
 //
 // Only https:// urls are included
 //
 // URLs are grouped by their full hostname and a connection is established
 // to retrieve a certificate, whose signer is looked up and retrieved. (TODO: CT logs?)
-func FindCACertificates(urls []*url.URL) ([]*CA, error) {
+func FindCAs(urls []*url.URL) ([]*CA, error) {
 	// setup worker pool
 	workers := newgate(maxWorkers)
 
@@ -169,7 +169,7 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 	for i := range urls {
 		wg.Add(1)
 
-		go func(wrk *gate, u *url.URL) {
+		go func(wrk *gate, u *url.URL, i int) {
 			defer wg.Done()
 
 			// skip non https:// addresses, such as ftp, http, etc
@@ -179,6 +179,7 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 			}
 
 			workers.begin()
+			defer workers.done()
 			cas := authorities.findSigners(u.Host)
 			if len(cas) == 0 {
 				// We didn't find an existing CA, so we need to get one
@@ -191,13 +192,17 @@ func FindCACertificates(urls []*url.URL) ([]*CA, error) {
 
 				// With a chain, cache the leaf cert
 				leaf := chain.getLeaf()
-				ca, exists := authorities.find(leaf) // DNSNames from leaf are added for us
+				ca, exists := authorities.find(leaf) // DNSNames from leaf are addd for us
 				if debug && !exists {
 					fmt.Printf("whitelist/gen: added %s leaf (%s)\n", u.Host, ca.Fingerprint[:16])
 				}
 			}
-			workers.done()
-		}(workers, urls[i])
+
+			// remind people we're still here
+			if i > 0 && ((i < 1000 && i%100 == 0) || i%1000 == 0) {
+				fmt.Printf("Processed %d/%d urls\n", i, len(urls))
+			}
+		}(workers, urls[i], i)
 	}
 
 	wg.Wait()

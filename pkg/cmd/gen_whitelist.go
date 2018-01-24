@@ -7,15 +7,20 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
+	"text/tabwriter"
 
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist/gen"
 )
 
 var (
 	debug = os.Getenv("DEBUG") != ""
+
+	exampleDNSNamesLength = 5
 )
 
 func GenerateWhitelist(output string, from, file string) error {
@@ -76,14 +81,36 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	// Generate whitelist and write to file
-	certs, err := gen.FindCACertificates(accum)
+	authorities, err := gen.FindCAs(accum)
 	if err != nil {
 		return err
 	}
+
+	// prep summary
+	sortCAs(authorities)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+	fmt.Fprintln(w, "CA\tDNSName Count\tExample DNSNames")
+
 	var acc []*x509.Certificate
-	for i := range certs {
-		acc = append(acc, certs[i].Certificate)
+	for i := range authorities {
+		acc = append(acc, authorities[i].Certificate)
+
+		// print sumamry
+		dnsNames := authorities[i].DNSNames
+		if len(dnsNames) > exampleDNSNamesLength {
+			dnsNames = authorities[i].DNSNames[:exampleDNSNamesLength]
+		}
+
+		row := fmt.Sprintf("%s\t%s\t%d\t%s",
+			certutil.StringifyPKIXName(authorities[i].Certificate.Issuer),
+			authorities[i].Fingerprint[:16],
+			len(authorities[i].DNSNames),
+			strings.Join(dnsNames, ", "),
+		)
+		fmt.Fprintln(w, row)
 	}
+	w.Flush()
+
 	wh := whitelist.FromCertificates(acc)
 	return wh.ToFile(output)
 }
@@ -112,4 +139,20 @@ func debugLog(msg string, args ...interface{}) {
 	if debug {
 		fmt.Printf("cmd/gen-whitelist: "+msg+"\n", args...)
 	}
+}
+
+// sortableCAs defines a sorting order on gen.CA by len(CA.DNSNames) in descending order
+type sortableCAs []*gen.CA
+
+func (c sortableCAs) Len() int {
+	return len(c)
+}
+func (c sortableCAs) Less(i, j int) bool {
+	return len(c[i].DNSNames) > len(c[j].DNSNames)
+}
+func (c sortableCAs) Swap(i, j int) {
+	c[i].DNSNames, c[j].DNSNames = c[j].DNSNames, c[i].DNSNames
+}
+func sortCAs(c []*gen.CA) {
+	sort.Sort(sortableCAs(c))
 }
