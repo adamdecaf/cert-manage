@@ -18,6 +18,9 @@ matrix:
   exclude:
     - os: osx
       go: master
+  include:
+    - os: linux
+      go: 1.10beta2
 
 script:
   - make ci
