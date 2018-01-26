@@ -158,7 +158,7 @@ func (c chain) getLeaf() *x509.Certificate {
 // Only https:// urls are included
 //
 // URLs are grouped by their full hostname and a connection is established
-// to retrieve a certificate, whose signer is looked up and retrieved. (TODO: CT logs?)
+// to retrieve a certificate, whose signer is looked up and retrieved.
 func FindCAs(urls []*url.URL) ([]*CA, error) {
 	// setup worker pool
 	workers := newgate(maxWorkers)
@@ -185,8 +185,7 @@ func FindCAs(urls []*url.URL) ([]*CA, error) {
 				// We didn't find an existing CA, so we need to get one
 				chain := getChain(u)
 				if len(chain) == 0 {
-					// We didn't find a chain, error perhaps?
-					// TODO(adam): log or something, this is kinda bad
+					fmt.Printf("whitelist/gen: Didn't find a certificate chain for %q\n", u.Host)
 					return
 				}
 
