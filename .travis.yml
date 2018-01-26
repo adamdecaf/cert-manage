@@ -20,7 +20,7 @@ matrix:
       go: master
   include:
     - os: linux
-      go: 1.10beta2
+      go: go1.10rc1
 
 script:
   - make ci
