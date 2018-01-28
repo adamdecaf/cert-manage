@@ -16,7 +16,6 @@ dist: build linux osx win
 
 deps:
 	dep ensure -update
-	dep prune
 
 check:
 	go vet ./...
