@@ -1,3 +1,5 @@
+VERSION := $(shell grep -Eo '(\d\.\d\.\d)(-dev)?' main.go)
+
 .PHONY: build check test
 
 linux: linux_amd64
@@ -29,3 +31,11 @@ ci: check dist test
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage
 	@chmod +x cert-manage
+
+mkrel:
+	gothub release -u adamdecaf -r cert-manage -t $(VERSION) --name $(VERSION) --pre-release
+
+upload:
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-linux" --file bin/cert-manage-linux-amd64
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-osx" --file bin/cert-manage-osx-amd64
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage.exe" --file bin/cert-manage-amd64.exe

@@ -11,9 +11,7 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
-const (
-	version = "0.0.1-dev"
-)
+const Version = "0.0.1-dev"
 
 var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
@@ -73,7 +71,7 @@ DEBUG and TRACE
   - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
-			version,
+			Version,
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
 			ui.DefaultFormat(),
@@ -172,7 +170,7 @@ func main() {
 	}
 	commands["version"] = &command{
 		fn: func() error {
-			fmt.Printf("%s\n", version)
+			fmt.Printf("%s\n", Version)
 			return nil
 		},
 		appfn: func(_ string) error {
