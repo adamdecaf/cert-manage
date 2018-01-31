@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/go-sqlite/sqlite3"
   packages = ["."]
-  revision = "b57e325f545db253ce37589fdb7073a2f1dcd545"
+  revision = "304649c70ebecb945a40358fc3659e97d541f4b1"
 
 [[projects]]
   branch = "master"
@@ -16,8 +16,11 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["pkcs12","pkcs12/internal/rc2"]
-  revision = "a6600008915114d9c087fad9f03d75087b1a74df"
+  packages = [
+    "pkcs12",
+    "pkcs12/internal/rc2"
+  ]
+  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
 
 [solve-meta]
   analyzer-name = "dep"

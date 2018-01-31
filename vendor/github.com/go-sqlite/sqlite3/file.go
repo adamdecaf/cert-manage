@@ -19,6 +19,10 @@ const (
 	printfDebug = false
 )
 
+var (
+	tblconstraints = []string{"CHECK", "FOREIGN KEY", "UNIQUE", "PRIMARY KEY"}
+)
+
 type DbFile struct {
 	pager  pager
 	header dbHeader
@@ -191,6 +195,11 @@ func (db *DbFile) init() error {
 			pageid: int(pageid.Int()),
 		}
 
+		// skip internal tables, aka don't expose them
+		if strings.HasPrefix(table.name, "sqlite_") {
+			return nil
+		}
+
 		def := rec.Values[4].(string)
 		def = strings.Replace(def, "CREATE TABLE "+table.name, "", 1)
 		def = strings.Replace(def, "\n", "", -1)
@@ -203,8 +212,29 @@ func (db *DbFile) init() error {
 		}
 		def = strings.TrimSpace(def)
 
-		ncols := strings.Count(def, ",") + 1
-		table.cols = make([]Column, ncols)
+		parts := strings.Split(def, ",")
+		// strip away statements like 'UNIQUE ...' or 'PRIMARY KEY ...' from a table definition
+		for i := range parts {
+			if i >= len(parts) {
+				break // we removed at least one elem, so avoid out of bounds read
+			}
+
+			parts[i] = strings.TrimSpace(parts[i])
+			for j := range tblconstraints {
+				if strings.HasPrefix(parts[i], tblconstraints[j]) {
+					// drop all other elements
+					parts = parts[:i]
+				}
+			}
+		}
+
+		table.cols = make([]Column, len(parts))
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+			idx := strings.Index(parts[i], " ")
+			table.cols[i].name = parts[i][:idx]
+		}
+
 		if printfDebug {
 			fmt.Printf(">>> def: %q => ncols=%d\n", def, len(table.cols))
 		}
