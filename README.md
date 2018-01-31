@@ -123,8 +123,10 @@ You can build the sources with `make build`. Run tests with `make test`. Integra
 ## Related projects
 
 - [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
+- [kirei/catt](https://github.com/kirei/catt)
 - [mkcert.org](https://mkcert.org/)
 - [msylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
+- [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory)
 - [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
 
