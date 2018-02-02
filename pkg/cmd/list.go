@@ -2,20 +2,22 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
-	"github.com/adamdecaf/cert-manage/pkg/pem"
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/store"
 	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
 // ListCertsFromFile finds certificates at the given filepath
 // and lists them according to the ui/format options.
-// This assumes the certificates are in PEM format.
-//
-// Note: Currently URLs are not supported
 func ListCertsFromFile(where string, cfg *ui.Config) error {
-	certs, err := pem.FromFile(where)
+	bs, err := ioutil.ReadFile(where)
+	if err != nil {
+		return err
+	}
+	certs, err := certutil.Decode(bs)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
