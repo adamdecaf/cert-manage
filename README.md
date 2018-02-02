@@ -27,6 +27,8 @@ Certificate
   NotBefore - 1998-05-18 00:00:00 +0000 UTC, NotAfter - 2028-08-01 23:59:59 +0000 UTC
   IsCA - false
 ...
+$ cert-manage list -file example.crt
+$ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 
 # Trim down what CA's are trusted on your system
 $ cert-manage whitelist -file digicert.json

@@ -12,8 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
@@ -82,7 +82,7 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	certs, err := pem.Parse(bytes)
+	certs, err := certutil.ParsePEM(bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 
 		// read the cert(s) contained at the file and only keep those
 		// that aren't removable
-		read, err := pem.FromFile(path)
+		read, err := certutil.FromFile(path)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 		}
 
 		// otherwise, write kept certs from `read` back
-		err = pem.ToFile(path, read)
+		err = certutil.ToFile(path, read)
 		if err != nil {
 			return err
 		}

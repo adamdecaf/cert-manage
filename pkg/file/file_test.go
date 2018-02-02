@@ -77,7 +77,6 @@ func TestFile__existsDir(t *testing.T) {
 }
 
 func TestFile__MirrorDir(t *testing.T) {
-	// copy ../../pem structure
 	src := "../ui"
 	dst := "../mirror"
 

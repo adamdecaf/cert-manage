@@ -8,11 +8,10 @@ import (
 	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 )
 
 func TestGen__caSigns(t *testing.T) {
-	certs, err := pem.FromFile("../../../testdata/example.crt")
+	certs, err := certutil.FromFile("../../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func TestGen__caSigns(t *testing.T) {
 }
 
 func TestGen__caFind(t *testing.T) {
-	certs, err := pem.FromFile("../../../testdata/banno.com")
+	certs, err := certutil.FromFile("../../../testdata/banno.com")
 	if err != nil {
 		t.Fatal(err)
 	}

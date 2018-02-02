@@ -12,7 +12,6 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 )
 
 var (
@@ -89,7 +88,7 @@ type opensslPrinter struct {
 }
 
 func (p opensslPrinter) printCertificate(w io.Writer, cert []*x509.Certificate) error {
-	err := pem.ToFile(p.tmp.Name(), cert)
+	err := certutil.ToFile(p.tmp.Name(), cert)
 	if err != nil {
 		return err
 	}

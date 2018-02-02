@@ -15,7 +15,6 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
@@ -262,8 +261,7 @@ func (k keytool) getCertificates() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	// Parse output, it's a bunch of PEM blocks
-	certs, err := pem.Parse(out)
+	certs, err := certutil.ParsePEM(out)
 	if err != nil {
 		return nil, err
 	}

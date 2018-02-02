@@ -1,22 +1,21 @@
 package gen
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/httputil"
 )
 
 var (
 	maxWorkers = 25
+
+	client = httputil.New()
 
 	debug = os.Getenv("DEBUG") != ""
 )
@@ -207,33 +206,6 @@ func FindCAs(urls []*url.URL) ([]*CA, error) {
 	wg.Wait()
 	return authorities.items, nil
 }
-
-var (
-	// https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
-	client = &http.Client{
-		// Never follow redirects, return body
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-				DualStack: true,
-			}).DialContext,
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-				MaxVersion: tls.VersionTLS12,
-			},
-			TLSHandshakeTimeout:   1 * time.Minute,
-			IdleConnTimeout:       1 * time.Minute,
-			ResponseHeaderTimeout: 1 * time.Minute,
-			ExpectContinueTimeout: 1 * time.Minute,
-			MaxIdleConns:          maxWorkers,
-		},
-		Timeout: 30 * time.Second,
-	}
-)
 
 // Make as little of a connection as needed to get TLS handshake complete and
 // server certificates returned.

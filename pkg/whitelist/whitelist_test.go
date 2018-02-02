@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/pem"
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 )
 
 func TestWhitelist_nocert(t *testing.T) {
@@ -24,7 +24,7 @@ func TestWhitelist_nocert(t *testing.T) {
 
 func TestWhitelist_emptywhitelist(t *testing.T) {
 	wh := Whitelist{}
-	certs, err := pem.FromFile("../../testdata/example.crt")
+	certs, err := certutil.FromFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func TestWhitelist_emptywhitelist(t *testing.T) {
 }
 
 func TestWhitelist_remove(t *testing.T) {
-	certs, err := pem.FromFile("../../testdata/example.crt")
+	certs, err := certutil.FromFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestWhitelist_filecycle(t *testing.T) {
 }
 
 func TestWhitlist__matching(t *testing.T) {
-	certificates, err := pem.FromFile("../../testdata/example.crt")
+	certificates, err := certutil.FromFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
 	}

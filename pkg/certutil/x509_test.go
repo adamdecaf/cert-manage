@@ -2,14 +2,13 @@ package certutil
 
 import (
 	"fmt"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"os/exec"
 	"strings"
 	"testing"
 )
 
 func TestCertutil__sha1Fingerprint(t *testing.T) {
-	certs, _ := pem.FromFile("../../testdata/example.crt")
+	certs, _ := FromFile("../../testdata/example.crt")
 	if len(certs) != 1 {
 		t.Errorf("didn't expect %d certs", len(certs))
 	}
@@ -23,7 +22,7 @@ func TestCertutil__sha1Fingerprint(t *testing.T) {
 }
 
 func TestCertutil__sha256Fingerprint(t *testing.T) {
-	certs, _ := pem.FromFile("../../testdata/example.crt")
+	certs, _ := FromFile("../../testdata/example.crt")
 	if len(certs) != 1 {
 		t.Errorf("didn't expect %d certs", len(certs))
 	}

@@ -1,14 +1,12 @@
-package pem
+package certutil
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
 )
 
-func TestPEM__write(t *testing.T) {
+func TestCertutilPEM__write(t *testing.T) {
 	c1, err := FromFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
@@ -44,8 +42,8 @@ func TestPEM__write(t *testing.T) {
 		if c1 == nil || c2 == nil {
 			t.Fatalf("either c1 or c2 are null\nc1=%v\nc2=%v", c1, c2)
 		}
-		f1 := certutil.GetHexSHA256Fingerprint(*c1[i])
-		f2 := certutil.GetHexSHA256Fingerprint(*c2[i])
+		f1 := GetHexSHA256Fingerprint(*c1[i])
+		f2 := GetHexSHA256Fingerprint(*c2[i])
 		if f1 != f2 {
 			t.Fatalf("f1='%s' != f2='%s'", f1, f2)
 		}
