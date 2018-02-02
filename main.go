@@ -19,6 +19,9 @@ var (
 	// -file is used to specify an input file path
 	flagFile = fs.String("file", "", "")
 
+	// -url is used to specify an input URL
+	flagURL = fs.String("url", "", "")
+
 	// -app is used for operating on an installed application
 	flagApp = fs.String("app", "", "")
 
@@ -47,7 +50,7 @@ SUB-COMMANDS
                 Requires: -out, Optional: -file, -from
 
   list          List the currently installed and trusted certificates
-                Accepts: -app, -count, -file, -format
+                Accepts: -app, -count, -file, -format, -url
 
   restore       Revert the certificate trust back to, optionally takes -file <path>
                 Accepts: -app, -file
@@ -58,9 +61,11 @@ SUB-COMMANDS
                 Requires: -file, Optional: -app
 
 FLAGS
-  -app <name> The name of an application which to perform the given command on. (Examples: chrome, java)
-  -from <type(s)> Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
-  -ui <type> Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
+  -app <name>      The name of an application which to perform the given command on. (Examples: chrome, java)
+  -file <path>     Local file path
+  -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
+  -ui <type>       Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
+  -url <where>     Remote URL to download and use in a command
 
 OUTPUT
   -count  Output the count of certificates instead of each certificate
@@ -139,6 +144,9 @@ func main() {
 		fn: func() error {
 			if *flagFile != "" {
 				return cmd.ListCertsFromFile(*flagFile, cfg)
+			}
+			if *flagURL != "" {
+				return cmd.ListCertsFromURL(*flagURL, cfg)
 			}
 			return cmd.ListCertsForPlatform(cfg)
 		},
