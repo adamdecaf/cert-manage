@@ -2,12 +2,10 @@ package certutil
 
 import (
 	"testing"
-
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 )
 
 func TestCertutil__StringifyPKIXName(t *testing.T) {
-	certs, err := pem.FromFile("../../testdata/lots.crt")
+	certs, err := FromFile("../../testdata/lots.crt")
 	if err != nil {
 		t.Fatal(err)
 	}

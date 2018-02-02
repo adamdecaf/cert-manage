@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/x509"
 
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"github.com/adamdecaf/extract-nss-root-certs"
 )
 
@@ -12,7 +11,7 @@ type decoder func([]byte) ([]*x509.Certificate, error)
 
 var (
 	decoders = []decoder{
-		pem.Parse,
+		ParsePEM,
 		readNSSCerts,
 	}
 )

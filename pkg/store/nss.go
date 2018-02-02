@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
@@ -401,7 +401,7 @@ func (c crtutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Cer
 		return nil, err
 	}
 
-	certs, err := pem.Parse(stdout.Bytes())
+	certs, err := certutil.ParsePEM(stdout.Bytes())
 	if err != nil {
 		return nil, err
 	}

@@ -22,7 +22,6 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/pem"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
@@ -100,7 +99,7 @@ func (s darwinStore) Backup() error {
 			fp := certutil.GetHexSHA256Fingerprint(*certs[j])
 			where := filepath.Join(dir, fmt.Sprintf("%s.crt", fp))
 
-			err = pem.ToFile(where, certs[j:j+1]) // avoid creating a new slice
+			err = certutil.ToFile(where, certs[j:j+1]) // avoid creating a new slice
 			if err != nil {
 				return err
 			}
@@ -166,7 +165,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	defer os.Remove(tmp.Name())
 
 	// write pem block somewhere and shell out
-	err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
+	err = certutil.ToFile(tmp.Name(), []*x509.Certificate{cert})
 	if err != nil {
 		if debug {
 			fmt.Printf("store/darwin: error writing cert to tempfile, err=%v\n", err)
@@ -201,7 +200,7 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	cs, err := pem.Parse(out)
+	cs, err := certutil.ParsePEM(out)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +314,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// 	}
 	// 	defer os.Remove(tmp.Name())
 
-	// 	err = pem.ToFile(tmp.Name(), []*x509.Certificate{cert})
+	// 	err = certutil.ToFile(tmp.Name(), []*x509.Certificate{cert})
 	// 	if err != nil {
 	// 		return err
 	// 	}
@@ -381,7 +380,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		// defer os.Remove(tmp.Name())
 
 		// Write removable certs to temp file
-		err = pem.ToFile(tmp.Name(), removable)
+		err = certutil.ToFile(tmp.Name(), removable)
 		if err != nil {
 			return err
 		}
@@ -476,7 +475,7 @@ func (s darwinStore) Restore(where string) error {
 		}
 
 		for j := range certfiles {
-			certs, err := pem.FromFile(filepath.Join(dir, chainfds[i].Name(), certfiles[j].Name()))
+			certs, err := certutil.FromFile(filepath.Join(dir, chainfds[i].Name(), certfiles[j].Name()))
 			if err != nil {
 				return err
 			}

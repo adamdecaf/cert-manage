@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	// "errors"
 
-	// "github.com/adamdecaf/cert-manage/pkg/pem"
 	"golang.org/x/crypto/pkcs12"
 )
 
@@ -21,7 +20,7 @@ func DecodePKCS12(bs []byte, pass string) (*x509.Certificate, error) {
 	// 	return nil, errors.New("empty pem block")
 	// }
 	// if len(out) > 0 {
-	// 	p, err := pem.Parse(out[0].Bytes)
+	// 	p, err := Parse(out[0].Bytes)
 	// 	if err != nil {
 	// 		return nil, err
 	// 	}

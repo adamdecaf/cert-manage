@@ -1,10 +1,10 @@
-package pem
+package certutil
 
 import (
 	"testing"
 )
 
-func TestPEM__single(t *testing.T) {
+func TestCertutilPEM__single(t *testing.T) {
 	certificates, err := FromFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
@@ -23,7 +23,7 @@ func TestPEM__single(t *testing.T) {
 	}
 }
 
-func TestPEM__multiple(t *testing.T) {
+func TestCertutilPEM__multiple(t *testing.T) {
 	certificates, err := FromFile("../../testdata/lots.crt")
 	if err != nil {
 		t.Fatal(err)

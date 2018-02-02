@@ -1,9 +1,9 @@
-package pem
+package certutil
 
 import (
 	"bytes"
 	"crypto/x509"
-	p "encoding/pem"
+	"encoding/pem"
 	"io/ioutil"
 	"os"
 )
@@ -20,11 +20,11 @@ func ToFile(path string, certs []*x509.Certificate) error {
 	// write the cert(s)
 	var buf bytes.Buffer
 	for i := range certs {
-		b := &p.Block{
+		b := &pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: certs[i].Raw,
 		}
-		if err := p.Encode(&buf, b); err != nil {
+		if err := pem.Encode(&buf, b); err != nil {
 			return err
 		}
 	}
