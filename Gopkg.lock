@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/adamdecaf/extract-nss-root-certs"
+  packages = ["."]
+  revision = "773948164021f10614dcb69195f4f7af3a7d191f"
+
+[[projects]]
+  branch = "master"
   name = "github.com/go-sqlite/sqlite3"
   packages = ["."]
   revision = "304649c70ebecb945a40358fc3659e97d541f4b1"
@@ -25,6 +31,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f1b9950442374287d3daa1a5836a34387c715219ff7ae98188890867fdfc921f"
+  inputs-digest = "9687d3bf3bbb040301d084ddfacae0b8b9e8fa2f5ca4d722cfb9f7612739a439"
   solver-name = "gps-cdcl"
   solver-version = 1
