@@ -10,15 +10,17 @@ import (
 type uiface func(certs []*x509.Certificate, cfg *Config) error
 
 var (
+	cliFormat = "cli"
+
 	uiOptions = map[string]uiface{
-		"cli": showCertsOnCli,
-		"web": showCertsOnWeb,
+		cliFormat: showCertsOnCli,
+		"web":     showCertsOnWeb,
 	}
 )
 
 // UI - what technology to display results on
 func DefaultUI() string {
-	return "cli"
+	return cliFormat
 }
 func GetUIs() []string {
 	return []string{DefaultFormat(), "web"}

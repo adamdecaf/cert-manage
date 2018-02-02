@@ -15,7 +15,7 @@ func online(t *testing.T) bool {
 	if len(cmd.output) == 0 { // no output, check for error
 		defer cmd.SuccessT(t)
 	}
-	return cmd.Success() || inCI()
+	return inCI() || cmd.Success()
 }
 
 func inCI() bool {
