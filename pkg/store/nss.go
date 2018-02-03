@@ -128,6 +128,10 @@ func (s nssStore) notifyToRestart() {
 	return
 }
 
+func (s nssStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 // we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
 	dir, err := getCertManageDir(s.nssType)

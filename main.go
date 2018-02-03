@@ -48,6 +48,9 @@ func init() {
 	fs.Usage = func() {
 		fmt.Printf(`Usage of cert-manage (version %s)
 SUB-COMMANDS
+  add           Add certificate(s) to a store
+                Accepts: -app, -file
+
   backup        Take a backup of the specified certificate store
 
   gen-whitelist Create a whitelist from various sources
@@ -134,6 +137,20 @@ func main() {
 
 	// Build up sub-commands
 	commands := make(map[string]*command, 0)
+	commands["add"] = &command{
+		fn: func() error {
+			if *flagFormat == "" {
+				return errors.New("No -file specified")
+			}
+			return cmd.AddCertsFromFile(*flagFile)
+		},
+		appfn: func(a string) error {
+			if *flagFormat == "" {
+				return errors.New("No -file specified")
+			}
+			return cmd.AddCertsToAppFromFile(a, *flagFile)
+		},
+	}
 	commands["backup"] = &command{
 		fn: func() error {
 			return cmd.BackupForPlatform()

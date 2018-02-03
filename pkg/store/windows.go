@@ -48,6 +48,10 @@ func platform() Store {
 	return windowsStore{}
 }
 
+func (s windowsStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 func (s windowsStore) Backup() error {
 	return nil
 }

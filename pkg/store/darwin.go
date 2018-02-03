@@ -58,6 +58,10 @@ func platform() Store {
 	return emptyStore{}
 }
 
+func (s darwinStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 func (s darwinStore) Backup() error {
 	// setup (and create) backup (parent) dir
 	parent, err := getCertManageDir(fmt.Sprintf("%s/%d", darwinBackupDir, time.Now().Unix()))

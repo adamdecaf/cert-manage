@@ -16,6 +16,10 @@ func (s emptyStore) printNotce() {
 	fmt.Fprintln(os.Stderr, "NOTICE: This implementation is currently stubbed, nothing is happening.")
 }
 
+func (s emptyStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 func (s emptyStore) Backup() error {
 	s.printNotce()
 	return nil

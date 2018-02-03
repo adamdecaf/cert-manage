@@ -33,6 +33,10 @@ func JavaStore() Store {
 	return javaStore{}
 }
 
+func (s javaStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 func (s javaStore) Backup() error {
 	kpath, err := ktool.getKeystorePath()
 	if err != nil {

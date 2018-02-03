@@ -35,6 +35,9 @@ var (
 // operations on it which mutate the underlying state (e.g. a file or
 // directory).
 type Store interface {
+	// Add certificate(s) into the store
+	Add([]*x509.Certificate) error
+
 	// Backup will attempt to save a backup of the certificate store
 	// on the local system
 	Backup() error

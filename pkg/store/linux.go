@@ -66,6 +66,10 @@ func platform() Store {
 	}
 }
 
+func (s linuxStore) Add(certs []*x509.Certificate) error {
+	return nil
+}
+
 // Backup takes a snapshot of the current set of CA certificates and
 // saves them to another location. It will overwrite any previous backup.
 func (s linuxStore) Backup() error {
