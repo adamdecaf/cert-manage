@@ -59,6 +59,34 @@ func platform() Store {
 }
 
 func (s darwinStore) Add(certs []*x509.Certificate) error {
+	loginKeychain, err := getLoginKeychain()
+	if err != nil {
+		return err
+	}
+
+	dir, err := ioutil.TempDir("", "cert-manage-add")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	for i := range certs {
+		// Write each cert to its own file and then add it
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		path := filepath.Join(dir, fmt.Sprintf("%s.pem", fp))
+		err := certutil.ToFile(path, certs[i:i+1])
+		if err != nil {
+			return err
+		}
+
+		// add cert to keychain
+		cmd := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", loginKeychain, path)
+		out, err := cmd.CombinedOutput()
+		if err != nil && debug {
+			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Output was: %s\n", string(out))
+		}
+	}
 	return nil
 }
 
