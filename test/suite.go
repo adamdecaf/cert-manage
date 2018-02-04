@@ -81,6 +81,9 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 	img.CertManage("list", "-app", "java", "-count", "|", "grep", total)
 	// Verify Restore
 	img.RunSplit("cd / && java Download")
+	// Add certificate
+	img.CertManage("add", "-file", "/localcert.pem", "-app", "java")
+	img.CertManage("list", "-count", "-app", "java", "|", "grep", incr(total))
 	img.SuccessT(t)
 
 	if debug {

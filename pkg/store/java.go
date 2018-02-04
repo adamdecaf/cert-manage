@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,6 +35,28 @@ func JavaStore() Store {
 }
 
 func (s javaStore) Add(certs []*x509.Certificate) error {
+	dir, err := ioutil.TempDir("", "cert-manage-java-add")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	for i := range certs {
+		// Write each cert to its own file and then add it
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		path := filepath.Join(dir, fmt.Sprintf("%s.pem", fp))
+		err := certutil.ToFile(path, certs[i:i+1])
+		if err != nil {
+			return err
+		}
+
+		// TODO(adam): This replace is too simplistic
+		alias := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
+		err = ktool.addCertificate(path, alias)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -138,6 +161,44 @@ type keytool struct {
 	// Under java install path where is the `cacerts` keystore located?
 	// This changes on each platform...
 	relativeKeystorePaths []string
+}
+
+// addCertificate installs a certificate into the truststore
+//
+// It follows this command:
+//
+// keytool -importcert -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass .. -file .. -alias ..
+func (k keytool) addCertificate(where string, alias string) error {
+	kpath, err := k.getKeystorePath()
+	if err != nil {
+		return err
+	}
+
+	args := append([]string{
+		"-importcert",
+		"-keystore", kpath,
+		"-storepass", defaultKeystorePassword,
+		"-file", where,
+		"-alias", alias,
+		"-noprompt",
+	})
+	cmd := exec.Command("keytool", args...)
+
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+
+	err = cmd.Run()
+	if err != nil {
+		if debug {
+			fmt.Printf("Command was: %s\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Stdout:\n%s\n", stdout.String())
+			fmt.Printf("Stderr:\n%s\n", stderr.String())
+		}
+		return err
+	}
+	return nil
 }
 
 // expandSymlink takes in a symlink which refers to the `java` cli tool
