@@ -119,6 +119,7 @@ func (d *dockerfile) build() {
 		"../bin/cert-manage-linux-amd64",
 		"../testdata/Download.java",
 		"../testdata/globalsign-whitelist.json",
+		"../testdata/localcert.pem",
 	}
 	for i := range copyable {
 		name := filepath.Base(copyable[i])
@@ -195,7 +196,14 @@ func (d *dockerfile) run() {
 		return
 	}
 
-	out, err := exec.Command("docker", "run", "-t", d.tag).CombinedOutput()
+	// build `docker run` flags
+	args := []string{"run"}
+	if debug {
+		args = append(args, "-e", "DEBUG=true")
+	}
+	args = append(args, "-t", d.tag)
+
+	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
 	}
