@@ -17,6 +17,7 @@ func (s emptyStore) printNotce() {
 }
 
 func (s emptyStore) Add(certs []*x509.Certificate) error {
+	s.printNotce()
 	return nil
 }
 
