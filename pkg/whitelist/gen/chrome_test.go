@@ -8,6 +8,7 @@ import (
 
 func TestWhitelistGen__findChromeHistoryFile(t *testing.T) {
 	hist, err := findChromeHistoryFile()
+	// TODO(adam): Support other OS's
 	if file.Exists(`/Applications/Google Chrome.app`) {
 		if err != nil {
 			t.Fatal(err)

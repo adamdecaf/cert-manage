@@ -42,3 +42,16 @@ Serial Number: 214817429841748bbbcccca`
 		t.Errorf("got %q", serials)
 	}
 }
+
+func TestStoreWindows__getInfo(t *testing.T) {
+	info := Platform().GetInfo()
+	if info == nil {
+		t.Fatal("nil Info")
+	}
+	if info.Name == "" {
+		t.Error("blank Name")
+	}
+	if info.Version == "" {
+		t.Error("blank Version")
+	}
+}

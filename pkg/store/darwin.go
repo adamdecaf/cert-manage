@@ -109,6 +109,23 @@ func (s darwinStore) Backup() error {
 	return nil
 }
 
+func (s darwinStore) GetInfo() *Info {
+	return &Info{
+		Name:    "Darwin (OSX)",
+		Version: s.version(),
+	}
+}
+
+// Show OS version
+// From: https://superuser.com/questions/75166/how-to-find-out-mac-os-x-version-from-terminal
+func (s darwinStore) version() string {
+	out, err := exec.Command("sw_vers", "-productVersion").CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func (s darwinStore) List() ([]*x509.Certificate, error) {
 	chains, err := getKeychainPaths(systemKeychains)
 	if err != nil {

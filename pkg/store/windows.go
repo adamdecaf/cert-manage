@@ -52,6 +52,21 @@ func (s windowsStore) Backup() error {
 	return nil
 }
 
+func (s windowsStore) GetInfo() *Info {
+	return &Info{
+		Name:    "Windows",
+		Version: s.version(),
+	}
+}
+
+func (s windowsStore) version() string {
+	out, err := exec.Command("ver").CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func (s windowsStore) List() ([]*x509.Certificate, error) {
 	var accum []*x509.Certificate
 	for i := range windowsStoreNames {

@@ -283,3 +283,17 @@ func TestStoreDarwin__nilplist(t *testing.T) {
 		t.Errorf("somehow got %d items from nil plist", l)
 	}
 }
+
+func TestStoreDarwin__info(t *testing.T) {
+	st := darwinStore{}
+	info := st.GetInfo()
+	if info == nil {
+		t.Fatal("nil Info")
+	}
+	if info.Name == "" {
+		t.Error("blank Name")
+	}
+	if info.Version == "" {
+		t.Error("blank Version")
+	}
+}

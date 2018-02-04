@@ -72,6 +72,12 @@ func (s linuxStore) Backup() error {
 	return file.MirrorDir(s.ca.dir, s.ca.backup)
 }
 
+func (s linuxStore) GetInfo() *Info {
+	// TODO(adam): What does this mean on linux? OS name/version? Kernel version?
+	// How about the bigger unix world?
+	return &Info{}
+}
+
 func (s linuxStore) List() ([]*x509.Certificate, error) {
 	if s.ca.empty() {
 		return nil, nil
