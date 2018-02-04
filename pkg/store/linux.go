@@ -67,6 +67,29 @@ func platform() Store {
 }
 
 func (s linuxStore) Add(certs []*x509.Certificate) error {
+	if s.ca.empty() {
+		return errors.New("unable to find certificate directory")
+	}
+
+	// install each certificate
+	for i := range certs {
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		// TODO(adam): Additioanal certs go in a different folder..
+		// TODO(adam): after re-reading this on 2018-02-04 I don't think the folders are setup right
+		//             and we for sure need other dirs/layouts supported
+		//
+		// `s.ca.dir` (which is /usr/share/ca-certificates) doesn't work
+		path := filepath.Join("/usr/local/share/ca-certificates", fmt.Sprintf("%s.crt", fp))
+
+		err := certutil.ToFile(path, certs[i:i+1])
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(certs) > 0 {
+		return bundleCerts()
+	}
 	return nil
 }
 
@@ -165,8 +188,13 @@ func (s linuxStore) Restore(where string) error {
 // Update the certs trust system-wide
 func bundleCerts() error {
 	var out bytes.Buffer
+	// TOOD(adam): Check for sudo/su
 	cmd := exec.Command("/usr/sbin/update-ca-certificates")
 	cmd.Stdout = &out
+
+	if debug {
+		fmt.Println("store/linux: updated CA certificates")
+	}
 
 	err := cmd.Run()
 	if err != nil {
