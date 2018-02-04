@@ -15,3 +15,6 @@ build/*/*.class
 
 *.log
 *.out
+
+*.yaml
+!testdata/*.yaml

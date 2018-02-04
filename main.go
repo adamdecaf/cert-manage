@@ -120,9 +120,10 @@ func main() {
 	// Lift config options into a higher-level
 	fs.Parse(os.Args[2:])
 	cfg := &ui.Config{
-		Count:  *flagCount,
-		Format: *flagFormat,
-		UI:     *flagUi,
+		Count:   *flagCount,
+		Format:  *flagFormat,
+		Outfile: *flagOutFile,
+		UI:      *flagUi,
 	}
 
 	// Build up sub-commands

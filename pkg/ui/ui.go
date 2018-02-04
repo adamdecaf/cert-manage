@@ -23,7 +23,11 @@ func DefaultUI() string {
 	return cliFormat
 }
 func GetUIs() []string {
-	return []string{DefaultFormat(), "web"}
+	var out []string
+	for k := range uiOptions {
+		out = append(out, k)
+	}
+	return out
 }
 
 type Config struct {
@@ -33,6 +37,9 @@ type Config struct {
 	// What format to print certificates in, formats are defined in ../main.go and
 	// checked in print.go
 	Format string
+
+	// Outfile holds where to write the output to. Used if non-empty
+	Outfile string
 
 	// Which user interface to show users, e.g. cli or web
 	// Default (and possible) value(s) can be found in the ui package
@@ -55,4 +62,17 @@ func ListCertificates(certs []*x509.Certificate, cfg *Config) error {
 		return fmt.Errorf("Unknown ui '%s'", cfg.UI)
 	}
 	return fn(certs, cfg)
+}
+
+// Meta is used to add additional details on the certficiate store
+type Meta struct {
+	Name    string
+	Version string
+}
+
+func ListCertificatesWithMeta(meta Meta, certs []*x509.Certificate, cfg *Config) error {
+	if isObservatory(cfg.Format) {
+		return writeObservatoryReport(meta, certs, cfg)
+	}
+	return ListCertificates(certs, cfg)
 }
