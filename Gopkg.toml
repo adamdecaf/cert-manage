@@ -24,3 +24,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/go-sqlite/sqlite3"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
