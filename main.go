@@ -150,6 +150,13 @@ func main() {
 			}
 			return cmd.AddCertsToAppFromFile(a, *flagFile)
 		},
+		help: `Usage: cert-manage add -file <path> [-app <name>]
+
+  Add a certificate to the platform store
+    cert-manage add -file <path>
+
+  Add a certificate to an application's store
+    cert-manage add -file <path> -app <name>`,
 	}
 	commands["backup"] = &command{
 		fn: func() error {
