@@ -23,7 +23,7 @@ func DefaultUI() string {
 	return cliFormat
 }
 func GetUIs() []string {
-	return []string{DefaultFormat(), "web"}
+	return []string{DefaultUI(), "web"}
 }
 
 type Config struct {
