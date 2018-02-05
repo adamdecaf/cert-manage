@@ -72,6 +72,16 @@ func Platform() Store {
 	return platform()
 }
 
+// GetApps returns an array the supported app names
+func GetApps() []string {
+	var out []string
+	for k := range appStores {
+		out = append(out, k)
+	}
+	file.SortNames(out)
+	return out
+}
+
 // ForApp returns a `Store` instance for the given app
 func ForApp(app string) (Store, error) {
 	s, ok := appStores[strings.ToLower(app)]

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/cmd"
+	"github.com/adamdecaf/cert-manage/pkg/store"
 	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
@@ -63,6 +64,9 @@ SUB-COMMANDS
 
   whitelist     Remove trust from certificates which do not match the whitelist in <path>
 
+APPS
+  Supported apps: %s
+
 FLAGS
   -app <name>      The name of an application which to perform the given command on. (Examples: chrome, java)
   -file <path>     Local file path
@@ -81,6 +85,7 @@ DEBUGGING
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			Version,
+			strings.Join(store.GetApps(), ", "),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
 			ui.DefaultFormat(),
@@ -150,13 +155,17 @@ func main() {
 			}
 			return cmd.AddCertsToAppFromFile(a, *flagFile)
 		},
-		help: `Usage: cert-manage add -file <path> [-app <name>]
+		help: fmt.Sprintf(`Usage: cert-manage add -file <path> [-app <name>]
 
   Add a certificate to the platform store
     cert-manage add -file <path>
 
   Add a certificate to an application's store
-    cert-manage add -file <path> -app <name>`,
+    cert-manage add -file <path> -app <name>
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["backup"] = &command{
 		fn: func() error {
@@ -165,15 +174,19 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.BackupForApp(a)
 		},
-		help: `Usage: cert-manage backup [-app <name>]
+		help: fmt.Sprintf(`Usage: cert-manage backup [-app <name>]
 
-  Backup a certificate store. This can be done for the platform or a given app.`,
+  Backup a certificate store. This can be done for the platform or a given app.
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["gen-whitelist"] = &command{
 		fn: func() error {
 			return cmd.GenerateWhitelist(*flagOutFile, *flagFrom, *flagFile)
 		},
-		help: `Usage: cert-manage gen-whitelist -out <where> [-file <file>] [-from <type>]
+		help: fmt.Sprintf(`Usage: cert-manage gen-whitelist -out <where> [-file <file>] [-from <type>]
 
   Generate a whitelist and write it to the filesystem. (At wherever -out points to.)
 
@@ -184,7 +197,11 @@ func main() {
     cert-manage gen-whitelist -from firefox -out whitelist.json
 
   Generate a whitelist from all browsers on a computer
-    cert-manage gen-whitelist -from browsers -out whitelist.json`,
+    cert-manage gen-whitelist -from browsers -out whitelist.json
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["list"] = &command{
 		fn: func() error {
@@ -224,12 +241,14 @@ FORMATTING
 
   Show the certificates on a local webpage (Default: %s, Options: %s)
     cert-manage list -ui web
-`,
+
+APPS
+  Supported apps: %s`,
 			ui.DefaultFormat(),
 			strings.Join(ui.GetFormats(), ", "),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
-		),
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["restore"] = &command{
 		fn: func() error {
@@ -238,7 +257,7 @@ FORMATTING
 		appfn: func(a string) error {
 			return cmd.RestoreForApp(a, *flagFile)
 		},
-		help: `Usage: cert-manaage restore [-app <name>] [-file <path>]
+		help: fmt.Sprintf(`Usage: cert-manaage restore [-app <name>] [-file <path>]
 
   Restore certificates from the latest backup
     cert-manage restore
@@ -247,7 +266,11 @@ FORMATTING
     cert-manage restore -file <path>
 
   Restore certificates for an application from the latest backup
-    cert-manage restore -app java`,
+    cert-manage restore -app java
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["whitelist"] = &command{
 		fn: func() error {
@@ -262,14 +285,17 @@ FORMATTING
 			}
 			return cmd.WhitelistForApp(a, *flagFile)
 		},
-		// Requires: -file, Optional: -app
-		help: `Usage: cert-manage whitelist [-app <name>] -file <path>
+		help: fmt.Sprintf(`Usage: cert-manage whitelist [-app <name>] -file <path>
 
   Remove untrusted certificates from a store for the platform
     cert-manage whitelist -file whitelist.json
 
   Remove untrusted certificates in an app
-    cert-manage whitelist -file whitelist.json -app java`,
+    cert-manage whitelist -file whitelist.json -app java
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["version"] = &command{
 		fn: func() error {
