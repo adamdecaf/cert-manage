@@ -18,6 +18,9 @@ import (
 )
 
 type cadir struct {
+	// directory for new/custom certificates
+	add string
+
 	// base dir for all ca certs
 	dir string
 
@@ -41,6 +44,7 @@ var (
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
 		{
+			add:    "/usr/local/share/ca-certificates",
 			dir:    "/usr/share/ca-certificates",
 			all:    "/etc/ssl/certs/ca-certificates.crt",
 			backup: "/usr/share/ca-certificates.backup",
@@ -74,12 +78,7 @@ func (s linuxStore) Add(certs []*x509.Certificate) error {
 	// install each certificate
 	for i := range certs {
 		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
-		// TODO(adam): Additioanal certs go in a different folder..
-		// TODO(adam): after re-reading this on 2018-02-04 I don't think the folders are setup right
-		//             and we for sure need other dirs/layouts supported
-		//
-		// `s.ca.dir` (which is /usr/share/ca-certificates) doesn't work
-		path := filepath.Join("/usr/local/share/ca-certificates", fmt.Sprintf("%s.crt", fp))
+		path := filepath.Join(s.ca.add, fmt.Sprintf("%s.crt", fp))
 
 		err := certutil.ToFile(path, certs[i:i+1])
 		if err != nil {
