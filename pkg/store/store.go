@@ -28,6 +28,7 @@ var (
 		"chrome":  ChromeStore(),
 		"firefox": FirefoxStore(),
 		"java":    JavaStore(),
+		"openssl": OpenSSLStore(),
 	}
 )
 
