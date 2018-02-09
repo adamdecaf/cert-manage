@@ -8,6 +8,7 @@ import (
 
 type cfg struct {
 	total, after string
+
 	curlExitCode string
 }
 
@@ -88,6 +89,39 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 
 	if debug {
 		fmt.Println("Java end")
+	}
+}
+
+func opensslSuite(t *testing.T, img *dockerfile, config cfg) {
+	config.failIfEmpty(t)
+
+	if debug {
+		fmt.Println("openssl start")
+	}
+
+	// List
+	img.CertManage("list", "-app", "openssl", "-count", "|", "grep", config.total)
+	// Backup
+	img.CertManage("backup", "-app", "openssl") // TODO(adam): verify
+	// Whitelist
+	img.CertManage("whitelist", "-app", "openssl", "-file", "/whitelist.json")
+	img.CertManage("list", "-app", "openssl", "-count", "|", "grep", config.after)
+	// Verify google.com fails to load
+	// TODO(adam): automated way to ensure curl uses openssl?
+	img.ExitCode(config.curlExitCode, "curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
+	// Restore
+	img.CertManage("restore", "-app", "openssl")
+	// Verify Restore
+	img.CertManage("list", "-app", "openssl", "-count", "|", "grep", config.total)
+	// TODO(adam): automated way to ensure curl uses openssl?
+	img.Run("curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
+	// Add certificate
+	img.CertManage("add", "-app", "openssl", "-file", "/localcert.pem")
+	img.CertManage("list", "-app", "openssl", "-count", "|", "grep", incr(config.total))
+	img.SuccessT(t)
+
+	if debug {
+		fmt.Println("openssl end")
 	}
 }
 

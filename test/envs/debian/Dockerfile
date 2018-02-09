@@ -1,7 +1,7 @@
 FROM debian:9
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl \
+    apt-get install -y --no-install-recommends ca-certificates curl openssl \
     openjdk-8-jdk ca-certificates-java && \
     rm -rf /var/lib/apt/lists/*
 

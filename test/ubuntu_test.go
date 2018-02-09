@@ -6,12 +6,18 @@ import (
 
 func TestUbuntu__suite(t *testing.T) {
 	t.Parallel()
+	curlExitCode := "35"
 
 	img := Dockerfile("envs/ubuntu")
 	linuxSuite(t, img, cfg{
 		total:        "148",
 		after:        "5",
-		curlExitCode: "35",
+		curlExitCode: curlExitCode,
+	})
+	opensslSuite(t, img, cfg{
+		total:        "", // TODO(adam): find openssl counts
+		after:        "",
+		curlExitCode: curlExitCode,
 	})
 }
 

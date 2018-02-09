@@ -1,6 +1,6 @@
 FROM alpine:3.7
 
-RUN apk update && apk add ca-certificates curl openjdk8 java-cacerts
+RUN apk update && apk add ca-certificates curl openjdk8 java-cacerts openssl
 
 COPY Download.java /Download.java
 ENV JAVA_HOME /usr/lib/jvm/java-1.8-openjdk

@@ -1,7 +1,7 @@
 FROM ubuntu:17.10
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl \
+    apt-get install -y --no-install-recommends ca-certificates curl openssl \
             chromium-browser \
             firefox libnss3 libnss3-tools libgtk-3-0 libdbus-glib-1-2 xvfb \
             openjdk-9-jdk ca-certificates-java && \
