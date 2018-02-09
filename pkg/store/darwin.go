@@ -49,13 +49,15 @@ const (
 // trust settings of installed certificates in the various Keychains.
 //
 // https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man1/security.1.html
-type darwinStore struct{}
+type darwinStore struct {
+	// holds `emptyStore{}` to reject unfinished methods
+	empty Store
+}
 
 func platform() Store {
-	if debug {
-		return darwinStore{}
+	return darwinStore{
+		empty: emptyStore{},
 	}
-	return emptyStore{}
 }
 
 func (s darwinStore) Add(certs []*x509.Certificate) error {
@@ -324,6 +326,10 @@ func trustSettingsExport() (*os.File, error) {
 }
 
 func (s darwinStore) Remove(wh whitelist.Whitelist) error {
+	if !debug {
+		return s.empty.Remove(wh)
+	}
+
 	certs, err := s.List()
 	if err != nil {
 		return err
@@ -470,6 +476,10 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 //
 // TODO(adam): Do we need to backup anything but the "login keychain" and "SystemRootCertificates" keychain?
 func (s darwinStore) Restore(where string) error {
+	if !debug {
+		return s.empty.Restore(where)
+	}
+
 	// Find latest backup dir
 	dir, err := getCertManageDir(darwinBackupDir)
 	if err != nil {
