@@ -57,6 +57,22 @@ func (s opensslStore) Backup() error {
 	return nil
 }
 
+func (s opensslStore) GetInfo() *Info {
+	out, err := exec.Command("openssl", "version").CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+
+	// LibreSSL 2.2.7
+	// 'OpenSSL 1.0.2g  1 Mar 2016'
+	parts := strings.Split(string(out), " ")
+
+	return &Info{
+		Name:    strings.TrimSpace(parts[0]),
+		Version: strings.TrimSpace(parts[1]),
+	}
+}
+
 func (s opensslStore) List() ([]*x509.Certificate, error) {
 	return nil, nil
 }
