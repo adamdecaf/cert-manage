@@ -30,7 +30,9 @@ func DefaultFormat() string {
 	return defaultFormat
 }
 func GetFormats() []string {
-	var out []string
+	out := []string{
+		observatoryFormat, // we need to include 'observatory' as an option
+	}
 	for k := range printers {
 		out = append(out, k)
 	}
