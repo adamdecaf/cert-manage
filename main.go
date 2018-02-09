@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/cmd"
+	"github.com/adamdecaf/cert-manage/pkg/store"
 	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
@@ -15,6 +16,11 @@ const Version = "0.0.1-dev"
 
 var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
+
+	// incantations of "--help"
+	flagHelp1 = fs.Bool("h", false, "")
+	flagHelp2 = fs.Bool("help", false, "")
+	flagHelp3 = fs.Bool("-help", false, "") // --help
 
 	// -file is used to specify an input file path
 	flagFile = fs.String("file", "", "")
@@ -43,27 +49,29 @@ func init() {
 	fs.Usage = func() {
 		fmt.Printf(`Usage of cert-manage (version %s)
 SUB-COMMANDS
+  add           Add certificate(s) to a store
+                Accepts: -app, -file
+
   backup        Take a backup of the specified certificate store
-                Accepts: -app
 
   gen-whitelist Create a whitelist from various sources
-                Requires: -out, Optional: -file, -from
 
   list          List the currently installed and trusted certificates
-                Accepts: -app, -count, -file, -format, -url
 
   restore       Revert the certificate trust back to, optionally takes -file <path>
-                Accepts: -app, -file
 
   version       Show the version of cert-manage
 
   whitelist     Remove trust from certificates which do not match the whitelist in <path>
-                Requires: -file, Optional: -app
+
+APPS
+  Supported apps: %s
 
 FLAGS
   -app <name>      The name of an application which to perform the given command on. (Examples: chrome, java)
   -file <path>     Local file path
   -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
+  -help            Show this help dialog
   -ui <type>       Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
   -url <where>     Remote URL to download and use in a command
 
@@ -71,12 +79,13 @@ OUTPUT
   -count  Output the count of certificates instead of each certificate
   -format <format> Change the output format for a given command (default: %s, options: %s)
 
-DEBUG and TRACE
+DEBUGGING
   Alongside command line flags are two environmental varialbes read by cert-manage:
   - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			Version,
+			strings.Join(store.GetApps(), ", "),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
 			ui.DefaultFormat(),
@@ -85,9 +94,15 @@ DEBUG and TRACE
 	}
 }
 
+func calledHelp() bool {
+	return *flagHelp1 || *flagHelp2 || *flagHelp3
+}
+
 type command struct {
 	fn    func() error
 	appfn func(string) error
+
+	help string
 }
 
 func trace() *cmd.Trace {
@@ -128,6 +143,31 @@ func main() {
 
 	// Build up sub-commands
 	commands := make(map[string]*command, 0)
+	commands["add"] = &command{
+		fn: func() error {
+			if *flagFormat == "" {
+				return errors.New("No -file specified")
+			}
+			return cmd.AddCertsFromFile(*flagFile)
+		},
+		appfn: func(a string) error {
+			if *flagFormat == "" {
+				return errors.New("No -file specified")
+			}
+			return cmd.AddCertsToAppFromFile(a, *flagFile)
+		},
+		help: fmt.Sprintf(`Usage: cert-manage add -file <path> [-app <name>]
+
+  Add a certificate to the platform store
+    cert-manage add -file <path>
+
+  Add a certificate to an application's store
+    cert-manage add -file <path> -app <name>
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
+	}
 	commands["backup"] = &command{
 		fn: func() error {
 			return cmd.BackupForPlatform()
@@ -135,11 +175,34 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.BackupForApp(a)
 		},
+		help: fmt.Sprintf(`Usage: cert-manage backup [-app <name>]
+
+  Backup a certificate store. This can be done for the platform or a given app.
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["gen-whitelist"] = &command{
 		fn: func() error {
 			return cmd.GenerateWhitelist(*flagOutFile, *flagFrom, *flagFile)
 		},
+		help: fmt.Sprintf(`Usage: cert-manage gen-whitelist -out <where> [-file <file>] [-from <type>]
+
+  Generate a whitelist and write it to the filesystem. (At wherever -out points to.)
+
+  Also, you can pass -file to read a newline delimited file of URL's.
+    cert-manage gen-whitelist -file <path> -out whitelist.json
+
+  Generate a whitelist from browser history
+    cert-manage gen-whitelist -from firefox -out whitelist.json
+
+  Generate a whitelist from all browsers on a computer
+    cert-manage gen-whitelist -from browsers -out whitelist.json
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["list"] = &command{
 		fn: func() error {
@@ -154,6 +217,39 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.ListCertsForApp(a, cfg)
 		},
+		help: fmt.Sprintf(`Usage: cert-manage list [options]
+
+  List certificates currently installed on the platform or application.
+
+  List certificates from an application
+    cert-mange list -app firefox
+
+  List certificates from a file
+    cert-mange list -file <path>
+
+  List certificates from a URL
+    cert-manage list -url <endpoint>
+
+FORMATTING
+
+  Change the output format (Default: %s, Options: %s)
+    cert-manage list -format openssl
+
+  Only show the count of certificates found
+    cert-manage list -count
+    cert-manage list -app java -count
+    cert-manage list -file <path> -count
+
+  Show the certificates on a local webpage (Default: %s, Options: %s)
+    cert-manage list -ui web
+
+APPS
+  Supported apps: %s`,
+			ui.DefaultFormat(),
+			strings.Join(ui.GetFormats(), ", "),
+			ui.DefaultUI(),
+			strings.Join(ui.GetUIs(), ", "),
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["restore"] = &command{
 		fn: func() error {
@@ -162,6 +258,20 @@ func main() {
 		appfn: func(a string) error {
 			return cmd.RestoreForApp(a, *flagFile)
 		},
+		help: fmt.Sprintf(`Usage: cert-manaage restore [-app <name>] [-file <path>]
+
+  Restore certificates from the latest backup
+    cert-manage restore
+
+  Restore certificates for the platform from a file
+    cert-manage restore -file <path>
+
+  Restore certificates for an application from the latest backup
+    cert-manage restore -app java
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["whitelist"] = &command{
 		fn: func() error {
@@ -176,6 +286,17 @@ func main() {
 			}
 			return cmd.WhitelistForApp(a, *flagFile)
 		},
+		help: fmt.Sprintf(`Usage: cert-manage whitelist [-app <name>] -file <path>
+
+  Remove untrusted certificates from a store for the platform
+    cert-manage whitelist -file whitelist.json
+
+  Remove untrusted certificates in an app
+    cert-manage whitelist -file whitelist.json -app java
+
+APPS
+  Supported apps: %s`,
+			strings.Join(store.GetApps(), ", ")),
 	}
 	commands["version"] = &command{
 		fn: func() error {
@@ -185,12 +306,17 @@ func main() {
 		appfn: func(_ string) error {
 			return nil
 		},
+		help: Version,
 	}
 
 	// Run whatever function we've got here..
 	c, ok := commands[strings.ToLower(os.Args[1])]
 	if !ok { // sub-command wasn't found
 		fs.Usage()
+		os.Exit(1)
+	}
+	if calledHelp() {
+		fmt.Println(c.help)
 		os.Exit(1)
 	}
 

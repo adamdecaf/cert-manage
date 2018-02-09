@@ -1,3 +1,11 @@
+// SHA1 Fingerprint - 7e1874a98faa5d6d2f506a8920ff22fbd16652d9
+// SHA256 Fingerprint - 05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030
+// SerialNumber: 513
+// Subject: Starfield Technologies, Inc., http://certificates.starfieldtech.com/repository
+// Issuer: Starfield Technologies, Inc., Starfield Class 2 Certification Authority
+// NotBefore - 2006-11-16 01:15:40 +0000 UTC, NotAfter - 2026-11-16 01:15:40 +0000 UTC
+// IsCA - true
+// CRL: http://certificates.starfieldtech.com/repository/sfroot.crl
 -----BEGIN CERTIFICATE-----
 MIIFBzCCA++gAwIBAgICAgEwDQYJKoZIhvcNAQEFBQAwaDELMAkGA1UEBhMCVVMx
 JTAjBgNVBAoTHFN0YXJmaWVsZCBUZWNobm9sb2dpZXMsIEluYy4xMjAwBgNVBAsT

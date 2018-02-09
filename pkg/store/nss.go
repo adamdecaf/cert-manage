@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -130,6 +131,38 @@ func (s nssStore) notifyToRestart() {
 		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
 	})
 	return
+}
+
+func (s nssStore) Add(certs []*x509.Certificate) error {
+	dir, err := ioutil.TempDir("", "cert-manage-nss-add")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	// write each cert out to a file and then add it
+	for i := range certs {
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		path := filepath.Join(dir, fmt.Sprintf("%s.pem", fp))
+
+		err = certutil.ToFile(path, certs[i:i+1])
+		if err != nil {
+			return err
+		}
+
+		nick := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
+		err = cutil.addCertificate(s.foundCert8dbLocation, path, nick)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(certs) > 0 {
+		// Since we got past the for loop without errors, we added at least one cert
+		s.notifyToRestart()
+	}
+
+	return nil
 }
 
 // we should be able to backup a cert8.db file directly
@@ -295,6 +328,32 @@ func (c crtutil) getExecPath() (string, error) {
 		}
 	}
 	return "", errors.New("No executable for `crtutil` found")
+}
+
+// Emulates the following
+// /usr/local/opt/nss/bin/certutil -A -a -n <nick> -t 'CT,C,C' -i cert.pem -d <dir>
+func (c crtutil) addCertificate(dir cert8db, where string, nick string) error {
+	expath, err := c.getExecPath()
+	if err != nil {
+		return err
+	}
+	args := []string{
+		"-A", "-a",
+		"-n", nick,
+		"-t", "CT,C,C",
+		"-i", where,
+		"-d", string(dir),
+	}
+	cmd := exec.Command(expath, args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		if debug {
+			fmt.Printf("Command was:\n %s\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Output was: %q\n", string(out))
+		}
+		return err
+	}
+	return nil
 }
 
 // Emulates the following

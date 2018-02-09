@@ -18,6 +18,9 @@ import (
 )
 
 type cadir struct {
+	// directory for new/custom certificates
+	add string
+
 	// base dir for all ca certs
 	dir string
 
@@ -41,6 +44,7 @@ var (
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
 		{
+			add:    "/usr/local/share/ca-certificates",
 			dir:    "/usr/share/ca-certificates",
 			all:    "/etc/ssl/certs/ca-certificates.crt",
 			backup: "/usr/share/ca-certificates.backup",
@@ -64,6 +68,28 @@ func platform() Store {
 	return linuxStore{
 		ca: ca,
 	}
+}
+
+func (s linuxStore) Add(certs []*x509.Certificate) error {
+	if s.ca.empty() {
+		return errors.New("unable to find certificate directory")
+	}
+
+	// install each certificate
+	for i := range certs {
+		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
+		path := filepath.Join(s.ca.add, fmt.Sprintf("%s.crt", fp))
+
+		err := certutil.ToFile(path, certs[i:i+1])
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(certs) > 0 {
+		return bundleCerts()
+	}
+	return nil
 }
 
 // Backup takes a snapshot of the current set of CA certificates and
@@ -167,8 +193,13 @@ func (s linuxStore) Restore(where string) error {
 // Update the certs trust system-wide
 func bundleCerts() error {
 	var out bytes.Buffer
+	// TOOD(adam): Check for sudo/su
 	cmd := exec.Command("/usr/sbin/update-ca-certificates")
 	cmd.Stdout = &out
+
+	if debug {
+		fmt.Println("store/linux: updated CA certificates")
+	}
 
 	err := cmd.Run()
 	if err != nil {

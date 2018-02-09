@@ -28,6 +28,7 @@ var (
 		"chrome":  ChromeStore(),
 		"firefox": FirefoxStore(),
 		"java":    JavaStore(),
+		"openssl": OpenSSLStore(),
 	}
 )
 
@@ -35,6 +36,9 @@ var (
 // operations on it which mutate the underlying state (e.g. a file or
 // directory).
 type Store interface {
+	// Add certificate(s) into the store
+	Add([]*x509.Certificate) error
+
 	// Backup will attempt to save a backup of the certificate store
 	// on the local system
 	Backup() error
@@ -75,6 +79,16 @@ type Info struct {
 // Platform returns a new instance of Store for the running os/platform
 func Platform() Store {
 	return platform()
+}
+
+// GetApps returns an array the supported app names
+func GetApps() []string {
+	var out []string
+	for k := range appStores {
+		out = append(out, k)
+	}
+	file.SortNames(out)
+	return out
 }
 
 // ForApp returns a `Store` instance for the given app

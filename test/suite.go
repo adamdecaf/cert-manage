@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 )
 
@@ -44,6 +45,9 @@ func linuxSuite(t *testing.T, img *dockerfile, config cfg) {
 	// Verify Restore
 	img.CertManage("list", "-count", "|", "grep", config.total)
 	img.Run("curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
+	// Add certificate
+	img.CertManage("add", "-file", "/localcert.pem")
+	img.CertManage("list", "-count", "|", "grep", incr(config.total))
 	img.SuccessT(t)
 
 	if debug {
@@ -77,9 +81,20 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 	img.CertManage("list", "-app", "java", "-count", "|", "grep", total)
 	// Verify Restore
 	img.RunSplit("cd / && java Download")
+	// Add certificate
+	img.CertManage("add", "-file", "/localcert.pem", "-app", "java")
+	img.CertManage("list", "-count", "-app", "java", "|", "grep", incr(total))
 	img.SuccessT(t)
 
 	if debug {
 		fmt.Println("Java end")
 	}
+}
+
+func incr(in string) string {
+	n, err := strconv.Atoi(in)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%d", n+1)
 }
