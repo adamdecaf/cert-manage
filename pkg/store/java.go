@@ -88,7 +88,7 @@ func (s javaStore) GetInfo() *Info {
 func (s javaStore) version() string {
 	out, err := exec.Command("java", "-version").CombinedOutput()
 	if err != nil {
-		panic(err)
+		return ""
 	}
 
 	// e.g. java version "1.8.0_152"

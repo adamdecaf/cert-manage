@@ -66,7 +66,7 @@ func (s windowsStore) GetInfo() *Info {
 func (s windowsStore) version() string {
 	out, err := exec.Command("ver").CombinedOutput()
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	return strings.TrimSpace(string(out))
 }

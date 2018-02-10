@@ -153,7 +153,7 @@ func (s darwinStore) GetInfo() *Info {
 func (s darwinStore) version() string {
 	out, err := exec.Command("sw_vers", "-productVersion").CombinedOutput()
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	return strings.TrimSpace(string(out))
 }
