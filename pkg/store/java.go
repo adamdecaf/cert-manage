@@ -51,7 +51,7 @@ func (s javaStore) Add(certs []*x509.Certificate) error {
 			return err
 		}
 
-		// TODO(adam): This replace is too simplistic
+		// this replace is too simplistic
 		alias := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
 		err = ktool.addCertificate(path, alias)
 		if err != nil {
