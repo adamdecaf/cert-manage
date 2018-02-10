@@ -15,10 +15,12 @@ import (
 
 var (
 	openSSLCertPaths = []string{
+		"/etc/ssl/certs/ca-certificates.crt", // Ubuntu
 		"/usr/local/etc/openssl/certs", // Darwin/OSX
 	}
 
 	openSSLRehashPaths = []string{
+		"/usr/bin/c_rehash", // Ubuntu
 		"/usr/local/opt/openssl/bin/c_rehash", // Darwin/OSX
 	}
 )
