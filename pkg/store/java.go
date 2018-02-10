@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -75,6 +76,25 @@ func (s javaStore) Backup() error {
 	dst := filepath.Join(dir, fmt.Sprintf("%s-%d.bck", filename, time.Now().Unix()))
 
 	return file.CopyFile(kpath, dst)
+}
+
+func (s javaStore) GetInfo() *Info {
+	return &Info{
+		Name:    "Java",
+		Version: s.version(),
+	}
+}
+
+func (s javaStore) version() string {
+	out, err := exec.Command("java", "-version").CombinedOutput()
+	if err != nil {
+		return ""
+	}
+
+	// e.g. java version "1.8.0_152"
+	r := regexp.MustCompile(`"([\d\._]+)"`)
+	m := r.FindString(string(out))
+	return strings.Replace(m, `"`, "", -1)
 }
 
 func (s javaStore) List() ([]*x509.Certificate, error) {

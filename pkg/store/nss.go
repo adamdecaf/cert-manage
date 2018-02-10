@@ -52,6 +52,9 @@ type nssStore struct {
 	// for a given application.
 	nssType string
 
+	// upstreamVersion refers to the version of whatever tool is using NSS
+	upstreamVersion string
+
 	// cert8dbSuggestedDirs represent the fs locations where cert8.db are stored
 	// In the case of an app like Firefox this would be looking in the following locations:
 	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
@@ -66,9 +69,10 @@ type nssStore struct {
 	notify *sync.Once
 }
 
-func NssStore(nssType string, suggestedDirs []cert8db, foundCert8db cert8db) nssStore {
+func NssStore(nssType string, upstreamVersion string, suggestedDirs []cert8db, foundCert8db cert8db) nssStore {
 	return nssStore{
 		nssType:              nssType,
+		upstreamVersion:      upstreamVersion,
 		cert8dbSuggestedDirs: suggestedDirs,
 		foundCert8dbLocation: foundCert8db,
 		notify:               &sync.Once{},
@@ -177,6 +181,13 @@ func (s nssStore) Backup() error {
 	src := filepath.Join(string(s.foundCert8dbLocation), cert8Filename)
 	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
 	return file.CopyFile(src, dst)
+}
+
+func (s nssStore) GetInfo() *Info {
+	return &Info{
+		Name:    strings.Title(s.nssType),
+		Version: s.upstreamVersion,
+	}
 }
 
 // List returns the installed (and trusted) certificates contained in a NSS cert8.db file

@@ -29,3 +29,62 @@ func TestCertutil__StringifyPKIXName(t *testing.T) {
 		}
 	}
 }
+
+func TestCertutil__cleanPKIXName(t *testing.T) {
+	cases := []struct {
+		before, after string
+	}{
+		{
+			// shorten double spaces
+			before: "  ",
+			after:  " ",
+		},
+		{
+			before: "Google Inc",
+			after:  "Google Inc",
+		},
+		{
+			before: "AffirmTrust",
+			after:  "AffirmTrust",
+		},
+		{
+			before: "Apple Computer, Inc., Apple Computer Certificate Authority",
+			after:  "Apple Computer, Inc., Apple Computer Certificate Authority",
+		},
+		{
+			before: `Sistema Nacional de Certificacion Electronica, Superintendencia de
+    Servicios de Certificacion Electronica`,
+			after: "Sistema Nacional de Certificacion Electronica, Superintendencia de Servicios de Certificacion Electronica",
+		},
+		{
+			before: `E-Tuğra EBG Bilişim Teknolojileri ve Hizmetleri A.Ş., E-Tugra Sertifikasyon
+    Merkezi`,
+			after: `E-Tuğra EBG Bilişim Teknolojileri ve Hizmetleri A.Ş., E-Tugra Sertifikasyon Merkezi`,
+		},
+		{
+			before: "GeoTrust Inc., (c) 2008 GeoTrust Inc. - For authorized use only",
+			after:  "GeoTrust Inc., (c) 2008 GeoTrust Inc. - For authorized use only",
+		},
+		{
+			before: `První certifikační autorita, a.s., I.CA - Accredited Provider of Certification
+    Services`,
+			after: `První certifikační autorita, a.s., I.CA - Accredited Provider of Certification Services`,
+		},
+		{
+			before: `TÜRKTRUST Bilgi İletişim ve Bilişim Güvenliği Hizmetleri A.Ş. (c)
+    Aralık 2007`,
+			after: `TÜRKTRUST Bilgi İletişim ve Bilişim Güvenliği Hizmetleri A.Ş. (c) Aralık 2007`,
+		},
+		{
+			before: `NetLock Kft., Tanúsítványkiadók (Certification Services)`,
+			after:  `NetLock Kft., Tanúsítványkiadók (Certification Services)`,
+		},
+	}
+
+	for i := range cases {
+		res := cleanPKIXName(cases[i].before)
+		if res != cases[i].after {
+			t.Errorf("mismatch\nResult:   %q\nExpected: %q\n", res, cases[i].after)
+		}
+	}
+}

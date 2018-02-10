@@ -94,3 +94,16 @@ func TestStoreJava__getKeystorePath(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestStoreJava__info(t *testing.T) {
+	info := JavaStore().GetInfo()
+	if info == nil {
+		t.Fatal("nil Info")
+	}
+	if info.Name == "" {
+		t.Error("blank Name")
+	}
+	if info.Version == "" {
+		t.Error("blank Version")
+	}
+}

@@ -43,6 +43,9 @@ type Store interface {
 	// on the local system
 	Backup() error
 
+	// GetInfo returns basic information about the store
+	GetInfo() *Info
+
 	// List returns the currently trusted X509 certificates contained
 	// within the cert store
 	List() ([]*x509.Certificate, error)
@@ -66,6 +69,11 @@ type Store interface {
 	// be verified are still properly installed and working after
 	// Restore() is called.
 	Restore(where string) error
+}
+
+type Info struct {
+	Name    string
+	Version string
 }
 
 // Platform returns a new instance of Store for the running os/platform

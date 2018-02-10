@@ -65,12 +65,14 @@ func ListCertsFromURL(where string, cfg *ui.Config) (err error) {
 // The supported platforms can be found in the readme. They're compiled in
 // with build flags in the `certs/find_*.go` files.
 func ListCertsForPlatform(cfg *ui.Config) error {
-	certificates, err := store.Platform().List()
+	st := store.Platform()
+	certificates, err := st.List()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return ui.ListCertificates(certificates, cfg)
+	meta := createMeta(st)
+	return ui.ListCertificatesWithMeta(meta, certificates, cfg)
 }
 
 // ListCertsForApp finds certs for the given app.
@@ -96,5 +98,14 @@ func ListCertsForApp(app string, cfg *ui.Config) error {
 	}
 
 	// Output the certificates
-	return ui.ListCertificates(certificates, cfg)
+	meta := createMeta(st)
+	return ui.ListCertificatesWithMeta(meta, certificates, cfg)
+}
+
+func createMeta(st store.Store) ui.Meta {
+	info := st.GetInfo()
+	return ui.Meta{
+		Name:    info.Name,
+		Version: info.Version,
+	}
 }

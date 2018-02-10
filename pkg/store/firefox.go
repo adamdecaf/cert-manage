@@ -2,8 +2,11 @@ package store
 
 import (
 	"fmt"
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"os/exec"
 	"path/filepath"
+	"strings"
+
+	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 // returns a slice of "suggestions" for where cert8.db files live.
@@ -29,5 +32,27 @@ func firefoxCertdbLocations() []cert8db {
 func FirefoxStore() Store {
 	suggestions := firefoxCertdbLocations()
 	found := locateCert8db(suggestions)
-	return NssStore("firefox", suggestions, found)
+	return NssStore("firefox", firefoxVersion(), suggestions, found)
+}
+
+var (
+	firefoxBinaryPaths = []string{
+		// TODO(adam): Support other OS's
+		`/Applications/Firefox.app/Contents/MacOS/firefox`,
+	}
+)
+
+func firefoxVersion() string {
+	for i := range firefoxBinaryPaths {
+		path := firefoxBinaryPaths[i]
+		if file.Exists(path) {
+			// returns "Mozilla Firefox 57.0.3"
+			out, err := exec.Command(path, "-v").CombinedOutput()
+			if err == nil && len(out) > 0 {
+				r := strings.NewReplacer("Mozilla Firefox", "")
+				return strings.TrimSpace(r.Replace(string(out)))
+			}
+		}
+	}
+	return ""
 }

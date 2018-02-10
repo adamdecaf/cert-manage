@@ -14,15 +14,13 @@ import (
 )
 
 var (
-	// TODO(adam): homebrew paths
-	// $(brew --prefix)/etc/openssl/certs/
-	// $(brew --prefix)/opt/openssl/bin/c_rehash
-
 	openSSLCertPaths = []string{
+		"/etc/ssl/certs/ca-certificates.crt", // Ubuntu
 		"/usr/local/etc/openssl/certs", // Darwin/OSX
 	}
 
 	openSSLRehashPaths = []string{
+		"/usr/bin/c_rehash", // Ubuntu
 		"/usr/local/opt/openssl/bin/c_rehash", // Darwin/OSX
 	}
 )
@@ -57,6 +55,23 @@ func (s opensslStore) Backup() error {
 	return nil
 }
 
+func (s opensslStore) GetInfo() *Info {
+	out, err := exec.Command("openssl", "version").CombinedOutput()
+	if err != nil {
+		return &Info{ // just return something non-nil
+			Name: "OpenSSL",
+		}
+	}
+
+	// 'LibreSSL 2.2.7' or 'OpenSSL 1.0.2g  1 Mar 2016'
+	parts := strings.Split(string(out), " ")
+
+	return &Info{
+		Name:    strings.TrimSpace(parts[0]),
+		Version: strings.TrimSpace(parts[1]),
+	}
+}
+
 func (s opensslStore) List() ([]*x509.Certificate, error) {
 	return nil, nil
 }
@@ -69,7 +84,7 @@ func (s opensslStore) Restore(where string) error {
 	return nil
 }
 
-// TODO(adam): Can there be multiple?
+// TODO(adam): What do we do if multiple exist
 func (s opensslStore) findCertPath() (string, error) {
 	for i := range openSSLCertPaths {
 		if file.Exists(openSSLCertPaths[i]) {

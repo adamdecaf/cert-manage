@@ -25,6 +25,11 @@ func (s emptyStore) Backup() error {
 	s.printNotce()
 	return nil
 }
+func (s emptyStore) GetInfo() *Info {
+	return &Info{
+		Name: "Empty",
+	}
+}
 func (s emptyStore) List() ([]*x509.Certificate, error) {
 	s.printNotce()
 	return nil, nil

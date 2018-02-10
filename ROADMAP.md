@@ -56,6 +56,7 @@ output formats:
  - https://github.com/adamdecaf/cert-manage/issues/139
 
 openssl: https://github.com/adamdecaf/cert-manage/issues/31
+libressl: https://github.com/adamdecaf/cert-manage/issues/143
 OSX: https://github.com/adamdecaf/cert-manage/issues/9
 Windows: https://github.com/adamdecaf/cert-manage/issues/8
 

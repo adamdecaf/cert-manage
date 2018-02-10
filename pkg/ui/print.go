@@ -30,7 +30,9 @@ func DefaultFormat() string {
 	return defaultFormat
 }
 func GetFormats() []string {
-	out := make([]string, 0)
+	out := []string{
+		observatoryFormat, // we need to include 'observatory' as an option
+	}
 	for k := range printers {
 		out = append(out, k)
 	}
@@ -129,7 +131,7 @@ func (p opensslPrinter) close() {
 	}
 }
 
-// printCertsRaw very verbosly prints out the ecah certificate's information
+// shortPrinter very verbosly prints out the ecah certificate's information
 // to stdout. This isn't very useful for machine parsing or small screen displays.
 type shortPrinter struct{}
 
