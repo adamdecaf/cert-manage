@@ -25,10 +25,11 @@ func TestGen__caSigns(t *testing.T) {
 	}
 
 	// add signers
-	ca.addDNSNames([]string{
-		"google.com", "*.gmail.com",
-		"google.com", "*.gmail.com",
-	})
+	ca.addDNSName("google.com")
+	ca.addDNSName("*.gmail.com")
+	ca.addDNSName("google.com")
+	ca.addDNSName("*.gmail.com")
+
 	// check we didn't add duplicates
 	if len(ca.DNSNames) != 2 {
 		t.Errorf("got %d", len(ca.DNSNames))
@@ -67,9 +68,14 @@ func TestGen__caFind(t *testing.T) {
 		t.Errorf("bad fingerprint, got %q", ca.Fingerprint)
 	}
 
-	if len(ca.DNSNames) != 2 {
-		t.Errorf("got %d", len(ca.DNSNames))
+	if len(ca.DNSNames) != 0 {
+		t.Errorf("somehow DNSNames were added..")
 	}
+
+	// manually call .addDNSName() and check
+	ca.addDNSName("*.banno.com")
+	ca.addDNSName("banno.com")
+
 	ans := []string{"*.banno.com", "banno.com"}
 	if !reflect.DeepEqual(ca.DNSNames, ans) {
 		t.Errorf("got %q", ca.DNSNames)

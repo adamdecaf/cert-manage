@@ -51,25 +51,17 @@ func (c *CA) signs(dnsName string) bool {
 	}
 	return false
 }
-func (c *CA) addDNSNames(dnsNames []string) {
+func (c *CA) addDNSName(dnsName string) {
 	// lowercase incoming dnsNames
-	for i := range dnsNames {
-		dnsNames[i] = strings.ToLower(dnsNames[i])
+	dnsName = strings.ToLower(dnsName)
+
+	for i := range c.DNSNames {
+		if c.DNSNames[i] == dnsName {
+			return
+		}
 	}
 
-	// Add each dnsName
-	for i := range dnsNames {
-		var exists bool
-		for j := range c.DNSNames {
-			if dnsNames[i] == c.DNSNames[j] {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			c.DNSNames = append(c.DNSNames, dnsNames[i])
-		}
-	}
+	c.DNSNames = append(c.DNSNames, dnsName)
 }
 
 type CAs struct {
@@ -78,9 +70,10 @@ type CAs struct {
 }
 
 // find locates a CA certificate from our collection
-// It's designed to be called first and .addDNSNames called
+// if the CA can't be found then a new CA is created
+// and added for future lookups
 //
-// Never returns nil, create the CA if it doesn't exist
+// Never returns a nil CA value
 func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
 	c.RLock()
 	incfp := certutil.GetHexSHA256Fingerprint(*inc)
@@ -98,7 +91,6 @@ func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
 		Certificate: inc,
 		Fingerprint: certutil.GetHexSHA256Fingerprint(*inc),
 	}
-	ca.addDNSNames(inc.DNSNames)
 	c.items = append(c.items, ca)
 	c.Unlock()
 	return ca, false
@@ -128,7 +120,7 @@ func (c *CAs) findSigners(dnsName string) []*CA {
 			}
 			if !exists {
 				out = append(out, ca)
-				ca.addDNSNames([]string{dnsName})
+				ca.addDNSName(dnsName)
 			}
 		}
 	}
@@ -138,8 +130,32 @@ func (c *CAs) findSigners(dnsName string) []*CA {
 // chain represents a x509 certificate chain
 type chain []*x509.Certificate
 
-func (c chain) getRoot() *x509.Certificate {
-	return c[len(c)-1] // last item in slice
+// Grab the stored root certificate
+func (c chain) getRoot(dnsName string, sysRoots *x509.CertPool) *x509.Certificate {
+	leaf := c.getLeaf()
+	chains, err := leaf.Verify(x509.VerifyOptions{
+		DNSName:       dnsName,
+		Intermediates: c.asCertPool(),
+		Roots:         sysRoots,
+	})
+
+	if err != nil {
+		fmt.Printf("WARNING: Unable to find chain for %s, err=%v\n", dnsName, err)
+		return nil
+	}
+
+	// return root from first chain
+	chain := chains[0]
+	return chain[len(chain)-1]
+}
+
+func (c chain) asCertPool() *x509.CertPool {
+	pool := x509.NewCertPool()
+	certs := c[:]
+	for i := range certs {
+		pool.AddCert(certs[i])
+	}
+	return pool
 }
 
 func (c chain) getLeaf() *x509.Certificate {
@@ -156,7 +172,7 @@ func (c chain) getLeaf() *x509.Certificate {
 //
 // URLs are grouped by their full hostname and a connection is established
 // to retrieve a certificate, whose signer is looked up and retrieved.
-func FindCAs(urls []*url.URL) ([]*CA, error) {
+func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 	// setup worker pool
 	workers := newgate(maxWorkers)
 
@@ -182,15 +198,21 @@ func FindCAs(urls []*url.URL) ([]*CA, error) {
 				// We didn't find an existing CA, so we need to get one
 				chain := getChain(u)
 				if len(chain) == 0 {
-					fmt.Printf("whitelist/gen: Didn't find a certificate chain for %q\n", u.Host)
+					// didn't find chain, but that's not a huge deal as
+					// the remote endpoint could be unreachable
 					return
 				}
 
-				// With a chain, cache the leaf cert
-				leaf := chain.getLeaf()
-				ca, exists := authorities.find(leaf) // DNSNames from leaf are addd for us
+				// With a new chain, find it's root and cache that
+				root := chain.getRoot(u.Host, sysRoots)
+				if root == nil {
+					return
+				}
+
+				ca, exists := authorities.find(root)
+				ca.addDNSName(u.Host)
 				if debug && !exists {
-					fmt.Printf("whitelist/gen: added %s leaf (%s)\n", u.Host, ca.Fingerprint[:16])
+					fmt.Printf("whitelist/gen: added %s root (%s)\n", u.Host, ca.Fingerprint[:16])
 				}
 			}
 
