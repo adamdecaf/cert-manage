@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
@@ -98,10 +99,19 @@ func (s linuxStore) Backup() error {
 	return file.MirrorDir(s.ca.dir, s.ca.backup)
 }
 
+func (s linuxStore) uname(args ...string) string {
+	out, err := exec.Command("uname", args...).CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
 func (s linuxStore) GetInfo() *Info {
-	// TODO(adam): What does this mean on linux? OS name/version? Kernel version?
-	// How about the bigger unix world?
-	return &Info{}
+	return &Info{
+		Name:    s.uname("-o"), // GNU/Linux,
+		Version: s.uname("-r"), // 4.9.60-linuxkit-aufs
+	}
 }
 
 func (s linuxStore) List() ([]*x509.Certificate, error) {
