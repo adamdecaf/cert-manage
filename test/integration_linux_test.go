@@ -23,7 +23,6 @@ func TestIntegration__list(t *testing.T) {
 
 func TestIntegration__backup(t *testing.T) {
 	cmd := CertManage("backup").Trim()
-	cmd.PendingT(t, "something wonky with 'ca-certificates.backup/.mozilla' dir")
 	cmd.EqualT(t, "Backup completed successfully")
 }
 
