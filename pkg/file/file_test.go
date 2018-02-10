@@ -78,10 +78,13 @@ func TestFile__existsDir(t *testing.T) {
 
 func TestFile__MirrorDir(t *testing.T) {
 	src := "../ui"
-	dst := "../mirror"
+	dst, err := ioutil.TempDir("", "cert-manage-file-test")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Throw in a symlink for fun
-	err := os.Symlink("../ui/ui.go", "../ui/f")
+	err = os.Symlink("./ui.go", "../ui/f")
 	if err != nil {
 		t.Fatal(err.(*os.LinkError).Err)
 	}
@@ -101,10 +104,10 @@ func TestFile__MirrorDir(t *testing.T) {
 		// dirs
 		{"server"},
 		// symlinks
-		{"../mirror/f"},
+		{"f"},
 		//files
-		{"../mirror/ui.go"},
-		{"../mirror/server/server.go"},
+		{"ui.go"},
+		{"server/server.go"},
 	}
 	for _, c := range checks {
 		sp := filepath.Join(src, c.rel)
