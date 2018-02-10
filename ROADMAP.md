@@ -8,11 +8,6 @@
 - Are we using the right cadir values?: https://github.com/adamdecaf/cert-manage/issues/135
   - Drop `backup` field, switch to timestamp'd backups like the other stores
 
-#### Whitelist generation
-
-- "better grouping of CA certs/chains": https://github.com/adamdecaf/cert-manage/issues/124
-  - Take the most-parent root. Ignore intermediates
-
 ### whitelist format as yaml
 
 - https://github.com/adamdecaf/cert-manage/issues/109
