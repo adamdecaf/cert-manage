@@ -182,3 +182,31 @@ func TestFile__CopyFile(t *testing.T) {
 		t.Fatalf("%s and %s didn't match", src, dst)
 	}
 }
+
+func TestFile__copyBrokenSymlink(t *testing.T) {
+	dir, err := ioutil.TempDir("", "cert-manage-file-copyBrokenSymlink")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// create broken symlink
+	src := filepath.Join(dir, "./missing")
+	err = os.Symlink(src, filepath.Join(dir, "./broken"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = CopyFile("./broken", "./out")
+	if !os.IsNotExist(err) { // making sure it's "no such file or directory"
+		t.Error(err)
+	}
+
+	_, err = os.Readlink("./broken")
+	if err == nil {
+		t.Error("expected error")
+	}
+	if !os.IsNotExist(err) {
+		t.Error(err)
+	}
+}
