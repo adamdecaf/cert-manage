@@ -68,10 +68,10 @@ func (c *Cmd) exec() {
 		cmd.Stderr = &stderr
 
 		err := cmd.Run()
-		if err == nil {
-			c.output = stdout.String()
-		} else {
-			c.output = stderr.String()
+		c.output = stdout.String()
+		if err != nil {
+			out := c.output
+			c.output = fmt.Sprintf("Stdout:\n%s\nStderr:\n%s\n", out, stderr.String())
 		}
 		c.err = err
 	})
