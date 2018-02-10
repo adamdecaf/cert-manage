@@ -42,12 +42,23 @@ func chromeLinux() Store {
 	return NssStore("chrome", chromeVersion(), suggestions, found)
 }
 
-// Format like: "Google Chrome 63.0.3239.132"
-func chromeVersion() string {
-	// TODO(adam): Support other OS's (and probably Chromium)
-	out, err := exec.Command(`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, "--version").CombinedOutput()
-	if err != nil {
-		panic(err)
+var (
+	chromeBinaryPaths = []string{
+		// TODO(adam): Support other OS's (and probably Chromium)
+		`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
 	}
-	return strings.Replace(string(out), "Google Chrome", "", -1)
+)
+
+func chromeVersion() string {
+	for i := range chromeBinaryPaths {
+		path := chromeBinaryPaths[i]
+		if file.Exists(path) {
+			// returns "Google Chrome 63.0.3239.132"
+			out, err := exec.Command(path, "--version").CombinedOutput()
+			if err == nil && len(out) > 0 {
+				return strings.Replace(string(out), "Google Chrome", "", -1)
+			}
+		}
+	}
+	return ""
 }
