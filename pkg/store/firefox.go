@@ -35,12 +35,23 @@ func FirefoxStore() Store {
 	return NssStore("firefox", firefoxVersion(), suggestions, found)
 }
 
-// Format Like: "Mozilla Firefox 57.0.3"
-func firefoxVersion() string {
-	// TODO(adam): Support other OS's
-	out, err := exec.Command(`/Applications/Firefox.app/Contents/MacOS/firefox`, "-v").CombinedOutput()
-	if err != nil {
-		panic(err)
+var (
+	firefoxBinaryPaths = []string{
+		// TODO(adam): Support other OS's
+		`/Applications/Firefox.app/Contents/MacOS/firefox`,
 	}
-	return strings.Replace(string(out), "Mozilla Firefox", "", -1)
+)
+
+func firefoxVersion() string {
+	for i := range firefoxBinaryPaths {
+		path := firefoxBinaryPaths[i]
+		if file.Exists(path) {
+			// returns "Mozilla Firefox 57.0.3"
+			out, err := exec.Command(path, "-v").CombinedOutput()
+			if err == nil && len(out) > 0 {
+				return strings.Replace(string(out), "Mozilla Firefox", "", -1)
+			}
+		}
+	}
+	return ""
 }
