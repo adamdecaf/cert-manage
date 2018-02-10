@@ -6,7 +6,7 @@ import (
 )
 
 func TestStoreOpenSSL__paths(t *testing.T) {
-	err := exec.Command("which openssl").Run()
+	err := exec.Command("openssl", "version").Run()
 	if err != nil {
 		t.Skipf("can't find openssl, err=%v", err)
 	}
