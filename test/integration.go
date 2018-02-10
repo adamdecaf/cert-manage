@@ -119,16 +119,23 @@ func (c *Cmd) EqualT(t *testing.T, ans string) {
 	t.Helper()
 	c.exec()
 	if c.output != ans {
-		t.Errorf("ERROR: Output did not match expected answer!\n Output: %q\n Answer: %q", c.output, ans)
+		t.Errorf(`ERROR: Output did not match expected answer!
+Output: %q
+Answer: %q`, c.output, ans)
 	}
 }
 
 func (c *Cmd) String() string {
 	c.exec()
 
-	buf := bytes.NewBufferString(fmt.Sprintf("Command:\n  %s %s\nOutput:\n  %s", c.command, strings.Join(c.args, " "), c.output))
+	buf := bytes.NewBufferString(fmt.Sprintf(`Command:
+  %s %s
+Output:
+  %s`, c.command, strings.Join(c.args, " "), c.output))
 	if c.err != nil {
-		buf.WriteString(fmt.Sprintf("\nError:\n  %v", c.err))
+		buf.WriteString(fmt.Sprintf(`
+Error:
+  %v`, c.err))
 	}
 	return buf.String()
 }
@@ -141,7 +148,8 @@ func (c *Cmd) Success() bool {
 func (c *Cmd) SuccessT(t *testing.T) {
 	t.Helper()
 	if !c.Success() {
-		t.Errorf("Expected no error, got err=%v\n Output: %s", c.err, c.output)
+		t.Errorf(`Expected no error, got err=%v
+ Output: %s`, c.err, c.output)
 	}
 }
 
