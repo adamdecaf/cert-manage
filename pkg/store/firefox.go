@@ -49,7 +49,8 @@ func firefoxVersion() string {
 			// returns "Mozilla Firefox 57.0.3"
 			out, err := exec.Command(path, "-v").CombinedOutput()
 			if err == nil && len(out) > 0 {
-				return strings.Replace(string(out), "Mozilla Firefox", "", -1)
+				r := strings.NewReplacer("Mozilla Firefox", "")
+				return strings.TrimSpace(r.Replace(string(out)))
 			}
 		}
 	}
