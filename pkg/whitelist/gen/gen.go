@@ -41,7 +41,7 @@ func (c *CA) signs(dnsName string) bool {
 		if c.DNSNames[i] == dnsName {
 			return true
 		}
-		// TODO(adam): crude wildcard match, it's probably wrong
+		// crude wildcard match, it's probably wrong
 		if strings.HasPrefix(c.DNSNames[i], "*.") {
 			idx := strings.Index(dnsName, ".")
 			if c.DNSNames[i][1:] == dnsName[idx:] {
@@ -139,8 +139,6 @@ func (c *CAs) findSigners(dnsName string) []*CA {
 type chain []*x509.Certificate
 
 func (c chain) getRoot() *x509.Certificate {
-	// TODO(adam): Should this grab all CA:TRUE certificates instead?
-	// Maybe call it `getCAChain()` then?
 	return c[len(c)-1] // last item in slice
 }
 
