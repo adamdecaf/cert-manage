@@ -90,6 +90,13 @@ func TestFile__MirrorDir(t *testing.T) {
 	}
 	defer os.Remove("../ui/f")
 
+	// Create an invalid symlink
+	err = os.Symlink("./missing", "../ui/bad")
+	if err != nil {
+		t.Fatal(err.(*os.LinkError).Err)
+	}
+	defer os.Remove("../ui/bad")
+
 	// mirror
 	err = MirrorDir(src, dst)
 	if err != nil {
