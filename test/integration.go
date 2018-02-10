@@ -119,7 +119,7 @@ func (c *Cmd) EqualT(t *testing.T, ans string) {
 	t.Helper()
 	c.exec()
 	if c.output != ans {
-		t.Errorf("ERROR: Output did not match expected answer!\n Output: %s\n Answer: %s", c.output, ans)
+		t.Errorf("ERROR: Output did not match expected answer!\n Output: %q\n Answer: %q", c.output, ans)
 	}
 }
 
