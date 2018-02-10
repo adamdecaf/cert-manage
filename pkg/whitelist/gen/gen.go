@@ -217,7 +217,7 @@ func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 			}
 
 			// remind people we're still here
-			if i > 0 && ((i < 1000 && i%100 == 0) || i%1000 == 0) {
+			if i >= 1000 && i%1000 == 0 {
 				fmt.Printf("Processed %d/%d urls\n", i, len(urls))
 			}
 		}(workers, urls[i], i)

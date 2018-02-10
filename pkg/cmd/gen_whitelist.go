@@ -21,7 +21,7 @@ import (
 var (
 	debug = os.Getenv("DEBUG") != ""
 
-	exampleDNSNamesLength = 5
+	exampleDNSNamesLength = 3
 )
 
 func GenerateWhitelist(output string, from, file string) error {
@@ -94,7 +94,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	// prep summary
 	sortCAs(authorities)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "CA\tDNSName Count\tExample DNSNames")
+	fmt.Fprintln(w, "CA\tFingerprint\tCount\tExample DNSNames")
 
 	var acc []*x509.Certificate
 	for i := range authorities {
