@@ -13,10 +13,6 @@
 - "better grouping of CA certs/chains": https://github.com/adamdecaf/cert-manage/issues/124
   - Take the most-parent root. Ignore intermediates
 
-### trust_store_observatory format
-
-- https://github.com/adamdecaf/cert-manage/issues/131
-
 ### whitelist format as yaml
 
 - https://github.com/adamdecaf/cert-manage/issues/109
