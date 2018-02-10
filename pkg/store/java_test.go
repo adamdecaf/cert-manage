@@ -96,6 +96,11 @@ func TestStoreJava__getKeystorePath(t *testing.T) {
 }
 
 func TestStoreJava__info(t *testing.T) {
+	bin, err := ktool.expandSymlink(ktool.javahome)
+	if err != nil || bin == "" {
+		t.Skip("java isn't installed / can't be found")
+	}
+
 	info := JavaStore().GetInfo()
 	if info == nil {
 		t.Fatal("nil Info")
