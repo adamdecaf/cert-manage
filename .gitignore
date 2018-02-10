@@ -18,3 +18,5 @@ build/*/*.class
 
 *.yaml
 !testdata/*.yaml
+*.json
+!testdata/*.json

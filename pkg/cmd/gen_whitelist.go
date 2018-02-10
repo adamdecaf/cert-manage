@@ -13,6 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/store"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist/gen"
 )
@@ -20,7 +21,7 @@ import (
 var (
 	debug = os.Getenv("DEBUG") != ""
 
-	exampleDNSNamesLength = 5
+	exampleDNSNamesLength = 3
 )
 
 func GenerateWhitelist(output string, from, file string) error {
@@ -37,6 +38,8 @@ func GenerateWhitelist(output string, from, file string) error {
 	uacc := make(chan []*url.URL)
 	eacc := make(chan error)
 
+	pool := x509.NewCertPool()
+
 	choices := getChoices(from, file)
 	debugLog("running %d choices\n", len(choices))
 	for i := range choices {
@@ -45,18 +48,21 @@ func GenerateWhitelist(output string, from, file string) error {
 		case "browser", "browsers":
 			debugLog("starting browser url retrieval")
 			go accumulateUrls(gen.FromAllBrowsers, uacc, eacc)
+			addCertsToPool(pool, gen.BrowserCAs)
 
 		case "file":
 			debugLog("grabbing urls from %s", file)
 			go accumulateUrls(func() ([]*url.URL, error) {
 				return gen.FromFile(file)
 			}, uacc, eacc)
+			addCertsToPool(pool, store.Platform().List)
 
 		default:
 			debugLog("starting %s url retrieval", opt)
 			go accumulateUrls(func() ([]*url.URL, error) {
 				return gen.FromBrowser(opt)
 			}, uacc, eacc)
+			addCertsToPoolForApp(pool, opt)
 		}
 	}
 
@@ -80,7 +86,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	// Generate whitelist and write to file
-	authorities, err := gen.FindCAs(accum)
+	authorities, err := gen.FindCAs(accum, pool)
 	if err != nil {
 		return err
 	}
@@ -88,7 +94,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	// prep summary
 	sortCAs(authorities)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "CA\tDNSName Count\tExample DNSNames")
+	fmt.Fprintln(w, "CA\tFingerprint\tCount\tExample DNSNames")
 
 	var acc []*x509.Certificate
 	for i := range authorities {
@@ -132,6 +138,23 @@ func accumulateUrls(f func() ([]*url.URL, error), u chan []*url.URL, e chan erro
 		debugLog("adding %d urls", len(urls))
 		u <- urls
 	}
+}
+
+func addCertsToPool(pool *x509.CertPool, f func() ([]*x509.Certificate, error)) {
+	certs, err := f()
+	if err == nil {
+		for i := range certs {
+			pool.AddCert(certs[i])
+		}
+	}
+}
+
+func addCertsToPoolForApp(pool *x509.CertPool, appName string) {
+	st, err := store.ForApp(appName)
+	if err != nil {
+		st = store.Platform() // try and give something as a root store
+	}
+	addCertsToPool(pool, st.List)
 }
 
 func debugLog(msg string, args ...interface{}) {
