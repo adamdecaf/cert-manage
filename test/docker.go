@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	debug = os.Getenv("DEBUG") != ""
+	debug  = os.Getenv("DEBUG") != ""
+	mocked = os.Getenv("MOCKED") != ""
 )
 
 type dockerfile struct {
@@ -223,6 +224,10 @@ func (d *dockerfile) enabled() bool {
 }
 
 func IsDockerEnabled() bool {
+	if mocked {
+		return false
+	}
+
 	out, err := exec.Command("docker", "ps").CombinedOutput()
 	if err != nil || bytes.Contains(out, []byte("Cannot connect to the Docker daemon")) {
 		return false

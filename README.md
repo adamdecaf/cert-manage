@@ -123,6 +123,8 @@ I'm always looking for new contributors and anything from help with docs, bugfix
 
 You can build the sources with `make build`. Run tests with `make test`. Integration tests require docker installed and can be ran via `make ci`.
 
+Note: Many tests will run if docker is enabled/setup. To disable this run commands with `MOCKED=true` (e.g. `MOCKED=true make test`)
+
 ## Related projects
 
 - [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
