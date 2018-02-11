@@ -77,7 +77,7 @@ func MirrorDir(src, dst string) error {
 		if item.Mode()&os.ModeSymlink != 0 {
 			var final string
 			final, err = os.Readlink(s)
-			if err != nil {
+			if err != nil && !os.IsNotExist(err) {
 				return err
 			}
 			err = os.Symlink(final, d)

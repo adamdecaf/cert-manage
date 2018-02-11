@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	debug = os.Getenv("DEBUG") != ""
+	debug  = os.Getenv("DEBUG") != ""
+	mocked = os.Getenv("MOCKED") != ""
 )
 
 type dockerfile struct {
@@ -219,9 +220,20 @@ func (d *dockerfile) prep() {
 }
 
 func (d *dockerfile) enabled() bool {
+	return IsDockerEnabled()
+}
+
+func IsDockerEnabled() bool {
+	if mocked {
+		return false
+	}
+
 	out, err := exec.Command("docker", "ps").CombinedOutput()
 	if err != nil || bytes.Contains(out, []byte("Cannot connect to the Docker daemon")) {
 		return false
 	}
-	return true
+
+	// Docker creates '.dockerenv' in the FS root, so if we see that
+	// declare docker is disabled (avoid docker-in-docker)
+	return !file.Exists("/.dockerenv")
 }

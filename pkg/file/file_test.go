@@ -78,14 +78,24 @@ func TestFile__existsDir(t *testing.T) {
 
 func TestFile__MirrorDir(t *testing.T) {
 	src := "../ui"
-	dst := "../mirror"
+	dst, err := ioutil.TempDir("", "cert-manage-file-test")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Throw in a symlink for fun
-	err := os.Symlink("../ui/ui.go", "../ui/f")
+	err = os.Symlink("./ui.go", "../ui/f")
 	if err != nil {
 		t.Fatal(err.(*os.LinkError).Err)
 	}
 	defer os.Remove("../ui/f")
+
+	// Create an invalid symlink
+	err = os.Symlink("./missing", "../ui/bad")
+	if err != nil {
+		t.Fatal(err.(*os.LinkError).Err)
+	}
+	defer os.Remove("../ui/bad")
 
 	// mirror
 	err = MirrorDir(src, dst)
@@ -101,10 +111,10 @@ func TestFile__MirrorDir(t *testing.T) {
 		// dirs
 		{"server"},
 		// symlinks
-		{"../mirror/f"},
+		{"f"},
 		//files
-		{"../mirror/ui.go"},
-		{"../mirror/server/server.go"},
+		{"ui.go"},
+		{"server/server.go"},
 	}
 	for _, c := range checks {
 		sp := filepath.Join(src, c.rel)
@@ -170,5 +180,33 @@ func TestFile__CopyFile(t *testing.T) {
 	}
 	if string(c1) != string(c2) {
 		t.Fatalf("%s and %s didn't match", src, dst)
+	}
+}
+
+func TestFile__copyBrokenSymlink(t *testing.T) {
+	dir, err := ioutil.TempDir("", "cert-manage-file-copyBrokenSymlink")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// create broken symlink
+	src := filepath.Join(dir, "./missing")
+	err = os.Symlink(src, filepath.Join(dir, "./broken"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = CopyFile("./broken", "./out")
+	if !os.IsNotExist(err) { // making sure it's "no such file or directory"
+		t.Error(err)
+	}
+
+	_, err = os.Readlink("./broken")
+	if err == nil {
+		t.Error("expected error")
+	}
+	if !os.IsNotExist(err) {
+		t.Error(err)
 	}
 }
