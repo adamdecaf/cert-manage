@@ -34,7 +34,7 @@ func linuxSuite(t *testing.T, img *dockerfile, config cfg) {
 	// Backup
 	img.CertManage("backup")
 	img.RunSplit(fmt.Sprintf("ls -1 /usr/share/ca-certificates/* | wc -l | grep %s", config.total))
-	img.RunSplit(fmt.Sprintf("ls -1 /usr/share/ca-certificates.backup/* | wc -l | grep %s", config.total))
+	img.RunSplit("ls -1 ~/.cert-manage/linux | wc -l | grep 1")
 	// Whitelist
 	img.CertManage("whitelist", "-file", "/whitelist.json")
 	img.CertManage("list", "-count", "|", "grep", config.after)

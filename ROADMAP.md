@@ -5,8 +5,6 @@
 #### Get linux support 100%
 
 - `escalate via sudo/su if needed and able`: https://github.com/adamdecaf/cert-manage/issues/134
-- Are we using the right cadir values?: https://github.com/adamdecaf/cert-manage/issues/135
-  - Drop `backup` field, switch to timestamp'd backups like the other stores
 
 ### 0.2.0
 

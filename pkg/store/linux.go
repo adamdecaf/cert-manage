@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
@@ -27,9 +28,6 @@ type cadir struct {
 
 	// the filepath containing all certs (optional)
 	all string
-
-	// where to save a backup of all certs
-	backup string
 }
 
 func (ca *cadir) empty() bool {
@@ -45,12 +43,13 @@ var (
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
 		{
-			add:    "/usr/local/share/ca-certificates",
-			dir:    "/usr/share/ca-certificates",
-			all:    "/etc/ssl/certs/ca-certificates.crt",
-			backup: "/usr/share/ca-certificates.backup",
+			add: "/usr/local/share/ca-certificates",
+			dir: "/usr/share/ca-certificates",
+			all: "/etc/ssl/certs/ca-certificates.crt",
 		},
 	}
+
+	linuxBackupDir = "linux"
 )
 
 type linuxStore struct {
@@ -96,7 +95,11 @@ func (s linuxStore) Add(certs []*x509.Certificate) error {
 // Backup takes a snapshot of the current set of CA certificates and
 // saves them to another location. It will overwrite any previous backup.
 func (s linuxStore) Backup() error {
-	return file.MirrorDir(s.ca.dir, s.ca.backup)
+	dir, err := getCertManageDir(fmt.Sprintf("%s/%d", linuxBackupDir, time.Now().Unix()))
+	if err != nil {
+		return err
+	}
+	return file.MirrorDir(s.ca.dir, dir)
 }
 
 func (s linuxStore) uname(args ...string) string {
@@ -181,9 +184,18 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s linuxStore) Restore(where string) error {
-	if !file.Exists(s.ca.backup) {
-		return errors.New("No backup directory exists")
+	dir, err := getCertManageDir(linuxBackupDir)
+	if err != nil {
+		return err
 	}
+	dir, err = getLatestBackup(dir)
+	if err != nil {
+		return err
+	}
+	if debug {
+		fmt.Printf("store/linux: restoring from backup dir %s\n", dir)
+	}
+
 	// Remove the current dir
 	if file.Exists(s.ca.dir) {
 		err := os.RemoveAll(s.ca.dir)
@@ -193,7 +205,7 @@ func (s linuxStore) Restore(where string) error {
 	}
 
 	// Restore
-	err := file.MirrorDir(s.ca.backup, s.ca.dir)
+	err = file.MirrorDir(dir, s.ca.dir)
 	if err != nil {
 		return err
 	}
