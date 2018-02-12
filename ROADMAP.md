@@ -8,11 +8,6 @@
 - Are we using the right cadir values?: https://github.com/adamdecaf/cert-manage/issues/135
   - Drop `backup` field, switch to timestamp'd backups like the other stores
 
-### whitelist format as yaml
-
-- https://github.com/adamdecaf/cert-manage/issues/109
-
-
 ### 0.2.0
 
 store/java: accept -file
