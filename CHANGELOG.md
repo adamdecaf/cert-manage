@@ -1,5 +1,6 @@
-## 0.2.0 (Unreleased)
+## Unreleased
 
+- Improve stringified certificate names
 
 ## 0.1.0 (2018-02-13)
 
