@@ -107,6 +107,23 @@ Certificate:
         ...
 ```
 
+### URL
+
+`cert-manage` can list certificates from a given URL. Supported formats are PEM and [certdata.txt](https://wiki.mozilla.org/CA/Included_Certificates)
+
+```
+$ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+Certificate
+  SHA1 Fingerprint - b1bc968bd4f49d622aa89a81f2150152a41d829c
+  SHA256 Fingerprint - ebd41040e4bb3ec742c9e381d31ef2a41a48b6685c96e7cef3c1df6cd4331c99
+  SerialNumber: 4835703278459707669005204
+  Subject: GlobalSign Root CA
+  Issuer: GlobalSign Root CA
+  NotBefore - 1998-09-01 12:00:00 +0000 UTC, NotAfter - 2028-01-28 12:00:00 +0000 UTC
+  IsCA - true
+...
+```
+
 ### TLS obsvervatory
 
 `cert-manage` supports `-format observatory` which outputs certificates in a format supported by [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory).
