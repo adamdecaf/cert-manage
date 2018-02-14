@@ -139,7 +139,6 @@ func (shortPrinter) close() {}
 func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Fprintf(w, "Certificate\n")
-		fmt.Fprintf(w, "  SHA1 Fingerprint - %s\n", certutil.GetHexSHA1Fingerprint(*certs[i]))
 		fmt.Fprintf(w, "  SHA256 Fingerprint - %s\n", certutil.GetHexSHA256Fingerprint(*certs[i]))
 		fmt.Fprintf(w, "  SerialNumber: %d\n", certs[i].SerialNumber)
 		fmt.Fprintf(w, "  Subject: %s\n", certutil.StringifyPKIXName(certs[i].Subject))

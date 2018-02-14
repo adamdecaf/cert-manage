@@ -30,7 +30,6 @@ Download the [latest release](https://github.com/adamdecaf/cert-manage/releases)
 $ cert-manage list
 $ cert-manage list -app java
 Certificate
-  SHA1 Fingerprint - b3eac44776c9c81ceaf29d95b6cca0081b67ec9d
   SHA256 Fingerprint - 3a43e220fe7f3ea9653d1e21742eac2b75c20fd8980305bc502caf8c2d9b41a1
   SerialNumber: 246153180488710619953605749449532672687
   Subject: VeriSign, Inc., Class 2 Public Primary Certification Authority - G2
