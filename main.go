@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -43,6 +42,9 @@ var (
 	// Output
 	flagCount  = fs.Bool("count", false, "")
 	flagFormat = fs.String("format", ui.DefaultFormat(), "")
+
+	// internal override to show help text
+	callForHelp = false
 )
 
 func init() {
@@ -95,7 +97,7 @@ DEBUGGING
 }
 
 func calledHelp() bool {
-	return *flagHelp1 || *flagHelp2 || *flagHelp3
+	return callForHelp || *flagHelp1 || *flagHelp2 || *flagHelp3
 }
 
 type command struct {
@@ -145,14 +147,16 @@ func main() {
 	commands := make(map[string]*command, 0)
 	commands["add"] = &command{
 		fn: func() error {
-			if *flagFormat == "" {
-				return errors.New("No -file specified")
+			if *flagFile == "" {
+				callForHelp = true
+				return nil
 			}
 			return cmd.AddCertsFromFile(*flagFile)
 		},
 		appfn: func(a string) error {
-			if *flagFormat == "" {
-				return errors.New("No -file specified")
+			if *flagFile == "" {
+				callForHelp = true
+				return nil
 			}
 			return cmd.AddCertsToAppFromFile(a, *flagFile)
 		},
@@ -185,6 +189,10 @@ APPS
 	}
 	commands["gen-whitelist"] = &command{
 		fn: func() error {
+			if *flagOutFile == "" || (*flagFrom == "" && *flagFile == "") {
+				callForHelp = true
+				return nil
+			}
 			return cmd.GenerateWhitelist(*flagOutFile, *flagFrom, *flagFile)
 		},
 		help: fmt.Sprintf(`Usage: cert-manage gen-whitelist -out <where> [-file <file>] [-from <type>]
@@ -276,13 +284,15 @@ APPS
 	commands["whitelist"] = &command{
 		fn: func() error {
 			if *flagFile == "" {
-				return errors.New("no -file specified")
+				callForHelp = true
+				return nil
 			}
 			return cmd.WhitelistForPlatform(*flagFile)
 		},
 		appfn: func(a string) error {
 			if *flagFile == "" {
-				return errors.New("no -file specified")
+				callForHelp = true
+				return nil
 			}
 			return cmd.WhitelistForApp(a, *flagFile)
 		},
@@ -311,12 +321,8 @@ APPS
 
 	// Run whatever function we've got here..
 	c, ok := commands[strings.ToLower(os.Args[1])]
-	if !ok { // sub-command wasn't found
+	if !ok || calledHelp() { // sub-command wasn't found
 		fs.Usage()
-		os.Exit(1)
-	}
-	if calledHelp() {
-		fmt.Println(c.help)
 		os.Exit(1)
 	}
 
@@ -332,6 +338,12 @@ APPS
 	err := c.fn()
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
+		os.Exit(1)
+	}
+
+	// some flags can set callForHelp, so let's check again
+	if calledHelp() {
+		fmt.Println(c.help)
 		os.Exit(1)
 	}
 }
