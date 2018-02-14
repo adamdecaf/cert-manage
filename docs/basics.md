@@ -1,6 +1,4 @@
-# Features
-
-### List
+## List
 
 The cli sub-command `list` will output a list of certificates installed (and trusted) in the certificate store. This option defaults to the platform (Linux, OSX, or Windows), but can be switched to an application via the `-app` flag.
 
@@ -99,39 +97,7 @@ Certificate:
         ...
 ```
 
-### Whitelisting
-
-##### Configuration
-
-Whitelists represent an operation which disables certificate trust in a certificate store. The filters presented for a whitelist are:
-
-- `Fingerprint`: The SHA256 fingerprint of a certificate. This value will be unique across certificates given their contents are unique.
-
-Whitelists are stored in json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
-
-```json
-{
-  "Fingerprints": [
-    "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
-  ]
-}
-```
-
-To apply a whitelist against a platform:
-
-```
-$ cert-manage whitelist -file wh.json
-Whitelist completed successfully
-```
-
-You can also apply a whitelist against an application's certificate store:
-
-```
-$ cert-manage whitelist -file wh.json -app java
-Whitelist completed successfully
-```
-
-### Backup and Restore
+## Backup and Restore
 
 It's important to be able to rollback changes to your certificate store. These changes can be dangerous if done incorrectly as many websites you visit might partially quit loading.
 

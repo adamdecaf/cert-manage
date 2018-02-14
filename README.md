@@ -1,20 +1,29 @@
 # cert-manage
 
-**Note** This tool is still under its initial development. Expect things to break and change.
+Every computer connected to the internet today has a series of "certificate stores" contained within it. These stores are crucial to encrypted communication everywhere, but their state often drifts between providers and can many times extend trust further than users expect.
 
-Every computer connected to the internet today has a series of "certificate stores" contained within it. Those stores are crucial to encrypted communication everywhere. There's a problem however in that the state of these isn't great.
+The underlying [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) technology doesn't offer solutions for fine grained management, active countermeasures and misuse prevention for end-user machines. Any system you buy will come loaded with trust of countless CA's, which means that your encrypted connections are at risk of eavesdropping or misrepresentation if any CA creates privacy-destructive or nefarious certificates. Read up on the [background](#background) if you're interested.
 
-The underlying [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) technology leaves a lot lacking in terms of management, pro-active countermeasures and misuse. Any system you buy will come pre-loaded with trust of countless CA's, which means that your encrypted connections are at risk of eavesdropping even if only one CA creates privacy-destructive certificates. Read up on the [background](#background) if you're interested.
+Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users easier control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
 
-Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users straightforward control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
+## Features
+
+`cert-manage` offers a few features currently: List, Whitelisting and Backup/Restore. These are explained as follows:
+
+- [List](docs/basics.md#list)
+  - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
+- [Whitelist](docs/whitelists.md#whitelisting)
+  - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
+- [Backup and Restore](docs/features.md#backup-and-restore)
+  - Capture and revert the status of CA trust in a platform or application.
+- [Whitelist Generation](docs/whitelists.md#generating-whitelists)
+  - Generate whitelists from browser history or flat files.
 
 ## Install / Usage
 
-Once there are released versions available you can download them from the "Releases" tab of this repository. If you wish to try cert-manage the best option is to pull down the source code and build it for yourself.
+Download the [latest release](https://github.com/adamdecaf/cert-manage/releases) or build from source with `go get github.com/adamdecaf/cert-manage`
 
 ```
-$ go get github.com/adamdecaf/cert-manage
-
 # List certificates trusted on your system (or app)
 $ cert-manage list
 $ cert-manage list -app java
@@ -39,18 +48,7 @@ $ cert-manage backup
 $ cert-manage restore [-file <path>]
 ```
 
-## Features
-
-`cert-manage` offers a few features currently: List, Whitelisting and Backup/Restore. These are explained as follows:
-
-- [List](docs/features.md#list)
-  - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
-- [Whitelist](docs/features.md#whitelisting)
-  - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
-- [Backup and Restore](docs/features.md#backup-and-restore)
-  - Capture and revert the status of CA trust in a platform or application.
-
-#### Support
+## Platform / Application Support
 
 `cert-manage` abstracts over the differences in Certificate stores for the following platforms:
 
@@ -63,8 +61,8 @@ Also, `cert-manage` abstracts over the following application's certificate store
 
 | Level | Application(s) |
 |-----|-----|
-| Full Support | None |
-| Partial Support | Chrome, Firefox (Linux/OSX), Java |
+| Full Support | Chrome, Firefox, Java |
+| Partial Support | OpenSSL |
 
 ## Background
 
@@ -117,7 +115,7 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
 - [Visa](https://groups.google.com/d/msg/mozilla.dev.security.policy/NNV3zvX43vE/rae9kNkWAgAJ)
 
 
-## Building / Developing
+## Developing / Contributing
 
 I'm always looking for new contributors and anything from help with docs, bugfixes or new certificate store additions is gladly appreciated. If you're interested in contributing then pull down the source code and submit some PR's or join `##cert-manage` on the freenode irc network.
 
@@ -141,7 +139,3 @@ Note: Many tests will run if docker is enabled/setup. To disable this run comman
 - [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
 - [mozilla.dev.security.policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
 - [TLS Working Group](https://datatracker.ietf.org/wg/tls/charter/)
-
-## Other x509 Related Articles
-
-- [How I tricked Symantec with a Fake Private Key](https://blog.hboeck.de/archives/888-How-I-tricked-Symantec-with-a-Fake-Private-Key.html)
