@@ -25,7 +25,7 @@ func TestCertutil__StringifyPKIXName(t *testing.T) {
 		out := StringifyPKIXName(certs[i].Subject)
 		ans := answers[i]
 		if out != ans {
-			t.Errorf("idx %d, got '%s'", i, out)
+			t.Errorf("idx %d, got %q", i, out)
 		}
 	}
 }

@@ -14,7 +14,7 @@ func TestCertutil__sha1Fingerprint(t *testing.T) {
 	}
 	fp := GetHexSHA1Fingerprint(*certs[0])
 	if fp != "7e1874a98faa5d6d2f506a8920ff22fbd16652d9" {
-		t.Fatalf("fp='%s' didn't match", fp)
+		t.Fatalf("fp=%q didn't match", fp)
 	}
 
 	// verify it's what openssl gets too
@@ -28,7 +28,7 @@ func TestCertutil__sha256Fingerprint(t *testing.T) {
 	}
 	fp := GetHexSHA256Fingerprint(*certs[0])
 	if fp != "05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030" {
-		t.Fatalf("fp='%s' didn't match", fp)
+		t.Fatalf("fp=%q didn't match", fp)
 	}
 
 	// verify with openssl

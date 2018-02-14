@@ -43,9 +43,9 @@ func execSudoCopy(src, dst string) error {
 	err := cmd.Run()
 	if err != nil {
 		if stderr.Len() > 0 {
-			return fmt.Errorf("error copying file from '%s' to '%s', err=%v, stderr=%s", src, dst, err, stderr.String())
+			return fmt.Errorf("error copying file from %q to %q, err=%v, stderr=%s", src, dst, err, stderr.String())
 		}
-		return fmt.Errorf("error copying file from '%s' to '%s', err=%v", src, dst, err)
+		return fmt.Errorf("error copying file from %q to %q, err=%v", src, dst, err)
 	}
 	return nil
 }

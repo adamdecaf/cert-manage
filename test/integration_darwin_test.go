@@ -16,7 +16,7 @@ func TestIntegration__date(t *testing.T) {
 Output:
   Thu Jan  1 00:00:00 UTC 1970`
 	if cmd.String() != ans {
-		t.Errorf("cmd.String() = '%s'", cmd.String())
+		t.Errorf("cmd.String() = %q", cmd.String())
 	}
 }
 

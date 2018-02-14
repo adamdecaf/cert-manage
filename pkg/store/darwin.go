@@ -85,7 +85,7 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 		cmd := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", loginKeychain, path)
 		out, err := cmd.CombinedOutput()
 		if err != nil && debug {
-			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
 			fmt.Printf("Output was: %s\n", string(out))
 		}
 	}
@@ -227,7 +227,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	cmd := exec.Command("/usr/bin/security", "verify-cert", "-L", "-l", "-c", tmp.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil && debug {
-		fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+		fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
 		fmt.Printf("Output was: %s\n", string(out))
 	}
 	return err == nil
@@ -245,7 +245,7 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if debug {
-			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
 			fmt.Printf("Output was: %s\n", string(out))
 		}
 		return nil, err
@@ -330,7 +330,7 @@ func trustSettingsExport() (*os.File, error) {
 	// be in the case when they keychain isn't setup (or a very fresh install, e.g. CI)
 	if err != nil {
 		if debug {
-			fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
 			fmt.Printf("Output was: %s\n", string(out))
 			fmt.Printf("Error: %s\n", err.Error())
 		}
@@ -397,7 +397,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// 			output := string(out)
 
 	// 			fmt.Printf("ERROR: during remove-trusted-cert (fingerprint=%s), error=%v\n", fp, err)
-	// 			fmt.Printf("  Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+	// 			fmt.Printf("  Command ran: %q\n", strings.Join(cmd.Args, " "))
 	// 			fmt.Printf("  Output was: %s\n", output)
 
 	// 			if strings.Contains(output, "could not be found") {
@@ -464,7 +464,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 			if err != nil {
 				output := string(out)
 				fmt.Printf("ERROR: during removing darwin certs, error=%v\n", err)
-				fmt.Printf("  Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+				fmt.Printf("  Command ran: %q\n", strings.Join(cmd.Args, " "))
 				fmt.Printf("  Output was: %s\n", output)
 
 				if strings.Contains(output, "could not be found") {
@@ -554,7 +554,7 @@ func (s darwinStore) Restore(where string) error {
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				if debug {
-					fmt.Printf("Command ran: '%s'\n", strings.Join(cmd.Args, " "))
+					fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
 					fmt.Printf("Output was: %s\n", string(out))
 				}
 				if strings.Contains(string(out), "Unable to delete certificate matching") {

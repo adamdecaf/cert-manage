@@ -99,7 +99,7 @@ func (c *Cmd) CmpIntF(t *testing.T, f func(int) bool) {
 
 	n, err := strconv.Atoi(c.output)
 	if err != nil {
-		t.Errorf("ERROR: converting '%s' to integer failed, err=%v", c.output, err)
+		t.Errorf("ERROR: converting %q to integer failed, err=%v", c.output, err)
 	}
 	if !f(n) {
 		t.Errorf("ERROR: got %d", n)

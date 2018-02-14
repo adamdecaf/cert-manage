@@ -59,7 +59,7 @@ func ListCertificates(certs []*x509.Certificate, cfg *Config) error {
 
 	fn, ok := uiOptions[strings.ToLower(cfg.UI)]
 	if !ok {
-		return fmt.Errorf("Unknown ui '%s'", cfg.UI)
+		return fmt.Errorf("Unknown ui %q", cfg.UI)
 	}
 	return fn(certs, cfg)
 }
