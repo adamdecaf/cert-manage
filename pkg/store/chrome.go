@@ -50,7 +50,8 @@ func chromeVersion() string {
 			// returns "Google Chrome 63.0.3239.132"
 			out, err := exec.Command(path, "--version").CombinedOutput()
 			if err == nil && len(out) > 0 {
-				return strings.Replace(string(out), "Google Chrome", "", -1)
+				r := strings.NewReplacer("Google Chrome", "")
+				return strings.TrimSpace(r.Replace(string(out)))
 			}
 		}
 	}
