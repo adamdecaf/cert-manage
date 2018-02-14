@@ -79,7 +79,7 @@ func runTest(t *testing.T, tag string, stable bool) {
 		"-v", fmt.Sprintf("%s:%s", dir, workdir),
 		"-w", workdir,
 		image,
-		"go", "test", "-v", "./...",
+		"go", "test", "./...",
 	}
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {

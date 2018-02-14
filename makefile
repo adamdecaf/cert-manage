@@ -26,8 +26,6 @@ check:
 test: check dist
 	go test ./...
 
-ci: check dist test
-
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage
 	@chmod +x cert-manage

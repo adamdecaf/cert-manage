@@ -20,7 +20,7 @@ matrix:
       go: go1.10rc1
 
 script:
-  - make ci
+  - make test
 
 services:
   - docker
