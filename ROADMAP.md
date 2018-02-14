@@ -1,11 +1,5 @@
 ## cert-manage Roadmap
 
-### 0.1.0
-
-#### Get linux support 100%
-
-- `escalate via sudo/su if needed and able`: https://github.com/adamdecaf/cert-manage/issues/134
-
 ### 0.2.0
 
 store/java: accept -file
