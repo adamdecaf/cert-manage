@@ -13,18 +13,13 @@ var (
 )
 
 // TODO(adam): Replace with RDSSquence.String() in g1.10
-func StringifyPKIXName(name pkix.Name) string {
+func StringifyPKIXName(name pkix.Name) (out string) {
 	if len(name.OrganizationalUnit) > 0 {
-		return cleanPKIXName(fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0]))
+		out = fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])
 	}
 
-	out := cleanPKIXName(strings.Join(name.Organization, " "))
-	if len(out) > 0 {
-		return out
-	}
-
-	if len(name.Names) == 0 {
-		return ""
+	if out == "" {
+		out = strings.Join(name.Organization, " ")
 	}
 
 	for i := range name.Names {
@@ -36,8 +31,7 @@ func StringifyPKIXName(name pkix.Name) string {
 		}
 	}
 
-	return ""
-
+	return cleanPKIXName(out)
 }
 
 // Remove annoying characters from PKIX names

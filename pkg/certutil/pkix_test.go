@@ -14,11 +14,11 @@ func TestCertutil__StringifyPKIXName(t *testing.T) {
 	}
 
 	answers := map[int]string{
-		0: "Entrust.net, www.entrust.net/CPS_2048 incorp. by ref. (limits liab.)",
-		1: "Entrust, Inc., See www.entrust.net/legal-terms",
-		2: "Entrust, Inc., See www.entrust.net/legal-terms",
-		3: "Entrust, Inc., www.entrust.net/CPS is incorporated by reference",
-		4: "AS Sertifitseerimiskeskus",
+		0: "Entrust.net Certification Authority (2048)",
+		1: "Entrust Root Certification Authority - G2",
+		2: "Entrust Root Certification Authority - EC1",
+		3: "Entrust Root Certification Authority",
+		4: "EE Certification Centre Root CA",
 	}
 
 	for i := range certs {
