@@ -36,7 +36,6 @@ type CA struct {
 // signs checks if a given
 func (c *CA) signs(dnsName string) bool {
 	dnsName = strings.ToLower(dnsName)
-	// TODO(adam): In go1.10 we can check if the cert is even allowed to sign dnsName
 	for i := range c.DNSNames {
 		if c.DNSNames[i] == dnsName {
 			return true
