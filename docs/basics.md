@@ -5,7 +5,7 @@ The cli sub-command `list` will output a list of certificates installed (and tru
 Show certificates installed in the platform:
 
 ```
-$ ./cert-manage list
+$ cert-manage list
 Certificate
   SHA1 Fingerprint - eab040689a0d805b5d6fd654fc168cff00b78be3
   SHA256 Fingerprint - 1a5174980a294a528a110726d5855650266c48d9883bea692b67b6d726da98c5
@@ -22,7 +22,7 @@ Certificate
 Show certificates installed for an application
 
 ```
-$ ./cert-manage list -app firefox
+$ cert-manage list -app firefox
 Certificate
   SHA1 Fingerprint - eab040689a0d805b5d6fd654fc168cff00b78be3
   SHA256 Fingerprint - 1a5174980a294a528a110726d5855650266c48d9883bea692b67b6d726da98c5
@@ -102,7 +102,7 @@ Certificate:
 `cert-manage` supports `-format observatory` which outputs certificates in a format supported by [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory).
 
 ```
-$ ./cert-manage list -format observatory -app chrome
+$ cert-manage list -format observatory -app chrome
 platform: Darwin (OSX)
 version: 10.13.3
 url: ""
