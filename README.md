@@ -10,6 +10,8 @@ Trust with another party needs to be earned, not defaulted. `cert-manage` is a t
 
 `cert-manage` offers a few features currently: List, Whitelisting and Backup/Restore. These are explained as follows:
 
+- [Add](docs/basics.md#add)
+  - Add certificates to a store
 - [List](docs/basics.md#list)
   - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
 - [Whitelist](docs/whitelists.md#whitelisting)

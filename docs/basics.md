@@ -1,3 +1,13 @@
+## Add
+
+`cert-manage` can add certificates into a given trust store with the `add` sub command.
+
+```
+$ cert-manage add -file cert.pem
+
+$ cert-manage add -file cert.pem -app java
+```
+
 ## List
 
 The cli sub-command `list` will output a list of certificates installed (and trusted) in the certificate store. This option defaults to the platform (Linux, OSX, or Windows), but can be switched to an application via the `-app` flag.
