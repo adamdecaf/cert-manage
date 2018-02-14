@@ -28,6 +28,9 @@ type cadir struct {
 
 	// the filepath containing all certs (optional)
 	all string
+
+	// reload/refresh command
+	refresh string
 }
 
 func (ca *cadir) empty() bool {
@@ -43,9 +46,10 @@ var (
 	cadirs = []cadir{
 		// Debian/Ubuntu/Gentoo/etc..
 		{
-			add: "/usr/local/share/ca-certificates",
-			dir: "/usr/share/ca-certificates",
-			all: "/etc/ssl/certs/ca-certificates.crt",
+			add:     "/usr/local/share/ca-certificates",
+			dir:     "/usr/share/ca-certificates",
+			all:     "/etc/ssl/certs/ca-certificates.crt",
+			refresh: "/usr/sbin/update-ca-certificates",
 		},
 	}
 
@@ -87,7 +91,7 @@ func (s linuxStore) Add(certs []*x509.Certificate) error {
 	}
 
 	if len(certs) > 0 {
-		return bundleCerts()
+		return s.rebundleCerts()
 	}
 	return nil
 }
@@ -180,7 +184,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	return bundleCerts()
+	return s.rebundleCerts()
 }
 
 func (s linuxStore) Restore(where string) error {
@@ -209,14 +213,18 @@ func (s linuxStore) Restore(where string) error {
 	if err != nil {
 		return err
 	}
-	return bundleCerts()
+	return s.rebundleCerts()
 }
 
 // Update the certs trust system-wide
-func bundleCerts() error {
+func (s linuxStore) rebundleCerts() error {
 	var out bytes.Buffer
-	// TOOD(adam): Check for sudo/su
-	cmd := exec.Command("/usr/sbin/update-ca-certificates")
+
+	cmd := exec.Command("sudo", s.ca.refresh)
+	if os.Getuid() == 0 {
+		// drop sudo if we're already root
+		cmd = exec.Command(s.ca.refresh)
+	}
 	cmd.Stdout = &out
 
 	if debug {
