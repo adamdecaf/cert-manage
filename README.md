@@ -14,7 +14,7 @@ Trust with another party needs to be earned, not defaulted. `cert-manage` is a t
   - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
 - [Whitelist](docs/whitelists.md#whitelisting)
   - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
-- [Backup and Restore](docs/features.md#backup-and-restore)
+- [Backup and Restore](docs/basics.md#backup-and-restore)
   - Capture and revert the status of CA trust in a platform or application.
 - [Whitelist Generation](docs/whitelists.md#generating-whitelists)
   - Generate whitelists from browser history or flat files.
