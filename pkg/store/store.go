@@ -95,7 +95,7 @@ func GetApps() []string {
 func ForApp(app string) (Store, error) {
 	s, ok := appStores[strings.ToLower(app)]
 	if !ok {
-		return nil, fmt.Errorf("application '%s' not found", app)
+		return nil, fmt.Errorf("application %q not found", app)
 	}
 	return s, nil
 }

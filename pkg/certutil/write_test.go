@@ -45,7 +45,7 @@ func TestCertutilPEM__write(t *testing.T) {
 		f1 := GetHexSHA256Fingerprint(*c1[i])
 		f2 := GetHexSHA256Fingerprint(*c2[i])
 		if f1 != f2 {
-			t.Fatalf("f1='%s' != f2='%s'", f1, f2)
+			t.Fatalf("f1=%q != f2=%q", f1, f2)
 		}
 	}
 }

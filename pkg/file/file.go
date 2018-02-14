@@ -147,12 +147,12 @@ func SudoCopyFile(src, dst string) error {
 		return err
 	}
 	if ssrc.Size() == 0 {
-		return fmt.Errorf("'%s' appears to be an empty file", src)
+		return fmt.Errorf("%q appears to be an empty file", src)
 	}
 	// Paths of just / or C:\
 	// Clean(p) returns '.' if p is blank
 	if utf8.RuneCountInString(src) <= 3 || utf8.RuneCountInString(dst) <= 3 {
-		return fmt.Errorf("either src='%s' and dst='%s' doesn't seem like a valid path", src, dst)
+		return fmt.Errorf("either src=%q and dst=%q doesn't seem like a valid path", src, dst)
 	}
 
 	// Drop down to platform specific file copy (with elevated permissions)
