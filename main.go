@@ -12,7 +12,7 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
-const Version = "0.0.1-dev"
+const Version = "0.1.0"
 
 var (
 	fs = flag.NewFlagSet("flags", flag.ExitOnError)
