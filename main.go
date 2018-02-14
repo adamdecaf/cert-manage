@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/cmd"
@@ -86,7 +88,7 @@ DEBUGGING
   - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
-			Version,
+			getVersion(),
 			strings.Join(store.GetApps(), ", "),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
@@ -310,13 +312,13 @@ APPS
 	}
 	commands["version"] = &command{
 		fn: func() error {
-			fmt.Printf("%s\n", Version)
+			fmt.Printf("%s\n", getVersion())
 			return nil
 		},
 		appfn: func(_ string) error {
 			return nil
 		},
-		help: Version,
+		help: getVersion(),
 	}
 
 	// Run whatever function we've got here..
@@ -346,4 +348,21 @@ APPS
 		fmt.Println(c.help)
 		os.Exit(1)
 	}
+}
+
+func getVersion() string {
+	ver := Version
+	if strings.HasSuffix(ver, "-dev") {
+		out, err := exec.Command("git", "rev-parse", "HEAD").CombinedOutput()
+		if err != nil {
+			// Just return version if we can't find git
+			if strings.Contains(err.Error(), "executable file not found in") {
+				return ver
+			}
+			panic(err)
+		}
+		ref := strings.TrimSpace(string(out))
+		ver += fmt.Sprintf(" (Revision: %s, Go: %s)", ref[:8], runtime.Version())
+	}
+	return ver
 }
