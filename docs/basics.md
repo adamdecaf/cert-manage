@@ -97,6 +97,31 @@ Certificate:
         ...
 ```
 
+### TLS obsvervatory
+
+`cert-manage` supports `-format observatory` which outputs certificates in a format supported by [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory).
+
+```
+$ ./cert-manage list -format observatory -app chrome
+platform: Darwin (OSX)
+version: 10.13.3
+url: ""
+date_fetched: 2018-02-13
+trusted_certificates_count: 176
+trusted_certificates:
+- subject_name: AffirmTrust
+  fingerprint: 0376ab1d54c5f9803ce4b2e201a0ee7eef7b57b636e8a93c9b8d4860c96f5fa7
+...
+```
+
+### Web
+
+`cert-manage` can present certificates on a local web page with `-ui web` passed to any command.
+
+```
+$ cert-manage list -app java -ui web
+```
+
 ## Backup and Restore
 
 It's important to be able to rollback changes to your certificate store. These changes can be dangerous if done incorrectly as many websites you visit might partially quit loading.
@@ -106,11 +131,14 @@ To capture a backup:
 ```
 $ cert-manage backup
 Backup completed successfully
-```
 
-To capture a backup for an application
-
-```
 $ cert-manage backup -app java
 Backup completed successfully
+```
+
+Backups can be used as restore points.
+
+```
+# Restore from the latest backup
+$ cert-manage restore -app chrome
 ```
