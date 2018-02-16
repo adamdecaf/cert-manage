@@ -120,7 +120,7 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
 
 I'm always looking for new contributors and anything from help with docs, bugfixes or new certificate store additions is gladly appreciated. If you're interested in contributing then pull down the source code and submit some PR's or join `##cert-manage` on the freenode irc network.
 
-You can build the sources with `make build`. Run tests with `make test`.
+You can build the sources with `make build`. Run tests with `make test`. Currently we required Go 1.10.
 
 Note: Many tests will run if docker is enabled/setup. To disable this run commands with `MOCKED=true` (e.g. `MOCKED=true make test`)
 
