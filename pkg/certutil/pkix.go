@@ -26,7 +26,6 @@ var (
 	oidCommonName = asn1.ObjectIdentifier{2, 5, 4, 3}
 )
 
-// TODO(adam): Replace with RDSSquence.String() in g1.10
 func StringifyPKIXName(name pkix.Name) (out string) {
 	if len(name.OrganizationalUnit) > 0 {
 		out = fmt.Sprintf("%s, %s", strings.Join(name.Organization, " "), name.OrganizationalUnit[0])
