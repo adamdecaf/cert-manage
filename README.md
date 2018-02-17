@@ -131,6 +131,7 @@ Note: Many tests will run if docker is enabled/setup. To disable this run comman
 
 ## Related projects
 
+- [certpatrol](http://patrol.psyced.org/)
 - [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
 - [kirei/catt](https://github.com/kirei/catt)
 - [mkcert.org](https://mkcert.org/)
@@ -138,6 +139,7 @@ Note: Many tests will run if docker is enabled/setup. To disable this run comman
 - [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory)
 - [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
+- [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx)
 
 ## Related Documentation / Websites
 
