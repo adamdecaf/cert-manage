@@ -67,8 +67,8 @@ Also, `cert-manage` abstracts over the following application's certificate store
 
 ## Supporting Research
 
-- [CAge - Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/CAge - Taming Certificate Authorities by Inferring Restricted Scopes.pdf)
-- [You Won't Be Needing These Any More: On Removing Unused Certicates From Trust Stores](docs/papers/On Removing Unused Certicates From Trust Stores.pdf)
+- [CAge - Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf)
+- [You Won't Be Needing These Any More: On Removing Unused Certicates From Trust Stores](docs/papers/on-removing-unused-certs.pdf)
 
 ## Background
 
