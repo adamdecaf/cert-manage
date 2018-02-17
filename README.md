@@ -65,6 +65,11 @@ Also, `cert-manage` abstracts over the following application's certificate store
 | Full Support | Chrome, Firefox, Java |
 | Partial Support | OpenSSL |
 
+## Supporting Research
+
+- [CAge - Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/CAge - Taming Certificate Authorities by Inferring Restricted Scopes.pdf)
+- [You Won't Be Needing These Any More: On Removing Unused Certicates From Trust Stores](docs/papers/On Removing Unused Certicates From Trust Stores.pdf)
+
 ## Background
 
 There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every system which trusts communications signed with their keys. Additionally distributors of certificate stores have started to become aware and demand stricter working requirements from CA's, but the power is not readily available in the users hands for them to make these decisions themselves.
