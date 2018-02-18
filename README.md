@@ -53,10 +53,11 @@ $ cert-manage restore [-file <path>]
 
 `cert-manage` abstracts over the differences in Certificate stores for the following platforms:
 
-| Level | Platforms(s) |
-|----|----|
-| Full Support | Linux (Alpine, Debian, Ubuntu) |
-| Partial Support | Darwin/OSX, Windows |
+- Linux
+  - Alpine, Debian, Ubuntu
+- OSX / Darwin: (unreleased)
+- Windows: Partial Support
+  - Only `list` is supported
 
 Also, `cert-manage` abstracts over the following application's certificate stores across the supported platforms.
 
