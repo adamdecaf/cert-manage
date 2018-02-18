@@ -222,13 +222,13 @@ import "net/http"
 
 func main() {
 	resp, err := http.DefaultClient.Get("https://www.google.com")
-	if resp.Body != nil {
+	if err != nil {
+		defer panic(err)
+	}
+	if resp != nil && resp.Body != nil {
 		if err := resp.Body.Close(); err != nil {
 			panic(err)
 		}
-	}
-	if err != nil {
-		panic(err)
 	}
 }`)
 
@@ -271,6 +271,12 @@ func loadGoogle(t *testing.T) error {
 		return fmt.Errorf("error running loadGoogle code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+func TestIntegration__loadGoogle(t *testing.T) {
+	if online(t) {
+		loadGoogle(t)
+	}
 }
 
 // Firefox tests
