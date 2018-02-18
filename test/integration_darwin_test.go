@@ -256,9 +256,17 @@ func loadGoogle(t *testing.T) error {
 	if err := tmp.Sync(); err != nil {
 		t.Fatalf("error syncing loadGoogle source code to %s, err=%v", tmp.Name(), err)
 	}
+	// go requires files have a .go suffix, but symlinks work just as fine too
+	dir, _ := filepath.Split(tmp.Name())
+	filename := filepath.Join(dir, "google.go")
+	err = os.Symlink(tmp.Name(), filename)
+	if err != nil {
+		t.Fatalf("error symlinking google source file, err=%v", err)
+	}
+	defer os.Remove(filename)
 
 	// go run
-	out, err := exec.Command("go", "run", tmp.Name()).CombinedOutput()
+	out, err := exec.Command("go", "run", filename).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error running loadGoogle code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
 	}
