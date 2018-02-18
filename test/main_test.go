@@ -21,15 +21,15 @@ func TestCertManage_help(t *testing.T) {
 		t.Error("expected Usage() text")
 	}
 
-	// -h, -help, --help
-	choices := []string{"-h", "-help", "--help"}
-	for i := range choices {
-		out, err = run(t, choices[i])
+	// no sub-command, with help flag
+	helpChoices := []string{"-h", "-help", "--help"}
+	for i := range helpChoices {
+		out, err = run(t, helpChoices[i])
 		if err != nil {
-			t.Errorf("choice %q, err=%v", choices[i], err)
+			t.Errorf("choice %q, err=%v", helpChoices[i], err)
 		}
 		if !strings.Contains(out, usage) {
-			t.Errorf("choice %q, expected Usage()", choices[i])
+			t.Errorf("choice %q, expected Usage()", helpChoices[i])
 		}
 	}
 
@@ -42,6 +42,20 @@ func TestCertManage_help(t *testing.T) {
 		}
 		if !strings.Contains(out, subCmdUsage(subCommands[i])) {
 			t.Errorf("sub-command %q, expected sub-command usage", subCommands[i])
+		}
+	}
+
+	// sub-commands, with help flag
+	subCommands = []string{"add", "backup", "gen-whitelist", "list", "restore", "whitelist"}
+	for i := range subCommands {
+		for j := range helpChoices {
+			out, err := run(t, subCommands[i], helpChoices[j])
+			if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+				t.Errorf("sub-command %q, err=%v", subCommands[i], err)
+			}
+			if !strings.Contains(out, subCmdUsage(subCommands[i])) {
+				t.Errorf("sub-command %q, expected sub-command usage", subCommands[i])
+			}
 		}
 	}
 }
