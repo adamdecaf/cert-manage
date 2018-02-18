@@ -116,7 +116,7 @@ func setupKeychain(t *testing.T) {
 
 	where := filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 	if !file.Exists(where) {
-		err := exec.Command("security", "create-keychain").Run()
+		err := exec.Command("security", "create-keychain", "-p", `''`).Run()
 		if err != nil {
 			t.Error(err)
 		}
