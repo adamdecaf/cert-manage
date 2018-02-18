@@ -17,6 +17,7 @@
 package test
 
 import (
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -165,6 +166,11 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// verify we can load google
+	if err := loadGoogle(); online(t) && err != nil {
+		t.Fatalf("expected to be able to load google, err=%v", err)
+	}
+
 	// take a backup
 	cmd := CertManage("backup").Trim()
 	cmd.EqualT(t, "Backup completed successfully")
@@ -178,13 +184,13 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if len(certsBefore) <= len(certsAfter) {
-		// TODO(adam): Right now .List() is just grabbing all certs, but we really should
-		// try and overlap the login.keychain with system.keychain
-		//
-		// I thought 'security verify-cert' would do this? Flags?
 		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
+	}
+
+	// verify we can't load google
+	if err := loadGoogle(); online(t) && err == nil {
+		t.Fatal("expected to not load google")
 	}
 
 	// restore
@@ -199,6 +205,22 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	if len(certsBefore) != len(certsAfterRestore) {
 		t.Fatalf("certsBefore=%d, certsAfter=%d, certsAfterRestore=%d", len(certsBefore), len(certsAfter), len(certsAfterRestore))
 	}
+
+	// verify we can load google
+	if err := loadGoogle(); online(t) && err != nil {
+		t.Fatalf("expected to be able to load google, err=%v", err)
+	}
+}
+
+func loadGoogle() error {
+	resp, err := http.DefaultClient.Get("https://google.com")
+	if resp.Body != nil {
+		resp.Body.Close()
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Firefox tests
