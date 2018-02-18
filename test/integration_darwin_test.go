@@ -17,7 +17,6 @@
 package test
 
 import (
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -114,13 +113,19 @@ func setupKeychain(t *testing.T) {
 	}
 	t.Helper()
 
+	// Copy our 'empty.keychain' over to the path..
+	// I've tried creating it, but runnint into an error
+	//
+	// exec.Command("security", "create-keychain", "-p", `''`).CombinedOutput()
+	//
+	// The error is: 'Error exit status 255'
+	// I think this is a problem where the security cli is trying to find a TTY
+
 	where := filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 	if !file.Exists(where) {
-		out, err := exec.Command("security", "create-keychain", "-p", `''`).CombinedOutput()
-		if err != nil {
-			t.Errorf(`Error %v
-Output:
-%s"`, err, string(out))
+		src := "../testdata/empty.keychain"
+		if err := file.CopyFile(src, where); err != nil {
+			t.Error(err)
 		}
 	}
 }
