@@ -17,9 +17,14 @@
 package test
 
 import (
-	"net/http"
+	"bytes"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -167,7 +172,7 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	// verify we can load google
-	if err := loadGoogle(); online(t) && err != nil {
+	if err := loadGoogle(t); online(t) && err != nil {
 		t.Fatalf("expected to be able to load google, err=%v", err)
 	}
 
@@ -189,7 +194,7 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	// verify we can't load google
-	if err := loadGoogle(); online(t) && err == nil {
+	if err := loadGoogle(t); online(t) && err == nil {
 		t.Fatal("expected to not load google")
 	}
 
@@ -207,18 +212,55 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	// verify we can load google
-	if err := loadGoogle(); online(t) && err != nil {
+	if err := loadGoogle(t); online(t) && err != nil {
 		t.Fatalf("expected to be able to load google, err=%v", err)
 	}
 }
 
-func loadGoogle() error {
-	resp, err := http.DefaultClient.Get("https://google.com")
+var loadGoogleSourceCode = []byte(`package main
+import "net/http"
+
+func main() {
+	resp, err := http.DefaultClient.Get("https://www.google.com")
 	if resp.Body != nil {
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			panic(err)
+		}
 	}
 	if err != nil {
-		return err
+		panic(err)
+	}
+}`)
+
+// loadGoogle needs to drop down back into a shell and then run some Go code,
+// which on darwin uses the platform certs (Keychain), to attempt a connection
+// against the target host.
+//
+// We can't just call `x509.SystemCertPool()` again, because under the hood it
+// is protected by a `sync.Once`, so our changes aren't reflected until the next run.
+func loadGoogle(t *testing.T) error {
+	t.Helper()
+
+	// render our Go code to another file and then `go run` it.
+	tmp, err := ioutil.TempFile("", "load-google")
+	if err != nil {
+		t.Fatalf("error creating temp dir for loadGoogle, err=%v", err)
+	}
+	n, err := io.Copy(tmp, bytes.NewReader(loadGoogleSourceCode))
+	if err != nil {
+		t.Fatalf("error writing loadGoogle source code to %s, err=%v", tmp.Name(), err)
+	}
+	if n == 0 {
+		t.Fatal("didn't copy any bytes for loadGoogle")
+	}
+	if err := tmp.Sync(); err != nil {
+		t.Fatalf("error syncing loadGoogle source code to %s, err=%v", tmp.Name(), err)
+	}
+
+	// go run
+	out, err := exec.Command("go", "run", tmp.Name()).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error running loadGoogle code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
