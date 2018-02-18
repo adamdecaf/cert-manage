@@ -139,6 +139,11 @@ Answer: %q`, c.output, ans)
 	}
 }
 
+func (c *Cmd) Err() error {
+	c.exec()
+	return c.err
+}
+
 func (c *Cmd) String() string {
 	c.exec()
 
