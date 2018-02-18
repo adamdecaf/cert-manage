@@ -18,12 +18,24 @@ package test
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/adamdecaf/cert-manage/pkg/store"
 )
+
+var (
+	// used to serialize _add and whitelist/restore tests
+	// _add goes first, followed by whitelist/restore test,
+	// but this serializes access
+	darwinKeychainWG = sync.WaitGroup{}
+)
+
+func init() {
+	darwinKeychainWG.Add(1)
+}
 
 func TestIntegration__date(t *testing.T) {
 	cmd := Command("date", "-u", "-r", "0").Trim()
@@ -61,6 +73,9 @@ func TestIntegration__backup(t *testing.T) {
 }
 
 func TestIntegration__add(t *testing.T) {
+	// don't signal we're done until this test completes
+	defer darwinKeychainWG.Done()
+
 	if !inCI() {
 		t.Skip("not mutating non-CI login keychain")
 	}
@@ -128,6 +143,39 @@ func setupKeychain(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+func TestIntegration__WhitelistAndRemove(t *testing.T) {
+	// wait until _add test finishes, so we don't clobber the keychain
+	darwinKeychainWG.Wait()
+
+	// only run if we're on CI
+	if !inCI() {
+		t.Skip("not mutating non-CI login keychain")
+	}
+	t.Helper()
+
+	// get cert count
+	certsBefore, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// whitelist
+	cmd := CertManage("whitelist", "-file", "../testdata/globalsign-whitelist.json")
+	cmd.SuccessT(t)
+
+	// verify cert count
+	certsAfter, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(certsBefore) <= len(certsAfter) {
+		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
+	}
+
+	// restore
 }
 
 // TODO(adam): Need to run -whitelist and -restore
