@@ -17,13 +17,26 @@
 package test
 
 import (
+	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/adamdecaf/cert-manage/pkg/store"
 )
+
+var (
+	// used to serialize _add and whitelist/restore tests
+	// _add goes first, followed by whitelist/restore test,
+	// but this serializes access
+	darwinKeychainWG = sync.WaitGroup{}
+)
+
+func init() {
+	darwinKeychainWG.Add(1)
+}
 
 func TestIntegration__date(t *testing.T) {
 	cmd := Command("date", "-u", "-r", "0").Trim()
@@ -55,14 +68,15 @@ func TestIntegration__listFromFile(t *testing.T) {
 	cmd.CmpIntF(t, func(i int) bool { return i == 5 })
 }
 
-func TestIntegration__backup(t *testing.T) {
-	cmd := CertManage("backup").Trim()
-	cmd.EqualT(t, "Backup completed successfully")
-}
-
 func TestIntegration__add(t *testing.T) {
+	// don't signal we're done until this test completes
+	defer darwinKeychainWG.Done()
+
 	if !inCI() {
 		t.Skip("not mutating non-CI login keychain")
+	}
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip("delaying darwin integration tests, since we're running all tests right now")
 	}
 	setupKeychain(t)
 
@@ -130,7 +144,62 @@ func setupKeychain(t *testing.T) {
 	}
 }
 
-// TODO(adam): Need to run -whitelist and -restore
+// Don't run this test byitself, there's a .Wait()
+// instead call `go test ... -run TestIntegration__`
+func TestIntegration__WhitelistAndRemove(t *testing.T) {
+	// wait until _add test finishes, so we don't clobber the keychain
+	darwinKeychainWG.Wait()
+
+	// only run if we're on CI
+	if !inCI() {
+		t.Skip("not mutating non-CI login keychain")
+	}
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip("delaying darwin integration tests, since we're running all tests right now")
+	}
+	t.Helper()
+
+	// get cert count
+	certsBefore, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// take a backup
+	cmd := CertManage("backup").Trim()
+	cmd.EqualT(t, "Backup completed successfully")
+
+	// whitelist
+	cmd = CertManage("whitelist", "-file", "../testdata/globalsign-whitelist.json")
+	cmd.SuccessT(t)
+
+	// verify cert count
+	certsAfter, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(certsBefore) <= len(certsAfter) {
+		// TODO(adam): Right now .List() is just grabbing all certs, but we really should
+		// try and overlap the login.keychain with system.keychain
+		//
+		// I thought 'security verify-cert' would do this? Flags?
+		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
+	}
+
+	// restore
+	cmd = CertManage("restore").Trim()
+	cmd.EqualT(t, "Restore completed successfully")
+
+	// verify cert count
+	certsAfterRestore, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certsBefore) != len(certsAfterRestore) {
+		t.Fatalf("certsBefore=%d, certsAfter=%d, certsAfterRestore=%d", len(certsBefore), len(certsAfter), len(certsAfterRestore))
+	}
+}
 
 // Firefox tests
 // func TestIntegration__firefox(t *testing.T) {
