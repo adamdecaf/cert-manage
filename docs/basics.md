@@ -146,6 +146,8 @@ trusted_certificates:
 $ cert-manage list -app java -ui web
 ```
 
+<img src="./images/web.png" />
+
 ## Backup and Restore
 
 It's important to be able to rollback changes to your certificate store. These changes can be dangerous if done incorrectly as many websites you visit might partially quit loading.
