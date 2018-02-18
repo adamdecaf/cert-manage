@@ -138,6 +138,7 @@ Note: Many tests will run if docker is enabled/setup. To disable this run comman
 
 - [certpatrol](http://patrol.psyced.org/)
 - [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
+- [drduh/macOS-Security-and-Privacy-Guide](https://github.com/drduh/macOS-Security-and-Privacy-Guide#certificate-authorities)
 - [kirei/catt](https://github.com/kirei/catt)
 - [mkcert.org](https://mkcert.org/)
 - [msylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
