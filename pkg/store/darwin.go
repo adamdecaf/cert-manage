@@ -53,15 +53,13 @@ var (
 	// is typically where overrides (e.g. corporate CA's) are installed into.
 	loginKeychain = filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 
-	// TODO(adam): What's ~/Library/Keychains/login.keychain-db
-	// Oh, it's the filepath from older osx versions
+	// If people run into issues with 'login.keychain' not being found it's likely that
+	// they have ~/Library/Keychains/login.keychain-db instead, but for now I'm not going
+	// to hook in support for both.
+	// See: https://github.com/fastlane/fastlane/issues/5649
 
 	// Folder under ~/Library/cert-manage/ to put backups
 	darwinBackupDir = "darwin"
-)
-
-const (
-	plistFilePerms = 0644
 )
 
 // Docs
@@ -228,12 +226,10 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 // readInstalledCerts pulls certificates from the `security` cli tool that's
 // installed. This will return certificates, but not their trust status.
 func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
-	res := make([]*x509.Certificate, 0)
-
 	args := []string{"find-certificate", "-a", "-p"}
 	args = append(args, paths...)
-
 	cmd := exec.Command("/usr/bin/security", args...)
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if debug {
@@ -243,11 +239,13 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	cs, err := certutil.ParsePEM(out)
+	certs, err := certutil.ParsePEM(out)
 	if err != nil {
 		return nil, err
 	}
-	for _, c := range cs {
+
+	var res []*x509.Certificate
+	for _, c := range certs {
 		if c == nil {
 			continue
 		}
@@ -314,6 +312,82 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	return nil
 }
 
+// defaultCertTrustPolicy removes any extra trust policies from a cert and
+// deletes it from the System keychain, which we use as an override.
+func defaultCertTrustPolicy(certPath string, cert *x509.Certificate) error {
+	// -r unspecified removes 'Always Trust' or 'Never Trust' from entry
+	cmd := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "unspecified", "-k", systemKeychain, certPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Remove: error removing 'Never Trust' from cert %s, err=%v", cert.Subject, err)
+	}
+
+	fp := certutil.GetHexSHA1Fingerprint(*cert)
+	cmd = exec.Command("sudo", "security", "delete-certificate", "-Z", fp, systemKeychain)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		if strings.Contains(string(out), "Unable to delete certificate matching") {
+			return nil // cert didn't exist
+		}
+		return fmt.Errorf("Remove: error deleting cert %s from keychain, err=%v", cert.Subject, err)
+	}
+	return nil
+}
+
+// No idea why, but there are some Apple certificates which don't get whitelisted.
+// For now, let's force them to be fixed up
+var appleRootFingerprints = []string{
+	"B0B1730ECBC7FF4505142C49F1295E6EDA6BCAED7E2C68C5BE91B5A11001F024", // CN=Apple Root CA
+	"C2B9B042DD57830E7D117DAC55AC8AE19407D38E41D88F3215BC3A890444A050", // CN=Apple Root CA - G2
+	"63343ABFB89A6A03EBB57E9B3F5FA7BE7C4F5C756F3017B3A8C488C3653E9179", // CN=Apple Root CA - G3
+	"0D83B611B648A1A75EB8558400795375CAD92E264ED8E9D7A757C1F5EE2BB22D", // CN=Apple Root Certificate Authority
+}
+
+// apple root wraps a certificate and it's rendereed PEM contents in a file
+type appleRoot struct {
+	cert *x509.Certificate
+	file string
+}
+
+func newAppleRoot(cert *x509.Certificate) *appleRoot {
+	tmp, err := ioutil.TempFile("", "apple-root")
+	if err != nil {
+		return nil
+	}
+	err = certutil.ToFile(tmp.Name(), []*x509.Certificate{cert})
+	if err != nil {
+		return nil
+	}
+	return &appleRoot{
+		cert: cert,
+		file: tmp.Name(),
+	}
+}
+
+func (c *appleRoot) cleanup() error {
+	return os.Remove(c.file)
+}
+
+// getAppleRootCertificates returns the known Apple roots so they can be explicitly restored along with
+// anything from the system roots.
+//
+// TODO(adam): Figure out why these aren't normally being restored
+func getAppleRootCertificates() []*appleRoot {
+	installed, err := readInstalledCerts(systemRootCertificates)
+	if err != nil {
+		return nil
+	}
+
+	var roots []*appleRoot
+	for i := range installed {
+		fp := certutil.GetHexSHA256Fingerprint(*installed[i])
+		for j := range appleRootFingerprints {
+			if fp == appleRootFingerprints[j] {
+				roots = append(roots, newAppleRoot(installed[i]))
+			}
+		}
+	}
+	return roots
+}
+
 // Restore operates mostly on the system keychain and removes certificates which we've
 // explicitly marked "Never Trust". This re-enables them for use by apps.
 //
@@ -346,20 +420,8 @@ func (s darwinStore) Restore(where string) error {
 		if err != nil {
 			if strings.Contains(outStr, "kSecTrustResultDeny") {
 				// Cert is actually untrusted, so let's restore trust and remove it from the System keychain
-
-				// sudo security add-trusted-cert -d -r unspecified -k /Library/Keychains/System.keychain aaa.pem
-				cmd = exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "unspecified", "-k", systemKeychain, tmp.Name())
-				// TODO(adam): attach stdout/stderr
-				if err = cmd.Run(); err != nil {
-					return fmt.Errorf("Remove: error removing 'Never Trust' from cert %s, err=%v", roots[i].Subject, err)
-				}
-
-				// sudo security delete-certificate -Z D1EB23A46D17D68FD92564C2F1F1601764D8E349 /Library/Keychains/System.keychain
-				fp := certutil.GetHexSHA1Fingerprint(*roots[i])
-				cmd = exec.Command("sudo", "security", "delete-certificate", "-Z", fp, systemKeychain)
-				if err = cmd.Run(); err != nil {
-					// TODO(adam): ignore 'not found' errors (whatever I removed before)
-					return fmt.Errorf("Remove: error deleting cert %s from keychain, err=%v", roots[i].Subject, err)
+				if err := defaultCertTrustPolicy(tmp.Name(), roots[i]); err != nil {
+					return err
 				}
 			} else if strings.Contains(outStr, "CSSMERR_TP_CERT_EXPIRED") {
 				continue
@@ -367,22 +429,20 @@ func (s darwinStore) Restore(where string) error {
 				continue
 			} else {
 				fmt.Println(outStr)
-				return fmt.Errorf("Remove: ran into other error with verify-cert for %s, err=%v", roots[i].Subject, err)
+				return fmt.Errorf("Restore: ran into other error with verify-cert for %s, err=%v", roots[i].Subject, err)
 			}
 		}
 	}
 
-	// No idea why, but there are some Apple certificates which don't get whitelisted.
-	// For now, let's force them to be fixed up
-
-	// CN=Apple Root CA
-	// B0B1730ECBC7FF4505142C49F1295E6EDA6BCAED7E2C68C5BE91B5A11001F024
-	// CN=Apple Root CA - G2
-	// C2B9B042DD57830E7D117DAC55AC8AE19407D38E41D88F3215BC3A890444A050
-	// CN=Apple Root CA - G3
-	// 63343ABFB89A6A03EBB57E9B3F5FA7BE7C4F5C756F3017B3A8C488C3653E9179
-	// CN=Apple Root Certificate Authority
-	// 0D83B611B648A1A75EB8558400795375CAD92E264ED8E9D7A757C1F5EE2BB22D
+	// Make sure apple roots are restored
+	appleRoots := getAppleRootCertificates()
+	for i := range appleRoots {
+		root := appleRoots[i]
+		err = defaultCertTrustPolicy(root.file, root.cert)
+		if err != nil {
+			return fmt.Errorf("Restore: error restoring apple root %s, err=%v", root.cert.Subject, err)
+		}
+	}
 
 	// Restore the login.keychain
 	//
