@@ -149,9 +149,14 @@ func main() {
 		fs.Usage()
 		return
 	}
+	fs.Parse(os.Args[1:])
+	if len(os.Args) == 2 && calledHelp() {
+		fs.Usage()
+		return
+	}
+	fs.Parse(os.Args[2:]) // reparse
 
 	// Lift config options into a higher-level
-	fs.Parse(os.Args[2:])
 	cfg := &ui.Config{
 		Count:   *flagCount,
 		Format:  *flagFormat,
@@ -337,7 +342,7 @@ APPS
 
 	// Run whatever function we've got here..
 	c, ok := commands[strings.ToLower(os.Args[1])]
-	if !ok || calledHelp() { // sub-command wasn't found
+	if !ok && calledHelp() { // sub-command wasn't found
 		fs.Usage()
 		os.Exit(1)
 	}
