@@ -17,6 +17,7 @@
 package test
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -73,6 +74,9 @@ func TestIntegration__add(t *testing.T) {
 
 	if !inCI() {
 		t.Skip("not mutating non-CI login keychain")
+	}
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip("delaying darwin integration tests, since we're running all tests right now")
 	}
 	setupKeychain(t)
 
@@ -149,6 +153,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	// only run if we're on CI
 	if !inCI() {
 		t.Skip("not mutating non-CI login keychain")
+	}
+	if os.Getenv("INTEGRATION") == "" {
+		t.Skip("delaying darwin integration tests, since we're running all tests right now")
 	}
 	t.Helper()
 
