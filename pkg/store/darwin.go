@@ -18,19 +18,12 @@ package store
 
 import (
 	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/asn1"
-	"encoding/base64"
-	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -183,31 +176,22 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	trustItems, err := getCertsWithTrustPolicy()
-	if err != nil {
-		return nil, err
-	}
-
-	if debug {
-		fmt.Printf("store/darwin: %d installed, %d with policy\n", len(installed), len(trustItems))
-	}
 
 	// If there's a trust policy verify it, otherwise don't bother.
 	kept := make([]*x509.Certificate, 0)
 	for i := range installed {
-		// If we've got a policy only keep cert if it's still trusted
-		if trustItems.contains(installed[i]) {
-			trusted := certTrustedWithLoginKeychain(installed[i])
-			if trusted {
-				kept = append(kept, installed[i])
-			}
-			if debug {
-				fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", certutil.GetHexSHA256Fingerprint(*installed[i]), trusted)
-			}
-			continue
-		} else {
-			// If there's no explicit policy assume it's trusted
+		// Unlike Go, we don't really have a performance concern that pushes us towards grabbing a
+		// plist file from 'security' and parsing it. We can shell out to 'security verify-cert'
+		// and encur the time penality.
+		//
+		// With our login.keychain modifications we'd need to verify against the login keychain
+		// overlayed with the system keychain anyway, which certTrustedWithLoginKeychain does.
+		trusted := certTrustedWithLoginKeychain(installed[i])
+		if trusted {
 			kept = append(kept, installed[i])
+		}
+		if debug {
+			fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", certutil.GetHexSHA256Fingerprint(*installed[i]), trusted)
 		}
 	}
 	return kept, nil
@@ -298,70 +282,6 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	return res, nil
 }
 
-// TODO(adam): Unlike Go, we don't really have a perf concern that pushes us towards
-// grabbing this plist file and parsing it. We can shell out to `security verify-cert`
-// and encur the time penality. It'll help us simplify the code.
-//
-// With our login.keychain modifications we'd need to verify against the login keychain
-// overlayed with the system keychain anyway. (I'm not sure if this func does that now)
-func getCertsWithTrustPolicy() (trustItems, error) {
-	fd, err := trustSettingsExport()
-	if err != nil {
-		return nil, err
-	}
-	defer os.Remove(fd.Name())
-
-	plist, err := parsePlist(fd)
-	if err != nil {
-		if err == io.EOF {
-			if debug {
-				fmt.Printf("store/darwin: EOF encountered with parsing trust-setting-export at: %s\n", fd.Name())
-			}
-			return plist.convertToTrustItems(), nil
-		}
-		return nil, err
-	}
-
-	return plist.convertToTrustItems(), nil
-}
-
-// trustSettingsExport calls out to the `security` cli tool and
-// returns an os.File for the plist file written
-//
-// Note: Callers are expected to cleanup the file handler
-func trustSettingsExport() (*os.File, error) {
-	// Create temp file for plist output
-	fd, err := ioutil.TempFile("", "trust-settings")
-	if err != nil {
-		return nil, fmt.Errorf("error creating trust-settings-export temp file: %v", err)
-	}
-
-	// build up command arguments
-	args := append([]string{
-		"trust-settings-export",
-		"-d", fd.Name(),
-	})
-
-	// run command
-	cmd := exec.Command("/usr/bin/security", args...)
-	out, err := cmd.CombinedOutput()
-
-	// The `security` cli will return an error if no trust settings were found. This seems to
-	// be in the case when they keychain isn't setup (or a very fresh install, e.g. CI)
-	if err != nil {
-		if debug {
-			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
-			fmt.Printf("Output was: %s\n", string(out))
-			fmt.Printf("Error: %s\n", err.Error())
-		}
-		// We are following what Go's source code does for building the x509.CertPool on darwin.
-		// In that code all errors stemming from the `security` cli are ignored, but here we will
-		// optionally log those (in debug) for analysis.
-		return fd, nil
-	}
-	return fd, nil
-}
-
 func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	if !debug {
 		return s.empty.Remove(wh)
@@ -377,62 +297,17 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
-	// remove := func(cert *x509.Certificate) error {
-	// 	if cert == nil {
-	// 		return errors.New("nil x509 certificate")
-	// 	}
-
-	// 	// Write the cert as a PEM block to a tempfile
-	// 	tmp, err := ioutil.TempFile("", "cert-manage-remove-trusted-cert")
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	defer os.Remove(tmp.Name())
-
-	// 	err = certutil.ToFile(tmp.Name(), []*x509.Certificate{cert})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// After "System Integrity Protection" was added to macs not even root can modify files
-	// 	// like /System/Library/Keychains/SystemRootCertificates.keychain
-	// 	// SIP: https://support.apple.com/en-ca/HT204899
-	// 	//
-	// 	// Instead we apply a "Never Trust" override to the login keychain, which has the impact
-	// 	// of not trusting that cert. This works nicely as undoing that work is as simple as
-	// 	// deleting the "Never Trust" record in the login keychain
-	// 	//
-	// 	// https://superuser.com/questions/1070664/security-seckeychainitemdelete-unixoperation-not-permitted-on-os-x-when-tryi
-	// 	// https://apple.stackexchange.com/questions/24640/how-do-i-remove-many-system-roots-from-apple-system-keychain
-
-	// 	// TODO(adam): Changes
-	// 	//  - Removed "sudo", from Command(..), works as expected on login keychain now
-	// 	//  - Removed -d, works on login keychain now
-	// 	// TODO(adam): Need to unlock keychain for a bit, typing password in everytime is crazy
-	// 	cmd := exec.Command("/usr/bin/security", "add-trusted-cert", "-r", "deny", "-k", loginKeychain, tmp.Name())
-	// 	out, err := cmd.CombinedOutput()
-	// 	if debug {
-	// 		fp := certutil.GetHexSHA256Fingerprint(*cert)
-	// 		if err != nil {
-	// 			output := string(out)
-
-	// 			fmt.Printf("ERROR: during remove-trusted-cert (fingerprint=%s), error=%v\n", fp, err)
-	// 			fmt.Printf("  Command ran: %q\n", strings.Join(cmd.Args, " "))
-	// 			fmt.Printf("  Output was: %s\n", output)
-
-	// 			if strings.Contains(output, "could not be found") {
-	// 				if debug {
-	// 					fmt.Println("Silencing error due to cert not found in keychain")
-	// 				}
-	// 				return nil
-	// 			}
-
-	// 		} else {
-	// 			fmt.Printf("remove-trusted-cert (for %s)\n%s\n", fp, out)
-	// 		}
-	// 	}
-	// 	return err
-	// }
+	// TODO(adam): useful docs?
+	// After "System Integrity Protection" was added to macs not even root can modify files
+	// like /System/Library/Keychains/SystemRootCertificates.keychain
+	// SIP: https://support.apple.com/en-ca/HT204899
+	//
+	// Instead we apply a "Never Trust" override to the login keychain, which has the impact
+	// of not trusting that cert. This works nicely as undoing that work is as simple as
+	// deleting the "Never Trust" record in the login keychain
+	//
+	// https://superuser.com/questions/1070664/security-seckeychainitemdelete-unixoperation-not-permitted-on-os-x-when-tryi
+	// https://apple.stackexchange.com/questions/24640/how-do-i-remove-many-system-roots-from-apple-system-keychain
 
 	// Remove certificates that are not whitelisted
 	removable := make([]*x509.Certificate, 0)
@@ -452,7 +327,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		if err != nil {
 			return err
 		}
-		// defer os.Remove(tmp.Name())
+		// defer os.Remove(tmp.Name()) // TODO(adam): keep?
 
 		// Write removable certs to temp file
 		err = certutil.ToFile(tmp.Name(), removable)
@@ -463,21 +338,11 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 			fmt.Printf("store/darwin: Wrote %d certs to %s\n", len(removable), tmp.Name())
 		}
 
-		// After "System Integrity Protection" was added to macs not even root can modify files
-		// like /System/Library/Keychains/SystemRootCertificates.keychain
-		// SIP: https://support.apple.com/en-ca/HT204899
-		//
-		// Instead we apply a "Never Trust" override to the login keychain, which has the impact
-		// of not trusting that cert. This works nicely as undoing that work is as simple as
-		// deleting the "Never Trust" record in the login keychain
-		//
-		// https://superuser.com/questions/1070664/security-seckeychainitemdelete-unixoperation-not-permitted-on-os-x-when-tryi
-		// https://apple.stackexchange.com/questions/24640/how-do-i-remove-many-system-roots-from-apple-system-keychain
-
 		// TODO(adam): Changes
 		//  - Removed "sudo", from Command(..), works as expected on login keychain now
 		//  - Removed -d, works on login keychain now
 		// TODO(adam): Need to unlock keychain for a bit, typing password in everytime is crazy
+		// TODO(adam): Detect if password is enabled on keychain, and if so abort or confirm go forward?
 		cmd := exec.Command("/usr/bin/security", "add-trusted-cert", "-r", "deny", "-k", loginKeychain, tmp.Name())
 		out, err := cmd.CombinedOutput()
 		if debug {
@@ -619,279 +484,4 @@ func getLoginKeychain() (string, error) {
 		return needles[i], nil
 	}
 	return "", errors.New("no login keychain found")
-}
-
-// trustItems wraps up a collection of trustItems parsed from the `security` cli tool
-type trustItems []trustItem
-
-func (t trustItems) contains(cert *x509.Certificate) bool {
-	if cert == nil {
-		// we don't want to say we've got a nil cert
-		return true
-	}
-	fp := certutil.GetHexSHA1Fingerprint(*cert)
-	for i := range t {
-		if fp == t[i].sha1Fingerprint {
-			return true
-		}
-	}
-	return false
-}
-
-var (
-	// TODO(adam): Filter this down to just the SSL setting, by default
-	dontTrustSettings = []byte(whitespaceReplacer.Replace(`<key>trustSettings</key><array>
-<dict>
-  <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
-  <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAED</data>
-  <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147408896</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAED</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEI</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147408872</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEI</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEJ</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEL</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEM</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEO</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEP</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEQ</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEU</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsPolicy</key><data>KoZIhvdjZAEC</data>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict>
-<dict>
- <key>kSecTrustSettingsAllowedError</key><integer>-2147409654</integer>
- <key>kSecTrustSettingsResult</key><integer>3</integer>
-</dict></array>`))
-)
-
-func (t trustItems) toXmlFile(where string) error {
-	// Due to a known limitation of encoding/xml it often doesn't
-	// follow the ordering of slices. To work around this we've decided
-	// to build the xml in a more manual fashion.
-	// https://golang.org/pkg/encoding/xml/#pkg-note-BUG
-
-	// Write the header
-	header := []byte(`<plist><dict><key>trustList</key><dict>`)
-	itemEnd := []byte("</dict>")
-	footer := []byte(`</dict>
-  <key>trustVersion</key>
-  <integer>1</integer>
-</dict></plist>`)
-
-	// Build up the inner contents
-	out := make([]byte, 0)
-	for i := 0; i < len(t); i += 1 {
-		key := []byte(fmt.Sprintf("<key>%s</key>", strings.ToUpper(t[i].sha1Fingerprint)))
-
-		// issuerName
-		rdn := t[i].issuerName.ToRDNSequence()
-		bs, _ := asn1.Marshal(rdn)
-		issuer := []byte(fmt.Sprintf("<key>issuerName</key><data>%s</data>", base64.StdEncoding.EncodeToString(bs)))
-
-		// modDate
-		modDate := []byte(fmt.Sprintf("<key>modDate</key><date>%s</date>", t[i].modDate.Format(plistModDateFormat)))
-
-		// serialNumber
-		serial := []byte(fmt.Sprintf("<key>serialNumber</key><data>%s</data>", base64.StdEncoding.EncodeToString(t[i].serialNumber)))
-
-		// Build item
-		inner := append(key, []byte("<dict>")...)
-		inner = append(inner, issuer...)
-		inner = append(inner, modDate...)
-		inner = append(inner, serial...)
-		inner = append(inner, dontTrustSettings...)
-		inner = append(inner, itemEnd...)
-
-		// Ugh, join them all together
-		out = append(out, inner...)
-	}
-
-	// write xml file out
-	content := append(header, append(out, footer...)...)
-	return ioutil.WriteFile(where, content, plistFilePerms)
-}
-
-// trustItem represents an entry from the plist (xml) files produced by
-// the /usr/bin/security cli tool
-type trustItem struct {
-	// required
-	sha1Fingerprint string
-	issuerName      pkix.Name
-	modDate         time.Time
-	serialNumber    []byte
-
-	// optional
-	// TODO(adam): needs picked up?
-	kSecTrustSettingsResult int32
-}
-
-func trustItemFromCertificate(cert x509.Certificate) trustItem {
-	return trustItem{
-		sha1Fingerprint: certutil.GetHexSHA1Fingerprint(cert),
-		issuerName:      cert.Issuer,
-		modDate:         time.Now(),
-		serialNumber:    cert.SerialNumber.Bytes(),
-	}
-}
-
-func (t trustItem) Serial() *big.Int {
-	serial := big.NewInt(0)
-	serial.SetBytes(t.serialNumber)
-	return serial
-}
-
-func (t trustItem) String() string {
-	modDate := t.modDate.Format(plistModDateFormat)
-
-	name := fmt.Sprintf("O=%s", strings.Join(t.issuerName.Organization, " "))
-	if t.issuerName.CommonName != "" {
-		name = fmt.Sprintf("CN=%s", t.issuerName.CommonName)
-	}
-
-	country := strings.Join(t.issuerName.Country, " ")
-
-	return fmt.Sprintf("SHA1 Fingerprint: %s\n %s (%s)\n modDate: %s\n serialNumber: %d", t.sha1Fingerprint, name, country, modDate, t.Serial())
-}
-
-func (t trustItem) equal(other trustItem) bool {
-	return t.sha1Fingerprint == other.sha1Fingerprint
-}
-
-// parsePlist takes a reader of the xml output produced by trustSettingsExport()
-// and converts it into a series of structs to then read
-//
-// After getting a `plist` callers will typically want to convert into
-// a []trustItem by calling convertToTrustItems()
-func parsePlist(in io.Reader) (plist, error) {
-	dec := xml.NewDecoder(in)
-	var out plist
-	err := dec.Decode(&out)
-	return out, err
-}
-
-// xml format, this was generated with the package github.com/gnewton/chidley
-// but has also been modified by hand:
-// 1. don't export struct names
-// 2. remove outermost ChiChidleyRoot314159 wrapper as parsing fails with it
-// 3. make `date []*date` rather than `date *date`
-// 4. remove chi* from names as when we Marshal encoding/xml will use the struct's names
-type plist struct {
-	ChiDict *dict `xml:"dict,omitempty"`
-}
-
-type dict struct {
-	ChiData    []*data    `xml:"data,omitempty"`
-	ChiDate    []*date    `xml:"date,omitempty"`
-	ChiDict    *dict      `xml:"dict,omitempty"`
-	ChiInteger []*integer `xml:"integer,omitempty"`
-	ChiKey     []*key     `xml:"key,omitempty"`
-}
-
-type key struct {
-	Text string `xml:",chardata"`
-}
-
-type data struct {
-	Text string `xml:",chardata"`
-}
-
-type date struct {
-	Text string `xml:",chardata"`
-}
-
-type integer struct {
-	Text bool `xml:",chardata"`
-}
-
-var (
-	nonContentRegex    = regexp.MustCompile(`[^a-zA-Z0-9\+\/=]*`)
-	whitespaceReplacer = strings.NewReplacer("\t", "", "\n", "", " ", "", "\r", "")
-)
-
-func (p *plist) convertToTrustItems() trustItems {
-	out := make(trustItems, 0)
-
-	if p.ChiDict == nil {
-		return out
-	}
-
-	max := len(p.ChiDict.ChiDict.ChiDict.ChiData)
-	for i := 0; i < max; i += 2 {
-		item := trustItem{}
-
-		item.sha1Fingerprint = strings.ToLower(p.ChiDict.ChiDict.ChiKey[i/2].Text)
-
-		// trim whitespace
-		s1 := whitespaceReplacer.Replace(nonContentRegex.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i].Text, ""))
-		s2 := whitespaceReplacer.Replace(nonContentRegex.ReplaceAllString(p.ChiDict.ChiDict.ChiDict.ChiData[i+1].Text, ""))
-
-		bs1, _ := base64.StdEncoding.DecodeString(s1)
-		bs2, _ := base64.StdEncoding.DecodeString(s2)
-
-		// The issuerName's <data></data> block is only under asn1 encoding for the
-		// issuerName field from 4.1.2.4 (https://tools.ietf.org/rfc/rfc5280)
-		var issuer pkix.RDNSequence
-		_, err := asn1.Unmarshal(bs1, &issuer)
-		if err == nil {
-			name := pkix.Name{}
-			name.FillFromRDNSequence(&issuer)
-			item.issuerName = name
-		}
-
-		dt := p.ChiDict.ChiDict.ChiDict.ChiDate[i/2].Text
-		t, err := time.ParseInLocation(plistModDateFormat, dt, time.UTC)
-		if err == nil {
-			item.modDate = t
-		}
-
-		// serialNumber is just a base64 encoded big endian (big) int
-		item.serialNumber = bs2
-
-		out = append(out, item)
-	}
-
-	return out
 }
