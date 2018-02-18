@@ -19,6 +19,9 @@ package test
 import (
 	// "strings"
 	"testing"
+
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/store"
 )
 
 func TestIntegration__date(t *testing.T) {
@@ -54,6 +57,51 @@ func TestIntegration__listFromFile(t *testing.T) {
 func TestIntegration__backup(t *testing.T) {
 	cmd := CertManage("backup").Trim()
 	cmd.EqualT(t, "Backup completed successfully")
+}
+
+func TestIntegration__add(t *testing.T) {
+	if !inCI() {
+		t.Skip("not mutating non-CI login keychain")
+	}
+
+	where := "../testdata/example.crt"
+	certs, err := certutil.FromFile(where)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) != 1 {
+		t.Fatalf("got %d certs", len(certs))
+	}
+	fp := certutil.GetHexSHA256Fingerprint(*certs[0])
+
+	// verify cert doesn't exist already
+	if inPlatformStore(t, fp) {
+		name := certutil.StringifyPKIXName(certs[0].Subject)
+		t.Fatalf("cert already in our store, please remove, %s", name)
+	}
+
+	// add cert and verify
+	CertManage("add", "-file", where).SuccessT(t)
+	if !inPlatformStore(t, fp) {
+		t.Errorf("didn't find added cert, fp=%q", fp)
+	}
+}
+
+func inPlatformStore(t *testing.T, fp string) bool {
+	t.Helper()
+
+	// Grab platform certs and verify ours is added
+	found, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range found {
+		ffp := certutil.GetHexSHA256Fingerprint(*found[i])
+		if fp == ffp {
+			return true
+		}
+	}
+	return false
 }
 
 // TODO(adam): Need to run -whitelist and -restore
