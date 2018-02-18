@@ -67,8 +67,13 @@ Also, `cert-manage` abstracts over the following application's certificate store
 
 ## Supporting Research
 
+- [Analysis of the HTTPS Certificate Ecosystem](docs/papers/https-imc13.pdf) (2013)
+   - "We investigate the trust relationships among root authorities, intermediate authorities, and the leaf certificates used by web servers, ultimately identifying and classifying more than **1,800 entities** that are able to issue certificates vouching for the identity of any website."
+   - "Disturbingly, we find that the compromise of the private key used by one particular intermediate certificate would require 26% of HTTPS websites to immediately obtain new certificates."
 - [CAge - Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf)
+   - "We find that simple inference rules can reduce the attack surface by nearly a factor of ten without hindering 99% of CA activity over a 6 month period."
 - [You Won't Be Needing These Any More: On Removing Unused Certicates From Trust Stores](docs/papers/on-removing-unused-certs.pdf)
+   - "We found that of the 426 trusted root certificates, only 66 % were used to sign HTTPS certificates."
 
 ## Background
 
