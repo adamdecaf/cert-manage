@@ -17,10 +17,12 @@
 package test
 
 import (
-	// "strings"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/adamdecaf/cert-manage/pkg/store"
 )
 
@@ -63,6 +65,7 @@ func TestIntegration__add(t *testing.T) {
 	if !inCI() {
 		t.Skip("not mutating non-CI login keychain")
 	}
+	setupKeychain(t)
 
 	where := "../testdata/example.crt"
 	certs, err := certutil.FromFile(where)
@@ -102,6 +105,22 @@ func inPlatformStore(t *testing.T, fp string) bool {
 		}
 	}
 	return false
+}
+
+// Create a 'login.keychain' if it doesn't exist, only in CI
+func setupKeychain(t *testing.T) {
+	if !inCI() {
+		return
+	}
+	t.Helper()
+
+	where := filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
+	if !file.Exists(where) {
+		err := exec.Command("security", "create-keychain").Run()
+		if err != nil {
+			t.Error(err)
+		}
+	}
 }
 
 // TODO(adam): Need to run -whitelist and -restore
