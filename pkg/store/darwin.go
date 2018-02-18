@@ -424,11 +424,19 @@ func (s darwinStore) Restore(where string) error {
 					return err
 				}
 			} else if strings.Contains(outStr, "CSSMERR_TP_CERT_EXPIRED") {
+				if debug {
+					fmt.Printf("store/darwin: cert %s is expired\n", roots[i].Subject)
+				}
 				continue
 			} else if strings.Contains(outStr, "Invalid Extended Key Usage") {
+				if debug {
+					fmt.Printf("store/darwin: cert %s isn't created for SSL signing\n", roots[i].Subject)
+				}
 				continue
 			} else {
-				fmt.Println(outStr)
+				if debug {
+					fmt.Printf("store/darwin: cert %s ran into other issue with verify-cert: %s\n", roots[i].Subject, strings.TrimSpace(outStr))
+				}
 				return fmt.Errorf("Restore: ran into other error with verify-cert for %s, err=%v", roots[i].Subject, err)
 			}
 		}
