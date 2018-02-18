@@ -21,10 +21,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 func TestStoreDarwin__SystemCertPool(t *testing.T) {
@@ -90,10 +93,10 @@ func TestStoreDarwin__locations(t *testing.T) {
 		t.Skip("not on darwin based host")
 	}
 
-	// Show the difference between the various keychains
-	paths, err := getKeychainPaths(systemKeychains)
-	if err != nil {
-		t.Fatal(err)
+	paths := []string{
+		"/System/Library/Keychains/SystemRootCertificates.keychain",
+		"/Library/Keychains/System.keychain",
+		filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain"),
 	}
 
 	count := 0
