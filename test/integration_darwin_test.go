@@ -67,11 +67,6 @@ func TestIntegration__listFromFile(t *testing.T) {
 	cmd.CmpIntF(t, func(i int) bool { return i == 5 })
 }
 
-func TestIntegration__backup(t *testing.T) {
-	cmd := CertManage("backup").Trim()
-	cmd.EqualT(t, "Backup completed successfully")
-}
-
 func TestIntegration__add(t *testing.T) {
 	// don't signal we're done until this test completes
 	defer darwinKeychainWG.Done()
@@ -145,6 +140,8 @@ func setupKeychain(t *testing.T) {
 	}
 }
 
+// Don't run this test byitself, there's a .Wait()
+// instead call `go test ... -run TestIntegration__`
 func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	// wait until _add test finishes, so we don't clobber the keychain
 	darwinKeychainWG.Wait()
@@ -161,8 +158,12 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// take a backup
+	cmd := CertManage("backup").Trim()
+	cmd.EqualT(t, "Backup completed successfully")
+
 	// whitelist
-	cmd := CertManage("whitelist", "-file", "../testdata/globalsign-whitelist.json")
+	cmd = CertManage("whitelist", "-file", "../testdata/globalsign-whitelist.json")
 	cmd.SuccessT(t)
 
 	// verify cert count
@@ -172,13 +173,26 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	if len(certsBefore) <= len(certsAfter) {
+		// TODO(adam): Right now .List() is just grabbing all certs, but we really should
+		// try and overlap the login.keychain with system.keychain
+		//
+		// I thought 'security verify-cert' would do this? Flags?
 		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
 	}
 
 	// restore
-}
+	cmd = CertManage("restore").Trim()
+	cmd.EqualT(t, "Restore completed successfully")
 
-// TODO(adam): Need to run -whitelist and -restore
+	// verify cert count
+	certsAfterRestore, err := store.Platform().List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certsBefore) != len(certsAfterRestore) {
+		t.Fatalf("certsBefore=%d, certsAfter=%d, certsAfterRestore=%d", len(certsBefore), len(certsAfter), len(certsAfterRestore))
+	}
+}
 
 // Firefox tests
 // func TestIntegration__firefox(t *testing.T) {

@@ -197,7 +197,7 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	for i := range installed {
 		// If we've got a policy only keep cert if it's still trusted
 		if trustItems.contains(installed[i]) {
-			trusted := certTrustedWithSystem(installed[i])
+			trusted := certTrustedWithLoginKeychain(installed[i])
 			if trusted {
 				kept = append(kept, installed[i])
 			}
@@ -213,13 +213,19 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
-// certTrustedWithSystem calls out to `verify-cert` of the `security` cli tool
+// certTrustedWithLoginKeychain calls out to `verify-cert` of the `security` cli tool
 // to check if a certificate is still trusted, this comes about when a custom policy
 // has been applied typically by the user.
-func certTrustedWithSystem(cert *x509.Certificate) bool {
+func certTrustedWithLoginKeychain(cert *x509.Certificate) bool {
 	if cert == nil {
 		return false
 	}
+
+	loginKeychain, err := getLoginKeychain()
+	if err != nil {
+		return false
+	}
+
 	tmp, err := ioutil.TempFile("", "verify-cert")
 	if err != nil {
 		if debug {
@@ -238,7 +244,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 		return false
 	}
 
-	cmd := exec.Command("/usr/bin/security", "verify-cert", "-L", "-l", "-c", tmp.Name())
+	cmd := exec.Command("/usr/bin/security", "verify-cert", "-L", "-l", "-k", loginKeychain, "-c", tmp.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil && debug {
 		fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
