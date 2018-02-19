@@ -201,6 +201,7 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	// restore
 	cmd = CertManage("restore").Trim()
 	cmd.EqualT(t, "Restore completed successfully")
+	cmd.SuccessT(t)
 
 	// verify cert count
 	certsAfterRestore, err := store.Platform().List()
