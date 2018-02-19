@@ -106,6 +106,8 @@ func TestIntegration__add(t *testing.T) {
 	if !inPlatformStore(t, fp) {
 		t.Errorf("didn't find added cert, fp=%q", fp)
 	}
+
+	// TODO(adam): delete the certificate we added
 }
 
 func inPlatformStore(t *testing.T, fp string) bool {
