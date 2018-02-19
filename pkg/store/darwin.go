@@ -335,10 +335,10 @@ func defaultCertTrustPolicy(certPath string, cert *x509.Certificate) error {
 // No idea why, but there are some Apple certificates which don't get whitelisted.
 // For now, let's force them to be fixed up
 var appleRootFingerprints = []string{
-	"B0B1730ECBC7FF4505142C49F1295E6EDA6BCAED7E2C68C5BE91B5A11001F024", // CN=Apple Root CA
-	"C2B9B042DD57830E7D117DAC55AC8AE19407D38E41D88F3215BC3A890444A050", // CN=Apple Root CA - G2
-	"63343ABFB89A6A03EBB57E9B3F5FA7BE7C4F5C756F3017B3A8C488C3653E9179", // CN=Apple Root CA - G3
-	"0D83B611B648A1A75EB8558400795375CAD92E264ED8E9D7A757C1F5EE2BB22D", // CN=Apple Root Certificate Authority
+	"b0b1730ecbc7ff4505142c49f1295e6eda6bcaed7e2c68c5be91b5a11001f024", // CN=Apple Root CA
+	"c2b9b042dd57830e7d117dac55ac8ae19407d38e41d88f3215bc3a890444a050", // CN=Apple Root CA - G2
+	"63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179", // CN=Apple Root CA - G3
+	"0d83b611b648a1a75eb8558400795375cad92e264ed8e9d7a757c1f5ee2bb22d", // CN=Apple Root Certificate Authority
 }
 
 // apple root wraps a certificate and it's rendereed PEM contents in a file
@@ -373,6 +373,9 @@ func (c *appleRoot) cleanup() error {
 func getAppleRootCertificates() []*appleRoot {
 	installed, err := readInstalledCerts(systemRootCertificates)
 	if err != nil {
+		if debug {
+			fmt.Printf("store/darwin: failed to read apple root certs, err=%v\n", err)
+		}
 		return nil
 	}
 
@@ -384,6 +387,9 @@ func getAppleRootCertificates() []*appleRoot {
 				roots = append(roots, newAppleRoot(installed[i]))
 			}
 		}
+	}
+	if len(roots) != len(appleRootFingerprints) {
+		fmt.Printf("WARNING: only found %d/%d apple root certs\n", len(roots), len(appleRootFingerprints))
 	}
 	return roots
 }
