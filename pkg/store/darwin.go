@@ -95,7 +95,12 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 		}
 
 		// add cert to keychain
-		cmd := exec.Command("security", "add-trusted-cert", "-r", "trustRoot", "-k", loginKeychain, path)
+		resultType := "unspecified"
+		if certs[i].IsCA {
+			resultType = "trustAsRoot"
+		}
+
+		cmd := exec.Command("security", "add-trusted-cert", "-r", resultType, "-p", "ssl", "-k", loginKeychain, path)
 		out, err := cmd.CombinedOutput()
 		if err != nil && debug {
 			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
