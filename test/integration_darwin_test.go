@@ -17,9 +17,7 @@
 package test
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -27,6 +25,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
@@ -224,11 +223,11 @@ import "net/http"
 func main() {
 	resp, err := http.DefaultClient.Get("https://www.google.com")
 	if err != nil {
-		defer panic(err)
+		defer panic("A: " + err.Error())
 	}
 	if resp != nil && resp.Body != nil {
 		if err := resp.Body.Close(); err != nil {
-			panic(err)
+			panic("B: " + err.Error())
 		}
 	}
 }`)
@@ -247,19 +246,16 @@ func loadGoogle(t *testing.T) error {
 	if err != nil {
 		t.Fatalf("error creating temp dir for loadGoogle, err=%v", err)
 	}
-	n, err := io.Copy(tmp, bytes.NewReader(loadGoogleSourceCode))
+	err = ioutil.WriteFile(tmp.Name(), loadGoogleSourceCode, 0644)
 	if err != nil {
 		t.Fatalf("error writing loadGoogle source code to %s, err=%v", tmp.Name(), err)
-	}
-	if n == 0 {
-		t.Fatal("didn't copy any bytes for loadGoogle")
 	}
 	if err := tmp.Sync(); err != nil {
 		t.Fatalf("error syncing loadGoogle source code to %s, err=%v", tmp.Name(), err)
 	}
 	// go requires files have a .go suffix, but symlinks work just as fine too
 	dir, _ := filepath.Split(tmp.Name())
-	filename := filepath.Join(dir, "google.go")
+	filename := filepath.Join(dir, fmt.Sprintf("google%d.go", time.Now().Unix()))
 	err = os.Symlink(tmp.Name(), filename)
 	if err != nil {
 		t.Fatalf("error symlinking google source file, err=%v", err)
@@ -276,7 +272,9 @@ func loadGoogle(t *testing.T) error {
 
 func TestIntegration__loadGoogle(t *testing.T) {
 	if online(t) {
-		loadGoogle(t)
+		if err := loadGoogle(t); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
