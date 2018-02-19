@@ -262,8 +262,30 @@ func loadGoogle(t *testing.T) error {
 	}
 	defer os.Remove(filename)
 
-	// go run
-	out, err := exec.Command("go", "run", filename).CombinedOutput()
+	cmd := exec.Command("go", "run", filename)
+	cmd.Env = []string{
+		// Running this with cgo doesn't seem to work because of a cache around the trustd deamon.
+		// Chrome doesn't seem to have the same problem, but I haven't tracked down what they're doing.
+		//
+		// I looked into clearing this cache with a cgo specific wrapper (i.e. SecTrustSettingsPurgeUserAdminCertsCache)
+		// but couldn't get it working. There are some Sec*Priv.h header files which don't seem to be symlinked in with the
+		// rest of #include <Security/Security.h> files.
+		//
+		// Either way we compile cert-manage without cgo so it doesn't seem like a big leap to run this test without cgo.
+		//
+		// https://github.com/practicalswift/osx/blob/27f6b27ca6e76018240c126c94059d859760981d/src/security/OSX/trustd/trustd.c#L628
+		// https://github.com/practicalswift/osx/blob/27f6b27ca6e76018240c126c94059d859760981d/src/security/OSX/libsecurity_keychain/lib/SecTrustSettings.cpp#L936-L940
+		"CGO_ENABLED=0",
+	}
+	if debug {
+		cmd.Env = append(cmd.Env, "GODEBUG=x509roots=1")
+	}
+	out, err := cmd.CombinedOutput()
+	if debug {
+		fmt.Printf(`Command: %s
+Output:
+%s`, strings.Join(cmd.Args, " "), string(out))
+	}
 	if err != nil {
 		return fmt.Errorf("error running loadGoogle code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
 	}

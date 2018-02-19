@@ -299,7 +299,6 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 			}
 
 			// mark the certificate as 'Never Trust' in the system keychain
-			// e.g. sudo security add-trusted-cert -d -r deny -p ssl -k /Library/Keychains/System.keychain aaa.pem
 			cmd := exec.Command("sudo", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "deny", "-p", "ssl", "-k", systemKeychain, tmp.Name())
 			out, err := cmd.CombinedOutput()
 			if err != nil {
