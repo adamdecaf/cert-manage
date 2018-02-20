@@ -18,16 +18,17 @@ import (
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/go-sqlite/sqlite3"
 )
 
-func TestWhitelistGen__findChromeHistoryFile(t *testing.T) {
-	hist, err := findChromeHistoryFile()
+func TestWhitelistGen__findChromeHistoryDB(t *testing.T) {
+	db, err := findChromeHistoryDB()
 	// TODO(adam): Support other OS's
 	if file.Exists(`/Applications/Google Chrome.app`) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if hist == "" {
+		if db == nil {
 			t.Fatal("no error, but didn't find chrome History")
 		}
 	}
@@ -48,7 +49,11 @@ func TestWhitelistGen__getChromeUrls(t *testing.T) {
 		},
 	}
 	for i := range cases {
-		urls, err := getChromeUrls(cases[i].path)
+		db, err := sqlite3.Open(cases[i].path)
+		if err != nil {
+			t.Fatalf("%s - err=%v", cases[i].path, err)
+		}
+		urls, err := getChromeUrls(db)
 		if err != nil {
 			t.Fatalf("store %s, err=%v", cases[i].path, err)
 		}

@@ -18,15 +18,16 @@ import (
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/go-sqlite/sqlite3"
 )
 
-func TestWhitelistGen__findFirefoxPlacesFile(t *testing.T) {
-	place, err := findFirefoxPlacesFile()
+func TestWhitelistGen__findFirefoxPlacesDB(t *testing.T) {
+	db, err := findFirefoxPlacesDB()
 	if file.Exists("/Applications/Firefox.app") {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if place == "" {
+		if db == nil {
 			t.Fatal("no error, but didn't find firefox places.sqlite")
 		}
 	}
@@ -47,7 +48,11 @@ func TestWhitelistGen__getFirefoxUrls(t *testing.T) {
 		},
 	}
 	for i := range cases {
-		urls, err := getFirefoxUrls(cases[i].path)
+		db, err := sqlite3.Open(cases[i].path)
+		if err != nil {
+			t.Fatalf("%s - err=%v", cases[i].path, err)
+		}
+		urls, err := getFirefoxUrls(db)
 		if err != nil {
 			t.Fatalf("store %s, err=%v", cases[i].path, err)
 		}

@@ -16,7 +16,6 @@ package gen
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"path/filepath"
 
@@ -37,50 +36,26 @@ var (
 )
 
 func chrome() ([]*url.URL, error) {
-	history, err := findChromeHistoryFile()
+	db, err := findChromeHistoryDB()
 	if err != nil {
 		return nil, err
 	}
-	return getChromeUrls(history)
+	return getChromeUrls(db)
 }
 
-func findChromeHistoryFile() (string, error) {
+func getChromeUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
+	getter := func(rec sqlite3.Record) string {
+		u, _ := rec.Values[1].(string)
+		return u
+	}
+	return getSqliteHistoryUrls(db, "Chrome", "urls", getter)
+}
+
+func findChromeHistoryDB() (*sqlite3.DbFile, error) {
 	for i := range chromeProfileLocations {
 		if file.Exists(chromeProfileLocations[i]) {
-			return chromeProfileLocations[i], nil
+			return sqlite3.Open(chromeProfileLocations[i])
 		}
 	}
-	return "", errors.New("unable to find chrome History file")
-}
-
-func getChromeUrls(placesPath string) ([]*url.URL, error) {
-	db, err := sqlite3.Open(placesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var acc []*url.URL
-	err = db.VisitTableRecords("urls", func(rowId *int64, rec sqlite3.Record) error {
-		if rowId == nil {
-			return fmt.Errorf("unexpected nil RowID in Chrome sqlite database")
-		}
-
-		u, ok := rec.Values[1].(string)
-		if !ok && debug {
-			fmt.Printf("whitelist/gen: (chrome) unknown rec.Values[1], %v\n", rec.Values[1])
-		}
-		parsed, err := url.Parse(u)
-		if err == nil {
-			acc = append(acc, parsed)
-		}
-		if err != nil && debug {
-			fmt.Printf("whitelist/gen: (chrome) error parsing %q, err=%v\n", u, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return acc, nil
+	return nil, errors.New("unable to find chrome History file")
 }

@@ -16,7 +16,6 @@ package gen
 
 import (
 	"errors"
-	"fmt"
 	"net/url"
 	"path/filepath"
 
@@ -32,57 +31,34 @@ var (
 )
 
 func firefox() ([]*url.URL, error) {
-	places, err := findFirefoxPlacesFile()
+	db, err := findFirefoxPlacesDB()
 	if err != nil {
 		return nil, err
 	}
-	return getFirefoxUrls(places)
+	return getFirefoxUrls(db)
 }
 
-func findFirefoxPlacesFile() (string, error) {
+func getFirefoxUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
+
+	getter := func(rec sqlite3.Record) string {
+		u, _ := rec.Values[1].(string)
+		return u
+	}
+	return getSqliteHistoryUrls(db, "Firefox", "moz_places", getter)
+}
+
+func findFirefoxPlacesDB() (*sqlite3.DbFile, error) {
 	// Paths are globs, so check each match
 	for i := range firefoxProfileLocations {
 		matches, err := filepath.Glob(firefoxProfileLocations[i])
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		for j := range matches {
 			if file.Exists(matches[j]) {
-				return matches[j], nil
+				return sqlite3.Open(matches[j])
 			}
 		}
 	}
-	return "", errors.New("unable to find firefox places.sqlite")
-}
-
-func getFirefoxUrls(placesPath string) ([]*url.URL, error) {
-	db, err := sqlite3.Open(placesPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var acc []*url.URL
-	err = db.VisitTableRecords("moz_places", func(rowId *int64, rec sqlite3.Record) error {
-		if rowId == nil {
-			return fmt.Errorf("unexpected nil RowID in Firefox sqlite database")
-		}
-
-		u, ok := rec.Values[1].(string)
-		if !ok && debug {
-			fmt.Printf("whitelist/gen: (firefox) unknown rec.Values[1], %v\n", rec.Values[1])
-		}
-		parsed, err := url.Parse(u)
-		if err == nil {
-			acc = append(acc, parsed)
-		}
-		if err != nil && debug {
-			fmt.Printf("whitelist/gen: (firefox) error parsing %q, err=%v\n", u, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return acc, nil
+	return nil, errors.New("unable to find firefox places.sqlite")
 }
