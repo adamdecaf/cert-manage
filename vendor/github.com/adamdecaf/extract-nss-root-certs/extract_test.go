@@ -2,8 +2,21 @@ package nsscerts
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"os"
 	"testing"
+	"time"
+)
+
+var (
+	expectedCertCount = 133
+
+	isTravis = os.Getenv("TRAVIS_OS_NAME") != ""
+	isCron = os.Getenv("TRAVIS_EVENT_TYPE") == "cron"
+
+	maxDownloadSize = int64(10 * 1024 * 1024)
 )
 
 func TestExtractNSS(t *testing.T) {
@@ -18,7 +31,37 @@ func TestExtractNSS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(certs) != 133 {
+	if len(certs) != expectedCertCount {
 		t.Errorf("got %d certs", len(certs))
+	}
+}
+
+// https://docs.travis-ci.com/user/cron-jobs/#Detecting-Builds-Triggered-by-Cron
+func TestExtractNSS_weekly(t *testing.T) {
+	if !isTravis || !isCron {
+		t.Skip("not in travisci cron")
+	}
+
+	client := http.Client{
+		Timeout: 30 * time.Second,
+	}
+	resp, err := client.Get(LatestDownloadURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if resp.Body != nil {
+			resp.Body.Close()
+		}
+	}()
+	r := io.LimitReader(resp.Body, maxDownloadSize)
+
+	// parse
+	certs, err := List(r, &Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) != expectedCertCount {
+		t.Errorf("got %d certs, expected %d", len(certs), expectedCertCount)
 	}
 }

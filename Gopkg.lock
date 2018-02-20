@@ -5,13 +5,13 @@
   branch = "master"
   name = "github.com/adamdecaf/extract-nss-root-certs"
   packages = ["."]
-  revision = "773948164021f10614dcb69195f4f7af3a7d191f"
+  revision = "8cf5de493e5745e8d431f5906377dc81809bd974"
 
 [[projects]]
   branch = "master"
   name = "github.com/go-sqlite/sqlite3"
   packages = ["."]
-  revision = "304649c70ebecb945a40358fc3659e97d541f4b1"
+  revision = "586e4c920af663bb8089920a403b83a6a6bbb60c"
 
 [[projects]]
   branch = "master"
@@ -26,7 +26,7 @@
     "pkcs12",
     "pkcs12/internal/rc2"
   ]
-  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
+  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
 
 [[projects]]
   branch = "v2"
