@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"runtime/trace"
 )
@@ -26,7 +27,7 @@ func NewTrace(where string) (*Trace, error) {
 
 	fd, err := os.Create(where)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating trace, err=%v", err)
 	}
 
 	return &Trace{
