@@ -36,7 +36,7 @@ var (
 	debug = len(os.Getenv("DEBUG")) > 0 ||
 		strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
 
-	backupDirPerms os.FileMode = 0744
+	backupDirPerms os.FileMode = file.TempFilePermissions
 
 	// Define a mapping between -app and the Store instance
 	appStores = map[string]Store{
