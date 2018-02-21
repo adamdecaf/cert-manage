@@ -43,6 +43,7 @@ func firefoxCertdbLocations() []cert8db {
 	return paths
 }
 
+// FirefoxStore returns a Mozilla Firefox implementation of Store
 func FirefoxStore() Store {
 	suggestions := firefoxCertdbLocations()
 	found := locateCert8db(suggestions)

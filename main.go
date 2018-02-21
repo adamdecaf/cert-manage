@@ -47,7 +47,7 @@ var (
 	flagApp = fs.String("app", "", "")
 
 	// -ui is used for choosing a different ui
-	flagUi = fs.String("ui", ui.DefaultUI(), "")
+	flagUI = fs.String("ui", ui.DefaultUI(), "")
 
 	// -from is used by 'gen-whitelist' to specify url sources
 	flagFrom = fs.String("from", "", "")
@@ -161,7 +161,7 @@ func main() {
 		Count:   *flagCount,
 		Format:  *flagFormat,
 		Outfile: *flagOutFile,
-		UI:      *flagUi,
+		UI:      *flagUI,
 	}
 
 	// Build up sub-commands

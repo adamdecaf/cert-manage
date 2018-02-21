@@ -33,14 +33,6 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
-// Docs:
-// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS
-// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
-// - https://wiki.mozilla.org/NSS_Shared_DB
-// - https://www.chromium.org/Home/chromium-security/root-ca-policy
-//   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
-//   - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
-
 var (
 	cutil = crtutil{
 		execPaths: []string{
@@ -83,7 +75,16 @@ type nssStore struct {
 	notify *sync.Once
 }
 
-func NssStore(nssType string, upstreamVersion string, suggestedDirs []cert8db, foundCert8db cert8db) nssStore {
+// NssStore returns an implementation of Store for NSS certificate stores
+//
+// Docs:
+// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS
+// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
+// - https://wiki.mozilla.org/NSS_Shared_DB
+// - https://www.chromium.org/Home/chromium-security/root-ca-policy
+//   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
+//   - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
+func NssStore(nssType string, upstreamVersion string, suggestedDirs []cert8db, foundCert8db cert8db) Store {
 	return nssStore{
 		nssType:              nssType,
 		upstreamVersion:      upstreamVersion,

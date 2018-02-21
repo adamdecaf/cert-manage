@@ -31,7 +31,8 @@ var (
 	}
 )
 
-// From: https://www.chromium.org/Home/chromium-security/root-ca-policy
+// ChromeStore returns a Google Chrome implementation of Store
+// Docs: https://www.chromium.org/Home/chromium-security/root-ca-policy
 func ChromeStore() Store {
 	switch runtime.GOOS {
 	case "darwin", "windows":

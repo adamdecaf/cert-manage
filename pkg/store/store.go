@@ -29,6 +29,7 @@ import (
 )
 
 var (
+	// ErrNoBackupMade is returned if no backup of a certificate store can be found
 	ErrNoBackupMade = errors.New("unable to make backup of store")
 
 	// internal options
@@ -85,6 +86,9 @@ type Store interface {
 	Restore(where string) error
 }
 
+// Info represents high-level information about a certificate store
+// There are no guarentees of machine parsing on this data, but it should
+// be easily human readable.
 type Info struct {
 	Name    string
 	Version string

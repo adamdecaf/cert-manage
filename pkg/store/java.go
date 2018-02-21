@@ -34,10 +34,6 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
-// Docs:
-// - https://docs.oracle.com/cd/E19830-01/819-4712/ablqw/index.html
-// - https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html
-
 var (
 	defaultKeystorePassword = "changeit"
 	javaCertManageDir       = "java"
@@ -45,6 +41,11 @@ var (
 
 type javaStore struct{}
 
+// JavaStore returns an implementation of Store for Java certificate stores
+//
+// Docs:
+// - https://docs.oracle.com/cd/E19830-01/819-4712/ablqw/index.html
+// - https://www.sslshopper.com/article-most-common-java-keytool-keystore-commands.html
 func JavaStore() Store {
 	return javaStore{}
 }

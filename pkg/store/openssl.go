@@ -41,6 +41,7 @@ var (
 
 type opensslStore struct{}
 
+// OpenSSLStore returns an implementation of Store for OpenSSL certificate stores
 func OpenSSLStore() Store {
 	return opensslStore{}
 }
