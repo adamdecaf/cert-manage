@@ -69,7 +69,7 @@ func TestWhitelist_remove(t *testing.T) {
 	}
 }
 
-func TestWhitelist__file(t *testing.T) {
+func TestWhitelist__jsonFile(t *testing.T) {
 	wh, err := FromFile("../../testdata/complete-whitelist.json")
 	if err != nil {
 		t.Fatal(err)
@@ -81,19 +81,57 @@ func TestWhitelist__file(t *testing.T) {
 	if !reflect.DeepEqual(wh.Fingerprints, []string{"a"}) {
 		t.Errorf("got %q", wh.Fingerprints)
 	}
+
+	if !reflect.DeepEqual(wh.Countries, []string{"US", "GB"}) {
+		t.Errorf("got %q", wh.Countries)
+	}
 }
 
-func TestWhitelist__emptyfile(t *testing.T) {
+func TestWhitelist__emptyJson(t *testing.T) {
 	wh, err := FromFile("../../testdata/empty-whitelist.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(wh.Fingerprints) != 0 {
-		t.Fatalf("empty whitelist was not parsed as empty! had %d fingerprints", len(wh.Fingerprints))
+		t.Errorf("empty whitelist had fingerprints: %q", wh.Fingerprints)
+	}
+	if len(wh.Countries) != 0 {
+		t.Errorf("empty whitelist had countries: %q", wh.Countries)
 	}
 }
 
-func TestWhitelist_filecycle(t *testing.T) {
+func TestWhitelist__yamlFile(t *testing.T) {
+	wh, err := FromFile("../../testdata/complete-whitelist.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wh.Fingerprints) != 1 {
+		t.Errorf("Wrong number of parsed fingerprints in whitelist, found=%d", len(wh.Fingerprints))
+	}
+
+	if !reflect.DeepEqual(wh.Fingerprints, []string{"a"}) {
+		t.Errorf("got %q", wh.Fingerprints)
+	}
+
+	if !reflect.DeepEqual(wh.Countries, []string{"US", "GB"}) {
+		t.Errorf("got %q", wh.Countries)
+	}
+}
+
+func TestWhitelist__emptyYaml(t *testing.T) {
+	wh, err := FromFile("../../testdata/empty-whitelist.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wh.Fingerprints) != 0 {
+		t.Errorf("empty whitelist had fingerprints: %q", wh.Fingerprints)
+	}
+	if len(wh.Countries) != 0 {
+		t.Errorf("empty whitelist had countries: %q", wh.Countries)
+	}
+}
+
+func TestWhitelist_cycle(t *testing.T) {
 	wh, err := FromFile("../../testdata/complete-whitelist.json")
 	if err != nil {
 		t.Fatal(err)

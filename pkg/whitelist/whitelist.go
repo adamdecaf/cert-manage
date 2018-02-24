@@ -17,16 +17,22 @@ package whitelist
 import (
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"gopkg.in/yaml.v2"
 )
 
 // Whitelist is the structure holding various `item` types that match against
 // x509 certificates
 type Whitelist struct {
-	// sha256 fingerprints
-	Fingerprints []string `json:"Fingerprints,omitempty"`
+	// SHA256 fingerprints
+	Fingerprints []string `json:"Fingerprints,omitempty" yaml:"fingerprints,omitempty"`
+
+	// ISO 3166-1 two-letter country codes used to match
+	// RFC 2253 Distinguished Names in certificates
+	Countries []string `json:"Countries,omitempty" yaml:"countries,omitempty"`
 }
 
 // Matches checks a given x509 certificate against the criteria and
@@ -73,8 +79,17 @@ func FromFile(path string) (Whitelist, error) {
 	if err != nil {
 		return wh, err
 	}
-	err = json.Unmarshal(b, &wh)
-	return wh, err
+
+	// try reading as json
+	if err = json.Unmarshal(b, &wh); err == nil {
+		return wh, nil
+	}
+
+	// try reading as yaml
+	if err = yaml.Unmarshal(b, &wh); err == nil {
+		return wh, nil
+	}
+	return wh, errors.New("Unable to read whitelist")
 }
 
 // ToFile take a Whitelist, encods it to json and writes the result
