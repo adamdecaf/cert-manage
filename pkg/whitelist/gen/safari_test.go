@@ -21,38 +21,38 @@ import (
 	"github.com/go-sqlite/sqlite3"
 )
 
-func TestWhitelistGen__findFirefoxPlacesDB(t *testing.T) {
-	db, err := findFirefoxPlacesDB()
-	if file.Exists("/Applications/Firefox.app") {
+func TestWhitelistGen__findSafariPlacesDB(t *testing.T) {
+	db, err := findSafariHistoryDB()
+	if file.Exists("/Applications/Safari.app") {
 		if err != nil {
 			t.Fatal(err)
 		}
 		if db == nil {
-			t.Fatal("no error, but didn't find firefox places.sqlite")
+			t.Fatal("no error, but didn't find safari places.sqlite")
 		}
 	}
 }
 
-func TestWhitelistGen__getFirefoxUrls(t *testing.T) {
+func TestWhitelistGen__getSafariUrls(t *testing.T) {
 	cases := []struct {
 		count int
 		path  string
 	}{
 		{
-			count: 10,
-			path:  "../../../testdata/firefox-history.sqlite",
+			count: 4,
+			path:  "../../../testdata/safari-history.sqlite",
 		},
-		{
-			count: 10,
-			path:  "../../../testdata/firefox-history-win.sqlite",
-		},
+		// {
+		// 	count: 0,
+		// 	path:  "../../../testdata/safari-history-win.sqlite", // TODO(adam): Get windows safari history file
+		// },
 	}
 	for i := range cases {
 		db, err := sqlite3.Open(cases[i].path)
 		if err != nil {
 			t.Fatalf("%s - err=%v", cases[i].path, err)
 		}
-		urls, err := getFirefoxUrls(db)
+		urls, err := getSafariUrls(db)
 		if err != nil {
 			t.Fatalf("store %s, err=%v", cases[i].path, err)
 		}
