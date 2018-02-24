@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"gopkg.in/yaml.v2"
@@ -41,12 +42,24 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	if inc == nil {
 		return false
 	}
+
+	// check certificate fingerprint
 	fp := certutil.GetHexSHA256Fingerprint(*inc)
 	for i := range w.Fingerprints {
 		if w.Fingerprints[i] == fp {
 			return true
 		}
 	}
+
+	// check Country in Subject
+	for i := range inc.Subject.Country {
+		for j := range w.Countries {
+			if strings.ToLower(inc.Subject.Country[i]) == strings.ToLower(w.Countries[j]) {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
@@ -60,6 +73,8 @@ func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
 	return true
 }
 
+// FromCertificates returns a Whitelist with only the fingerprints of the passed
+// certificates included.
 func FromCertificates(certs []*x509.Certificate) Whitelist {
 	wh := Whitelist{}
 	for i := range certs {

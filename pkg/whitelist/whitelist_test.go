@@ -23,16 +23,20 @@ import (
 )
 
 func TestWhitelist_nocert(t *testing.T) {
-	wh1 := Whitelist{}
-	wh2 := Whitelist{
-		Fingerprints: []string{"a"},
+	cases := []Whitelist{
+		Whitelist{},
+		Whitelist{
+			Fingerprints: []string{"a"},
+		},
+		Whitelist{
+			Countries: []string{"US"},
+		},
 	}
-
-	if wh1.Matches(nil) {
-		t.Fatalf("shouldn't have matched, empty whitelist")
-	}
-	if wh2.Matches(nil) {
-		t.Fatalf("shouldn't have matched, empty whitelist")
+	for i := range cases {
+		wh := cases[i]
+		if wh.Matches(nil) {
+			t.Errorf("shouldn't have matched, wh=%#v", wh)
+		}
 	}
 }
 
@@ -56,15 +60,25 @@ func TestWhitelist_remove(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// test fingerprint
 	wh := Whitelist{
 		Fingerprints: []string{
 			"05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030",
 		},
 	}
-
 	for i := range certs {
 		if !wh.Matches(certs[i]) {
-			t.Fatalf("error, should have matched")
+			t.Fatalf("should have matched")
+		}
+	}
+
+	// test country
+	wh = Whitelist{
+		Countries: []string{"US"},
+	}
+	for i := range certs {
+		if !wh.Matches(certs[i]) {
+			t.Fatalf("should have matched")
 		}
 	}
 }
@@ -167,6 +181,7 @@ func TestWhitlist__matching(t *testing.T) {
 		t.Error("empty whitelist and cert shouldn't match")
 	}
 
+	// Fingerprints
 	wh.Fingerprints = []string{"abc"}
 	if wh.Matches(certificates[0]) {
 		t.Error("shouldn't match")
@@ -178,6 +193,13 @@ func TestWhitlist__matching(t *testing.T) {
 	}
 
 	wh.Fingerprints = []string{"05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030"}
+	if !wh.Matches(certificates[0]) {
+		t.Error("should have matched")
+	}
+
+	// Country
+	wh.Fingerprints = []string{}
+	wh.Countries = []string{"US"}
 	if !wh.Matches(certificates[0]) {
 		t.Error("should have matched")
 	}
