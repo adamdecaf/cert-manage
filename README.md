@@ -41,8 +41,8 @@ $ cert-manage list -file example.crt
 $ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 
 # Trim down what CA's are trusted on your system
-$ cert-manage whitelist -file digicert.json
-$ cert-manage whitelist -app chrome -file digicert.json
+$ cert-manage whitelist -file urls.yaml # or json
+$ cert-manage whitelist -app chrome -file urls.yaml
 
 # Backup and Restore the current trust
 $ cert-manage backup
