@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/file"
 	"gopkg.in/yaml.v2"
 )
 
@@ -75,7 +76,7 @@ func writeObservatoryReport(meta Meta, certs []*x509.Certificate, cfg *Config) e
 		return err
 	}
 	if cfg.Outfile != "" {
-		return ioutil.WriteFile(cfg.Outfile, bs, 0644)
+		return ioutil.WriteFile(cfg.Outfile, bs, file.TempFilePermissions)
 	}
 	// write yaml to stdout
 	_, err = os.Stdout.Write(bs)

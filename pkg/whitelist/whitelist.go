@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 // Whitelist is the structure holding various `item` types that match against
@@ -83,5 +84,5 @@ func (w Whitelist) ToFile(path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, out, 0644)
+	return ioutil.WriteFile(path, out, file.TempFilePermissions)
 }

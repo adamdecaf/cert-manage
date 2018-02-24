@@ -24,6 +24,11 @@ import (
 	"unicode/utf8"
 )
 
+const (
+	TempFilePermissions = 0600 // rw for owner only
+	TempDirPermissions  = 0700 | os.ModeDir
+)
+
 // Exists returns true if the give path represents a file or directory
 func Exists(path string) bool {
 	path, err := filepath.Abs(strings.TrimSpace(path))

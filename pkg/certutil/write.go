@@ -20,12 +20,14 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"os"
+
+	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 // ToFile overwrites file at `path` with the certificates encoded in
 // PEM format.
 func ToFile(path string, certs []*x509.Certificate) error {
-	var perms os.FileMode = 0666
+	var perms os.FileMode = file.TempFilePermissions
 	stat, err := os.Stat(path)
 	if err == nil {
 		perms = stat.Mode()
