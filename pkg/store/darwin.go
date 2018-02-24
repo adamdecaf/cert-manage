@@ -32,8 +32,6 @@ import (
 )
 
 var (
-	plistModDateFormat = "2006-01-02T15:04:05Z"
-
 	// systemRootCertificates is the bundled set of CA's from Apple.
 	//
 	// After "System Integrity Protection" was added to macs not even root can modify files
@@ -53,8 +51,8 @@ var (
 	// is typically where overrides (e.g. corporate CA's) are installed into.
 	loginKeychain = filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 
-	// TODO(adam): What's ~/Library/Keychains/login.keychain-db
-	// Oh, it's the filepath from older osx versions
+	// TODO(adam): Add support for new Sierra installs, which use the following path instead
+	// ~/Library/Keychains/login.keychain-db
 
 	// Folder under ~/Library/cert-manage/ to put backups
 	darwinBackupDir = "darwin"
