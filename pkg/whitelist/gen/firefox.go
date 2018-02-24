@@ -39,7 +39,6 @@ func firefox() ([]*url.URL, error) {
 }
 
 func getFirefoxUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
-
 	getter := func(rec sqlite3.Record) string {
 		u, _ := rec.Values[1].(string)
 		return u

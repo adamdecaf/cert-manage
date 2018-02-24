@@ -34,6 +34,10 @@ func safari() ([]*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
+	return getSafariUrls(db)
+}
+
+func getSafariUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
 	getter := func(rec sqlite3.Record) string {
 		u, _ := rec.Values[1].(string)
 		return u
