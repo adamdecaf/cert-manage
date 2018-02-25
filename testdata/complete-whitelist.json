@@ -1,3 +1,4 @@
 {
-  "Fingerprints": ["a"]
+  "Fingerprints": ["a"],
+  "Countries": ["US", "GB"]
 }

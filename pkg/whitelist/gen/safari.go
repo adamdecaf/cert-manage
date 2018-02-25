@@ -24,40 +24,32 @@ import (
 )
 
 var (
-	firefoxProfileLocations = []string{
-		filepath.Join(file.HomeDir(), "/Library/Application Support/Firefox/Profiles/*/places.sqlite"), // OSX
-		// C:\Users\%USERNAME%\AppData\Roaming\Mozilla\Firefox\Profiles\%PROFILE%.default\places.sqlite // TODO
+	safariProfileLocations = []string{
+		filepath.Join(file.HomeDir(), `Library/Safari/History.db`), // OSX
 	}
 )
 
-func firefox() ([]*url.URL, error) {
-	db, err := findFirefoxPlacesDB()
+func safari() ([]*url.URL, error) {
+	db, err := findSafariHistoryDB()
 	if err != nil {
 		return nil, err
 	}
-	return getFirefoxUrls(db)
+	return getSafariUrls(db)
 }
 
-func getFirefoxUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
+func getSafariUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
 	getter := func(rec sqlite3.Record) string {
 		u, _ := rec.Values[1].(string)
 		return u
 	}
-	return getSqliteHistoryUrls(db, "Firefox", "moz_places", getter)
+	return getSqliteHistoryUrls(db, "Safari", "history_items", getter)
 }
 
-func findFirefoxPlacesDB() (*sqlite3.DbFile, error) {
-	// Paths are globs, so check each match
-	for i := range firefoxProfileLocations {
-		matches, err := filepath.Glob(firefoxProfileLocations[i])
-		if err != nil {
-			return nil, err
-		}
-		for j := range matches {
-			if file.Exists(matches[j]) {
-				return sqlite3.Open(matches[j])
-			}
+func findSafariHistoryDB() (*sqlite3.DbFile, error) {
+	for i := range safariProfileLocations {
+		if file.Exists(safariProfileLocations[i]) {
+			return sqlite3.Open(safariProfileLocations[i])
 		}
 	}
-	return nil, errors.New("unable to find firefox places.sqlite")
+	return nil, errors.New("unable to find safari History.db file")
 }

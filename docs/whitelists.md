@@ -5,13 +5,28 @@
 Whitelists represent an operation which disables certificate trust in a certificate store. The filters presented for a whitelist are:
 
 - `Fingerprint`: The SHA256 fingerprint of a certificate. This value will be unique across certificates given their contents are unique.
+- `Countries`: ISO 3166-1 two-letter country codes of certificates to keep. (e.g. `US` - United States and `JP` - Japan)
 
-Whitelists are stored in json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
+Whitelists are stored in yaml or json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
+
+```json
+# Optional array of SHA256 certificate fingerprints
+fingerprints:
+ - "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
+
+# Optional array of ISO 3166-1 Country Codes
+countries:
+ - "US"
+ - "JP"
+```
 
 ```json
 {
   "Fingerprints": [
     "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
+  ],
+  "Countries": [
+    "GB"
   ]
 }
 ```

@@ -132,6 +132,10 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
+	// Map of short cert aliases we've already deleted
+	// Used to cleanup debug logging
+	deleted := make(map[string]bool, 0)
+
 	// compare against all listed certs
 	for i := range shortCerts {
 		if !shortCerts[i].hasFingerprints() {
@@ -148,6 +152,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 					if err != nil {
 						return err
 					}
+					deleted[shortCerts[i].alias] = true
 					if debug {
 						fmt.Printf("store/java: deleted %s from %s\n", shortCerts[i], kpath)
 					}
@@ -156,9 +161,10 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 			}
 		}
 
-		if debug {
+		_, alreadyDeleted := deleted[shortCerts[i].alias]
+		if debug && !alreadyDeleted {
 			// We didn't match the "short cert" to it's full x509.Certificate
-			fmt.Printf("store/java: Unable to find cert %s in java store at %s\n", shortCerts[i].alias, kpath)
+			fmt.Printf("store/java: Unable to find cert %q in java store at %s\n", shortCerts[i].alias, kpath)
 		}
 	}
 

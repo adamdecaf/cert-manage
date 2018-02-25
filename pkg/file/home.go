@@ -18,6 +18,9 @@ import (
 	"os/user"
 )
 
+// HomeDir returns the user's home directory
+//
+// This isn't guarenteed to be non-empty as users can often change this.
 func HomeDir() string {
 	home := homeDir()
 	if home != "" {

@@ -31,11 +31,12 @@ var (
 	browserGetters = []getter{
 		chrome,
 		firefox,
+		safari,
 	}
 
 	// requires updating with store/store.go, but so does the
 	// rest of this file
-	browserNames = []string{"chrome", "firefox"}
+	browserNames = []string{"chrome", "firefox", "safari"}
 )
 
 func FromAllBrowsers() ([]*url.URL, error) {
@@ -79,10 +80,12 @@ func BrowserCAs() ([]*x509.Certificate, error) {
 
 func FromBrowser(name string) ([]*url.URL, error) {
 	switch strings.ToLower(name) {
-	case "firefox":
-		return firefox()
 	case "chrome":
 		return chrome()
+	case "firefox":
+		return firefox()
+	case "safari":
+		return safari()
 	}
 	return nil, nil
 }

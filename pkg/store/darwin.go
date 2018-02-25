@@ -32,8 +32,6 @@ import (
 )
 
 var (
-	plistModDateFormat = "2006-01-02T15:04:05Z"
-
 	// systemRootCertificates is the bundled set of CA's from Apple.
 	//
 	// After "System Integrity Protection" was added to macs not even root can modify files
@@ -54,8 +52,8 @@ var (
 	loginKeychain = filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 
 	// If people run into issues with 'login.keychain' not being found it's likely that
-	// they have ~/Library/Keychains/login.keychain-db instead, but for now I'm not going
-	// to hook in support for both.
+	// they have ~/Library/Keychains/login.keychain-db instead (from Sierra installs),
+	// but for now I'm not going to hook in support for both.
 	// See: https://github.com/fastlane/fastlane/issues/5649
 
 	// Folder under ~/Library/cert-manage/ to put backups
