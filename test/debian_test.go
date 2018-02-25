@@ -33,5 +33,5 @@ func TestDebian__java(t *testing.T) {
 	t.Parallel()
 
 	img := Dockerfile("envs/debian")
-	javaSuite(t, img, "166", "12")
+	javaSuite(t, img, "166", "63")
 }

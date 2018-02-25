@@ -78,26 +78,26 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 	}
 
 	// List
-	img.CertManage("list", "-count", "-app", "java", "|", "grep", total)
+	img.CertManageEQ("list -count -app java", total)
 	// Backup
 	img.CertManage("backup", "-app", "java")
 	img.RunSplit("ls -1 ~/.cert-manage/java | wc -l | grep 1")
 	// Check java
 	img.RunSplit("cd / && java Download")
 	// Whitelist java
-	img.CertManage("whitelist", "-file", "/whitelist.json", "-app", "java")
-	img.CertManage("list", "-app", "java", "-count", "|", "grep", after)
+	img.CertManage("whitelist", "-app", "java", "-file", "/whitelist.yaml")
+	img.CertManageEQ("list -app java -count", after)
 	// Verify google.com fails to load
 	img.Run("cd", "/")
 	img.ShouldFail("java", "Download", "2>&1", "|", "grep", `'PKIX path building failed'`)
 	// Restore
 	img.CertManage("restore", "-app", "java")
-	img.CertManage("list", "-app", "java", "-count", "|", "grep", total)
+	img.CertManageEQ("list -app java -count", total)
 	// Verify Restore
 	img.RunSplit("cd / && java Download")
 	// Add certificate
 	img.CertManage("add", "-file", "/localcert.pem", "-app", "java")
-	img.CertManage("list", "-count", "-app", "java", "|", "grep", incr(total))
+	img.CertManageEQ("list -count -app java", incr(total))
 	img.SuccessT(t)
 
 	if debug {

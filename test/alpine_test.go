@@ -33,5 +33,5 @@ func TestAlpine__java(t *testing.T) {
 	t.Parallel()
 
 	img := Dockerfile("envs/alpine")
-	javaSuite(t, img, "150", "5")
+	javaSuite(t, img, "150", "54")
 }

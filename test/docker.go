@@ -95,11 +95,25 @@ func (d *dockerfile) ExitCode(code, cmd string, args ...string) {
 	d.Run("echo", "$code", "|", "grep", code)
 }
 
+// Equals returns an os/exec array of bash commands to check the previous command
+func (d *dockerfile) OutputEquals(answer string) []string {
+	return []string{
+		// store stdout
+		">", "/tmp/answer",
+		// compare against last line of output
+		"&&", fmt.Sprintf(`[ $(tail -1 /tmp/answer) -eq "%s" ]`, answer),
+	}
+}
+
 func (d *dockerfile) CertManage(args ...string) {
 	d.Do(func() {
 		d.Run("chmod", "+x", "/bin/cert-manage")
 	})
 	d.Run("/bin/cert-manage", args...)
+}
+
+func (d *dockerfile) CertManageEQ(args, answer string) {
+	d.CertManage(append(strings.Split(args, " "), d.OutputEquals(answer)...)...)
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
@@ -134,6 +148,7 @@ func (d *dockerfile) build() {
 		"../bin/cert-manage-linux-amd64",
 		"../testdata/Download.java",
 		"../testdata/globalsign-whitelist.json",
+		"../testdata/us-whitelist.yaml",
 		"../testdata/localcert.pem",
 	}
 	for i := range copyable {
@@ -178,7 +193,9 @@ func (d *dockerfile) build() {
 		return
 	}
 	defer os.Remove(script.Name())
-	_, err = script.WriteString(`#!/bin/sh` + "\n")
+	_, err = script.WriteString(`#!/bin/sh
+set +x
+set -e` + "\n") // force newline
 	if err != nil {
 		d.err = err
 		return

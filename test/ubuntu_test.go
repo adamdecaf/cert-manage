@@ -33,5 +33,5 @@ func TestUbuntu__java(t *testing.T) {
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")
-	javaSuite(t, img, "148", "9")
+	javaSuite(t, img, "148", "54")
 }
