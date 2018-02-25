@@ -172,9 +172,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// verify we can load google
-	if err := loadGoogle(t); online(t) && err != nil {
-		t.Fatalf("expected to be able to load google, err=%v", err)
+	// verify we can load our test site
+	if err := loadTestSite(t); online(t) && err != nil {
+		t.Fatalf("expected to be able to load our test site, err=%v", err)
 	}
 
 	// take a backup
@@ -194,9 +194,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
 	}
 
-	// verify we can't load google
-	if err := loadGoogle(t); online(t) && err == nil {
-		t.Fatal("expected to not load google")
+	// verify we can't load our test site
+	if err := loadTestSite(t); online(t) && err == nil {
+		t.Fatal("expected to not load our test site")
 	}
 
 	// restore
@@ -213,17 +213,17 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatalf("certsBefore=%d, certsAfter=%d, certsAfterRestore=%d", len(certsBefore), len(certsAfter), len(certsAfterRestore))
 	}
 
-	// verify we can load google
-	if err := loadGoogle(t); online(t) && err != nil {
-		t.Fatalf("expected to be able to load google, err=%v", err)
+	// verify we can load our test site
+	if err := loadTestSite(t); online(t) && err != nil {
+		t.Fatalf("expected to be able to load our test site, err=%v", err)
 	}
 }
 
-var loadGoogleSourceCode = []byte(`package main
+var loadTestSiteSourceCode = []byte(`package main
 import "net/http"
 
 func main() {
-	resp, err := http.DefaultClient.Get("https://www.google.com")
+	resp, err := http.DefaultClient.Get("https://fnb.co.za") // test site, anything without a US root
 	if err != nil {
 		defer panic("A: " + err.Error())
 	}
@@ -234,33 +234,33 @@ func main() {
 	}
 }`)
 
-// loadGoogle needs to drop down back into a shell and then run some Go code,
+// loadTestSite needs to drop down back into a shell and then run some Go code,
 // which on darwin uses the platform certs (Keychain), to attempt a connection
 // against the target host.
 //
 // We can't just call `x509.SystemCertPool()` again, because under the hood it
 // is protected by a `sync.Once`, so our changes aren't reflected until the next run.
-func loadGoogle(t *testing.T) error {
+func loadTestSite(t *testing.T) error {
 	t.Helper()
 
 	// render our Go code to another file and then `go run` it.
-	tmp, err := ioutil.TempFile("", "load-google")
+	tmp, err := ioutil.TempFile("", "load-our test site")
 	if err != nil {
-		t.Fatalf("error creating temp dir for loadGoogle, err=%v", err)
+		t.Fatalf("error creating temp dir for loadTestSite, err=%v", err)
 	}
-	err = ioutil.WriteFile(tmp.Name(), loadGoogleSourceCode, 0644)
+	err = ioutil.WriteFile(tmp.Name(), loadTestSiteSourceCode, 0644)
 	if err != nil {
-		t.Fatalf("error writing loadGoogle source code to %s, err=%v", tmp.Name(), err)
+		t.Fatalf("error writing loadTestSite source code to %s, err=%v", tmp.Name(), err)
 	}
 	if err := tmp.Sync(); err != nil {
-		t.Fatalf("error syncing loadGoogle source code to %s, err=%v", tmp.Name(), err)
+		t.Fatalf("error syncing loadTestSite source code to %s, err=%v", tmp.Name(), err)
 	}
 	// go requires files have a .go suffix, but symlinks work just as fine too
 	dir, _ := filepath.Split(tmp.Name())
-	filename := filepath.Join(dir, fmt.Sprintf("google%d.go", time.Now().Unix()))
+	filename := filepath.Join(dir, fmt.Sprintf("our test site%d.go", time.Now().Unix()))
 	err = os.Symlink(tmp.Name(), filename)
 	if err != nil {
-		t.Fatalf("error symlinking google source file, err=%v", err)
+		t.Fatalf("error symlinking our test site source file, err=%v", err)
 	}
 	defer os.Remove(filename)
 
@@ -289,14 +289,14 @@ Output:
 %s`, strings.Join(cmd.Args, " "), string(out))
 	}
 	if err != nil {
-		return fmt.Errorf("error running loadGoogle code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("error running loadTestSite code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
 
-func TestIntegration__loadGoogle(t *testing.T) {
+func TestIntegration__loadTestSite(t *testing.T) {
 	if online(t) {
-		if err := loadGoogle(t); err != nil {
+		if err := loadTestSite(t); err != nil {
 			t.Fatal(err)
 		}
 	}
