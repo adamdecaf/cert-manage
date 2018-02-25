@@ -195,8 +195,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	// verify we can't load our test site
-	if err := loadTestSite(t); online(t) && err == nil {
-		t.Fatal("expected to not load our test site")
+	if err := loadTestSite(t); online(t) && err != nil {
+		// Go 1.10 calls 'security verify-cert' without -p ssl, which doesn't see the cert as untrusted.
+		t.Fatal("has golang/go#24084 been fixed? - https://github.com/golang/go/issues/24084")
 	}
 
 	// restore
