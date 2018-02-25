@@ -44,8 +44,16 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 		return false
 	}
 
-	// check certificate fingerprint
 	fp := certutil.GetHexSHA256Fingerprint(*inc)
+
+	// is the certificate explicitly distrusted?
+	for i := range blacklistedFingerprints {
+		if blacklistedFingerprints[i] == fp {
+			return false
+		}
+	}
+
+	// check if our whitelist's fingerprints include this certificate
 	for i := range w.Fingerprints {
 		if w.Fingerprints[i] == fp {
 			return true
