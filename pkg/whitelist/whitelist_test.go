@@ -23,16 +23,20 @@ import (
 )
 
 func TestWhitelist_nocert(t *testing.T) {
-	wh1 := Whitelist{}
-	wh2 := Whitelist{
-		Fingerprints: []string{"a"},
+	cases := []Whitelist{
+		Whitelist{},
+		Whitelist{
+			Fingerprints: []string{"a"},
+		},
+		Whitelist{
+			Countries: []string{"US"},
+		},
 	}
-
-	if wh1.Matches(nil) {
-		t.Fatalf("shouldn't have matched, empty whitelist")
-	}
-	if wh2.Matches(nil) {
-		t.Fatalf("shouldn't have matched, empty whitelist")
+	for i := range cases {
+		wh := cases[i]
+		if wh.Matches(nil) {
+			t.Errorf("shouldn't have matched, wh=%#v", wh)
+		}
 	}
 }
 
@@ -56,20 +60,30 @@ func TestWhitelist_remove(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// test fingerprint
 	wh := Whitelist{
 		Fingerprints: []string{
 			"05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030",
 		},
 	}
-
 	for i := range certs {
 		if !wh.Matches(certs[i]) {
-			t.Fatalf("error, should have matched")
+			t.Fatalf("should have matched")
+		}
+	}
+
+	// test country
+	wh = Whitelist{
+		Countries: []string{"US"},
+	}
+	for i := range certs {
+		if !wh.Matches(certs[i]) {
+			t.Fatalf("should have matched")
 		}
 	}
 }
 
-func TestWhitelist__file(t *testing.T) {
+func TestWhitelist__jsonFile(t *testing.T) {
 	wh, err := FromFile("../../testdata/complete-whitelist.json")
 	if err != nil {
 		t.Fatal(err)
@@ -81,19 +95,57 @@ func TestWhitelist__file(t *testing.T) {
 	if !reflect.DeepEqual(wh.Fingerprints, []string{"a"}) {
 		t.Errorf("got %q", wh.Fingerprints)
 	}
+
+	if !reflect.DeepEqual(wh.Countries, []string{"US", "GB"}) {
+		t.Errorf("got %q", wh.Countries)
+	}
 }
 
-func TestWhitelist__emptyfile(t *testing.T) {
+func TestWhitelist__emptyJson(t *testing.T) {
 	wh, err := FromFile("../../testdata/empty-whitelist.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(wh.Fingerprints) != 0 {
-		t.Fatalf("empty whitelist was not parsed as empty! had %d fingerprints", len(wh.Fingerprints))
+		t.Errorf("empty whitelist had fingerprints: %q", wh.Fingerprints)
+	}
+	if len(wh.Countries) != 0 {
+		t.Errorf("empty whitelist had countries: %q", wh.Countries)
 	}
 }
 
-func TestWhitelist_filecycle(t *testing.T) {
+func TestWhitelist__yamlFile(t *testing.T) {
+	wh, err := FromFile("../../testdata/complete-whitelist.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wh.Fingerprints) != 1 {
+		t.Errorf("Wrong number of parsed fingerprints in whitelist, found=%d", len(wh.Fingerprints))
+	}
+
+	if !reflect.DeepEqual(wh.Fingerprints, []string{"a"}) {
+		t.Errorf("got %q", wh.Fingerprints)
+	}
+
+	if !reflect.DeepEqual(wh.Countries, []string{"US", "GB"}) {
+		t.Errorf("got %q", wh.Countries)
+	}
+}
+
+func TestWhitelist__emptyYaml(t *testing.T) {
+	wh, err := FromFile("../../testdata/empty-whitelist.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(wh.Fingerprints) != 0 {
+		t.Errorf("empty whitelist had fingerprints: %q", wh.Fingerprints)
+	}
+	if len(wh.Countries) != 0 {
+		t.Errorf("empty whitelist had countries: %q", wh.Countries)
+	}
+}
+
+func TestWhitelist_cycle(t *testing.T) {
 	wh, err := FromFile("../../testdata/complete-whitelist.json")
 	if err != nil {
 		t.Fatal(err)
@@ -129,6 +181,7 @@ func TestWhitlist__matching(t *testing.T) {
 		t.Error("empty whitelist and cert shouldn't match")
 	}
 
+	// Fingerprints
 	wh.Fingerprints = []string{"abc"}
 	if wh.Matches(certificates[0]) {
 		t.Error("shouldn't match")
@@ -140,6 +193,13 @@ func TestWhitlist__matching(t *testing.T) {
 	}
 
 	wh.Fingerprints = []string{"05a6db389391df92e0be93fdfa4db1e3cf53903918b8d9d85a9c396cb55df030"}
+	if !wh.Matches(certificates[0]) {
+		t.Error("should have matched")
+	}
+
+	// Country
+	wh.Fingerprints = []string{}
+	wh.Countries = []string{"US"}
 	if !wh.Matches(certificates[0]) {
 		t.Error("should have matched")
 	}

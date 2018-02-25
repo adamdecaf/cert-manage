@@ -17,17 +17,24 @@ package whitelist
 import (
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
+	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
+	"gopkg.in/yaml.v2"
 )
 
 // Whitelist is the structure holding various `item` types that match against
 // x509 certificates
 type Whitelist struct {
-	// sha256 fingerprints
-	Fingerprints []string `json:"Fingerprints,omitempty"`
+	// SHA256 fingerprints
+	Fingerprints []string `json:"Fingerprints,omitempty" yaml:"fingerprints,omitempty"`
+
+	// ISO 3166-1 two-letter country codes used to match
+	// RFC 2253 Distinguished Names in certificates
+	Countries []string `json:"Countries,omitempty" yaml:"countries,omitempty"`
 }
 
 // Matches checks a given x509 certificate against the criteria and
@@ -36,12 +43,24 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	if inc == nil {
 		return false
 	}
+
+	// check certificate fingerprint
 	fp := certutil.GetHexSHA256Fingerprint(*inc)
 	for i := range w.Fingerprints {
 		if w.Fingerprints[i] == fp {
 			return true
 		}
 	}
+
+	// check Country in Subject
+	for i := range inc.Subject.Country {
+		for j := range w.Countries {
+			if strings.ToLower(inc.Subject.Country[i]) == strings.ToLower(w.Countries[j]) {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
@@ -55,6 +74,8 @@ func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
 	return true
 }
 
+// FromCertificates returns a Whitelist with only the fingerprints of the passed
+// certificates included.
 func FromCertificates(certs []*x509.Certificate) Whitelist {
 	wh := Whitelist{}
 	for i := range certs {
@@ -74,8 +95,17 @@ func FromFile(path string) (Whitelist, error) {
 	if err != nil {
 		return wh, err
 	}
-	err = json.Unmarshal(b, &wh)
-	return wh, err
+
+	// try reading as json
+	if err = json.Unmarshal(b, &wh); err == nil {
+		return wh, nil
+	}
+
+	// try reading as yaml
+	if err = yaml.Unmarshal(b, &wh); err == nil {
+		return wh, nil
+	}
+	return wh, errors.New("Unable to read whitelist")
 }
 
 // ToFile take a Whitelist, encods it to json and writes the result
