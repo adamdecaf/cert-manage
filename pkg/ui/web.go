@@ -105,6 +105,9 @@ func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 			return
 		}
 
+		// sort certs by Subject
+		certutil.Sort(certs)
+
 		type cert struct {
 			Subject string
 			Raw     string
