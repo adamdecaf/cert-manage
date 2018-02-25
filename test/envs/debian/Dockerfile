@@ -7,6 +7,7 @@ RUN apt-get update && \
 
 COPY cert-manage-linux-amd64 /bin/cert-manage
 COPY globalsign-whitelist.json /whitelist.json
+COPY us-whitelist.yaml /whitelist.yaml
 
 COPY Download.java /Download.java
 RUN cd / && javac Download.java

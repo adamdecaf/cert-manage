@@ -182,7 +182,7 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	cmd.EqualT(t, "Backup completed successfully")
 
 	// whitelist
-	cmd = CertManage("whitelist", "-file", "../testdata/test-whitelist.json")
+	cmd = CertManage("whitelist", "-file", "../testdata/us-whitelist.yaml")
 	cmd.SuccessT(t)
 
 	// verify cert count
