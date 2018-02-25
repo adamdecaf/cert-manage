@@ -7,6 +7,7 @@ ENV JAVA_HOME /usr/lib/jvm/java-1.8-openjdk
 RUN cd / && /usr/lib/jvm/java-1.8-openjdk/bin/javac /Download.java
 
 COPY globalsign-whitelist.json /whitelist.json
+COPY us-whitelist.yaml /whitelist.yaml
 COPY cert-manage-linux-amd64 /bin/cert-manage
 
 COPY localcert.pem /localcert.pem
