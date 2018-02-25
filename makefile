@@ -25,7 +25,7 @@ check:
 
 test: check dist
 	go test ./...
-	INTEGRATION=yes go test ./... -run TestIntegration__
+	INTEGRATION=yes go test ./... -run TestIntegration__ -count 1
 
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage

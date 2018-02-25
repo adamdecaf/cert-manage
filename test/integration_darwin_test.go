@@ -17,10 +17,15 @@
 package test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
@@ -101,6 +106,8 @@ func TestIntegration__add(t *testing.T) {
 	if !inPlatformStore(t, fp) {
 		t.Errorf("didn't find added cert, fp=%q", fp)
 	}
+
+	// TODO(adam): delete the certificate we added
 }
 
 func inPlatformStore(t *testing.T, fp string) bool {
@@ -165,6 +172,11 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// verify we can load our test site
+	if err := loadTestSite(t); online(t) && err != nil {
+		t.Fatalf("expected to be able to load our test site, err=%v", err)
+	}
+
 	// take a backup
 	cmd := CertManage("backup").Trim()
 	cmd.EqualT(t, "Backup completed successfully")
@@ -178,18 +190,20 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if len(certsBefore) <= len(certsAfter) {
-		// TODO(adam): Right now .List() is just grabbing all certs, but we really should
-		// try and overlap the login.keychain with system.keychain
-		//
-		// I thought 'security verify-cert' would do this? Flags?
 		t.Fatalf("certsBefore=%d, certsAfter=%d", len(certsBefore), len(certsAfter))
+	}
+
+	// verify we can't load our test site
+	if err := loadTestSite(t); online(t) && err != nil {
+		// Go 1.10 calls 'security verify-cert' without -p ssl, which doesn't see the cert as untrusted.
+		t.Fatal("has golang/go#24084 been fixed? - https://github.com/golang/go/issues/24084")
 	}
 
 	// restore
 	cmd = CertManage("restore").Trim()
 	cmd.EqualT(t, "Restore completed successfully")
+	cmd.SuccessT(t)
 
 	// verify cert count
 	certsAfterRestore, err := store.Platform().List()
@@ -198,6 +212,94 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 	if len(certsBefore) != len(certsAfterRestore) {
 		t.Fatalf("certsBefore=%d, certsAfter=%d, certsAfterRestore=%d", len(certsBefore), len(certsAfter), len(certsAfterRestore))
+	}
+
+	// verify we can load our test site
+	if err := loadTestSite(t); online(t) && err != nil {
+		t.Fatalf("expected to be able to load our test site, err=%v", err)
+	}
+}
+
+var loadTestSiteSourceCode = []byte(`package main
+import "net/http"
+
+func main() {
+	resp, err := http.DefaultClient.Get("https://fnb.co.za") // test site, anything without a US root
+	if err != nil {
+		defer panic("A: " + err.Error())
+	}
+	if resp != nil && resp.Body != nil {
+		if err := resp.Body.Close(); err != nil {
+			panic("B: " + err.Error())
+		}
+	}
+}`)
+
+// loadTestSite needs to drop down back into a shell and then run some Go code,
+// which on darwin uses the platform certs (Keychain), to attempt a connection
+// against the target host.
+//
+// We can't just call `x509.SystemCertPool()` again, because under the hood it
+// is protected by a `sync.Once`, so our changes aren't reflected until the next run.
+func loadTestSite(t *testing.T) error {
+	t.Helper()
+
+	// render our Go code to another file and then `go run` it.
+	tmp, err := ioutil.TempFile("", "load-our test site")
+	if err != nil {
+		t.Fatalf("error creating temp dir for loadTestSite, err=%v", err)
+	}
+	err = ioutil.WriteFile(tmp.Name(), loadTestSiteSourceCode, 0644)
+	if err != nil {
+		t.Fatalf("error writing loadTestSite source code to %s, err=%v", tmp.Name(), err)
+	}
+	if err := tmp.Sync(); err != nil {
+		t.Fatalf("error syncing loadTestSite source code to %s, err=%v", tmp.Name(), err)
+	}
+	// go requires files have a .go suffix, but symlinks work just as fine too
+	dir, _ := filepath.Split(tmp.Name())
+	filename := filepath.Join(dir, fmt.Sprintf("our test site%d.go", time.Now().Unix()))
+	err = os.Symlink(tmp.Name(), filename)
+	if err != nil {
+		t.Fatalf("error symlinking our test site source file, err=%v", err)
+	}
+	defer os.Remove(filename)
+
+	cmd := exec.Command("go", "run", filename)
+	cmd.Env = []string{
+		// Running this with cgo doesn't seem to work because of a cache around the trustd deamon.
+		// Chrome doesn't seem to have the same problem, but I haven't tracked down what they're doing.
+		//
+		// I looked into clearing this cache with a cgo specific wrapper (i.e. SecTrustSettingsPurgeUserAdminCertsCache)
+		// but couldn't get it working. There are some Sec*Priv.h header files which don't seem to be symlinked in with the
+		// rest of #include <Security/Security.h> files.
+		//
+		// Either way we compile cert-manage without cgo so it doesn't seem like a big leap to run this test without cgo.
+		//
+		// https://github.com/practicalswift/osx/blob/27f6b27ca6e76018240c126c94059d859760981d/src/security/OSX/trustd/trustd.c#L628
+		// https://github.com/practicalswift/osx/blob/27f6b27ca6e76018240c126c94059d859760981d/src/security/OSX/libsecurity_keychain/lib/SecTrustSettings.cpp#L936-L940
+		"CGO_ENABLED=0",
+	}
+	if debug {
+		cmd.Env = append(cmd.Env, "GODEBUG=x509roots=1")
+	}
+	out, err := cmd.CombinedOutput()
+	if debug {
+		fmt.Printf(`Command: %s
+Output:
+%s`, strings.Join(cmd.Args, " "), string(out))
+	}
+	if err != nil {
+		return fmt.Errorf("error running loadTestSite code, err=%v, output=%s", err, strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+func TestIntegration__loadTestSite(t *testing.T) {
+	if online(t) {
+		if err := loadTestSite(t); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
