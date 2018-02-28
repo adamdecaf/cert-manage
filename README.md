@@ -134,6 +134,8 @@ You can build the sources with `make build`. Run tests with `make test`. Current
 
 Note: Many tests will run if docker is enabled/setup. To disable this run commands with `MOCKED=true` (e.g. `MOCKED=true make test`)
 
+This project follows the [Google Code of Conduct](https://opensource.google.com/conduct/).
+
 ## Related projects
 
 - [certpatrol](http://patrol.psyced.org/)
