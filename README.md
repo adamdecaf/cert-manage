@@ -120,6 +120,7 @@ Below is a short list of incidents over the past couple of years (2015-2017) fro
 - [Symantec](https://wiki.mozilla.org/CA:Symantec_Issues)
   - "I think there are [279 non-constrained TLS-capable issuing CAs that are not reported](https://bugzilla.mozilla.org/show_bug.cgi?id=1417771)."
   - [Known active and legacy root certificates](https://chromium.googlesource.com/chromium/src/+/master/net/data/ssl/symantec/README.md)
+- [Trustico CEO emailing DigiCert 23k Private Keys](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/wxX4Yv0E3Mk)
 - TunRootCA2
   - [Inclusion Request](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/wCZsVq7AtUY)
 - [WoSign and WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
