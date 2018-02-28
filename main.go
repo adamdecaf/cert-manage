@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 
@@ -374,18 +373,5 @@ APPS
 }
 
 func getVersion() string {
-	ver := Version
-	if strings.HasSuffix(ver, "-dev") {
-		out, err := exec.Command("git", "rev-parse", "HEAD").CombinedOutput()
-		if err != nil {
-			// Just return version if we can't find git
-			if strings.Contains(err.Error(), "executable file not found in") {
-				return ver
-			}
-			panic(err)
-		}
-		ref := strings.TrimSpace(string(out))
-		ver += fmt.Sprintf(" (Revision: %s, Go: %s)", ref[:8], runtime.Version())
-	}
-	return ver
+	return fmt.Sprintf("%s (Go: %s)", Version, runtime.Version())
 }
