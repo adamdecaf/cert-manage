@@ -91,7 +91,7 @@ func (s opensslStore) GetInfo() *Info {
 	}
 }
 
-func (s opensslStore) List() ([]*x509.Certificate, error) {
+func (s opensslStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	return nil, nil
 }
 

@@ -44,6 +44,7 @@ var (
 // operations on it which can mutate the underlying state (e.g. a file or
 // directory).
 type Store interface {
+	Lister
 	Saver
 
 	// Add certificate(s) into the store
@@ -51,10 +52,6 @@ type Store interface {
 
 	// GetInfo returns basic information about the store
 	GetInfo() *Info
-
-	// List returns the currently trusted X509 certificates contained
-	// within the cert store
-	List() ([]*x509.Certificate, error)
 
 	// Remove will distrust the certificate in the store
 	//

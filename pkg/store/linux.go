@@ -143,7 +143,11 @@ func (s linuxStore) GetInfo() *Info {
 	}
 }
 
-func (s linuxStore) List() ([]*x509.Certificate, error) {
+// List returns the x509 Certificates trusted on a Linux system
+//
+// Note: Linux does not offer support for "untrusting" a certificate
+// it must be removed instead.
+func (s linuxStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	if s.ca.empty() {
 		return nil, nil
 	}
@@ -153,6 +157,7 @@ func (s linuxStore) List() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
+	// TODO(adam): Filter out expired and revoked certs, based on ListOptions
 	certs, err := certutil.ParsePEM(bytes)
 	if err != nil {
 		return nil, err

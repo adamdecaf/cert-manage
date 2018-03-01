@@ -174,7 +174,7 @@ func (s darwinStore) version() string {
 	return strings.TrimSpace(string(out))
 }
 
-func (s darwinStore) List() ([]*x509.Certificate, error) {
+func (s darwinStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 	// Grab certs from all keychains which are readable
 	installed, err := readInstalledCerts(systemRootCertificates, systemKeychain, loginKeychain)
 	if err != nil {
@@ -189,8 +189,14 @@ func (s darwinStore) List() ([]*x509.Certificate, error) {
 		// and encur the time penality.
 		trusted := certTrustedWithSystem(installed[i])
 		if trusted {
-			// TODO(adam): dedup?
-			kept = append(kept, installed[i])
+			if opts.Trusted {
+				kept = append(kept, installed[i]) // TODO(adam): dedup?
+			}
+		} else {
+			// TODO(adam): support opts.Revoked and opts.Expired
+			if opts.Untrusted {
+				kept = append(kept, installed[i]) // TODO(adam): dedup?
+			}
 		}
 		if debug {
 			fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", certutil.GetHexSHA256Fingerprint(*installed[i]), trusted)

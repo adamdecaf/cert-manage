@@ -69,7 +69,12 @@ func GenerateWhitelist(output string, from, file string) error {
 			go accumulateUrls(func() ([]*url.URL, error) {
 				return gen.FromFile(file)
 			}, uacc, eacc)
-			addCertsToPool(pool, store.Platform().List)
+			list := func() ([]*x509.Certificate, error) {
+				return store.Platform().List(&store.ListOptions{
+					Trusted: true,
+				})
+			}
+			addCertsToPool(pool, list)
 
 		default:
 			debugLog("starting %s url retrieval", opt)
@@ -168,7 +173,12 @@ func addCertsToPoolForApp(pool *x509.CertPool, appName string) {
 	if err != nil {
 		st = store.Platform() // try and give something as a root store
 	}
-	addCertsToPool(pool, st.List)
+	list := func() ([]*x509.Certificate, error) {
+		return st.List(&store.ListOptions{
+			Trusted: true,
+		})
+	}
+	addCertsToPool(pool, list)
 }
 
 func debugLog(msg string, args ...interface{}) {

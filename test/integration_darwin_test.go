@@ -114,7 +114,9 @@ func inPlatformStore(t *testing.T, fp string) bool {
 	t.Helper()
 
 	// Grab platform certs and verify ours is added
-	found, err := store.Platform().List()
+	found, err := store.Platform().List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +169,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	t.Helper()
 
 	// get cert count
-	certsBefore, err := store.Platform().List()
+	certsBefore, err := store.Platform().List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +190,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	cmd.SuccessT(t)
 
 	// verify cert count
-	certsAfter, err := store.Platform().List()
+	certsAfter, err := store.Platform().List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +212,9 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	cmd.SuccessT(t)
 
 	// verify cert count
-	certsAfterRestore, err := store.Platform().List()
+	certsAfterRestore, err := store.Platform().List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -120,7 +120,10 @@ func (s javaStore) version() string {
 	return strings.Replace(m, `"`, "", -1)
 }
 
-func (s javaStore) List() ([]*x509.Certificate, error) {
+// List returns the x509 Certificates from a java TrustStore
+//
+// Note: keytool does not offer the ability to "untrust" a certificate
+func (s javaStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	return ktool.getCertificates()
 }
 
@@ -371,6 +374,7 @@ func (k keytool) getCertificates() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
+	// TODO(adam): Filter out expired and revoked certs, based on ListOptions
 	certs, err := certutil.ParsePEM(out)
 	if err != nil {
 		return nil, err

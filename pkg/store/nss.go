@@ -219,19 +219,23 @@ func (s nssStore) GetInfo() *Info {
 // $ /usr/local/opt/nss/bin/crtutil -L -d "$dir"
 //
 // Note: `dir` represents a directory path which contains a cert8.db file
-func (s nssStore) List() ([]*x509.Certificate, error) {
+func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 	if s.foundCert8dbLocation.empty() {
 		return nil, errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation)
+	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	kept := make([]*x509.Certificate, 0)
 	for i := range items {
-		if items[i].trustedForSSL() {
+		// TODO(adam): Check for opts.Expired or opts.Revoked
+		if opts.Trusted && items[i].trustedForSSL() {
+			kept = append(kept, items[i].certs...)
+		}
+		if opts.Untrusted {
 			kept = append(kept, items[i].certs...)
 		}
 	}
@@ -243,7 +247,10 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 		return errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation)
+	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation, &ListOptions{
+		Trusted:   true,
+		Untrusted: true,
+	})
 	if err != nil {
 		return err
 	}
@@ -377,7 +384,7 @@ func (c crtutil) addCertificate(dir cert8db, where string, nick string) error {
 
 // Emulates the following
 // /usr/local/opt/nss/bin/crtutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
-func (c crtutil) listCertsFromDB(path cert8db) ([]cert8Item, error) {
+func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
