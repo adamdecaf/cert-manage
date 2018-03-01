@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/adamdecaf/cert-manage/pkg/store"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
@@ -29,11 +30,22 @@ func WhitelistForApp(app, whpath string) error {
 	}
 
 	// diff
-	st, err := store.ForApp(app)
+	s, err := store.ForApp(app)
 	if err != nil {
 		return err
 	}
-	err = st.Remove(wh)
+
+	// check for a backup
+	latest, err := s.GetLatestBackup()
+	if err != nil {
+		return fmt.Errorf("can't get latest %s backup err=%v", app, err)
+	}
+	if latest == "" {
+		return fmt.Errorf("no backup for %s found", app)
+	}
+
+	// perform whitelist
+	err = s.Remove(wh)
 	if err != nil {
 		return err
 	}
@@ -50,8 +62,19 @@ func WhitelistForPlatform(whpath string) error {
 	}
 
 	// diff
-	st := store.Platform()
-	err = st.Remove(wh)
+	s := store.Platform()
+
+	// check for backup
+	latest, err := s.GetLatestBackup()
+	if err != nil {
+		return fmt.Errorf("can't get latest backup for %s err=%v", runtime.GOOS, err)
+	}
+	if latest == "" {
+		return fmt.Errorf("no %s backup found", runtime.GOOS)
+	}
+
+	// perform whitelist
+	err = s.Remove(wh)
 	if err != nil {
 		return err
 	}
