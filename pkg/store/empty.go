@@ -35,10 +35,6 @@ func (s emptyStore) Add(certs []*x509.Certificate) error {
 	return nil
 }
 
-func (s emptyStore) Backup() error {
-	s.printNotce()
-	return nil
-}
 func (s emptyStore) GetInfo() *Info {
 	return &Info{
 		Name: "Empty",
@@ -55,4 +51,14 @@ func (s emptyStore) Remove(whitelist.Whitelist) error {
 func (s emptyStore) Restore(where string) error {
 	s.printNotce()
 	return nil
+}
+
+// Saver
+func (s emptyStore) Backup() error {
+	s.printNotce()
+	return nil
+}
+func (s emptyStore) GetLatestBackup() (string, error) {
+	s.printNotce()
+	return "", nil
 }

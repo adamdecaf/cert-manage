@@ -70,6 +70,10 @@ func (s opensslStore) Backup() error {
 	return nil
 }
 
+func (s opensslStore) GetLatestBackup() (string, error) {
+	return "", nil
+}
+
 func (s opensslStore) GetInfo() *Info {
 	out, err := exec.Command("openssl", "version").CombinedOutput()
 	if err != nil {

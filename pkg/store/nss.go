@@ -198,6 +198,14 @@ func (s nssStore) Backup() error {
 	return file.CopyFile(src, dst)
 }
 
+func (s nssStore) GetLatestBackup() (string, error) {
+	dir, err := getCertManageDir(s.nssType)
+	if err != nil {
+		return "", fmt.Errorf("GetLatestBackup: error getting %s backup directory err=%v", s.nssType, err)
+	}
+	return getLatestBackup(dir)
+}
+
 func (s nssStore) GetInfo() *Info {
 	return &Info{
 		Name:    strings.Title(s.nssType),
@@ -257,11 +265,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s nssStore) Restore(where string) error {
-	dir, err := getCertManageDir(s.nssType)
-	if err != nil {
-		return err
-	}
-	src, err := getLatestBackup(dir)
+	src, err := s.GetLatestBackup()
 	if err != nil {
 		return err
 	}
