@@ -1,5 +1,9 @@
 ## Unreleased
 
+BREAKING CHANGES
+
+- Performing a whitelist without a backup now fails [#53](https://github.com/adamdecaf/cert-manage/issues/53)
+
 FEATURES
 
 - Import browser history from Safari

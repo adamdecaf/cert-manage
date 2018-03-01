@@ -16,9 +16,7 @@ package store
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,14 +27,9 @@ import (
 )
 
 var (
-	// ErrNoBackupMade is returned if no backup of a certificate store can be found
-	ErrNoBackupMade = errors.New("unable to make backup of store")
-
 	// internal options
 	debug = len(os.Getenv("DEBUG")) > 0 ||
 		strings.Contains(os.Getenv("GODEBUG"), "x509roots=1")
-
-	backupDirPerms os.FileMode = file.TempDirPermissions
 
 	// Define a mapping between -app and the Store instance
 	appStores = map[string]Store{
@@ -47,16 +40,14 @@ var (
 	}
 )
 
-// Store represents a certificate store (often called 'pool') and has
-// operations on it which mutate the underlying state (e.g. a file or
+// Store represents a certificate store (set of x509 Certificates) and has
+// operations on it which can mutate the underlying state (e.g. a file or
 // directory).
 type Store interface {
+	Saver
+
 	// Add certificate(s) into the store
 	Add([]*x509.Certificate) error
-
-	// Backup will attempt to save a backup of the certificate store
-	// on the local system
-	Backup() error
 
 	// GetInfo returns basic information about the store
 	GetInfo() *Info
@@ -174,25 +165,4 @@ func getCertManageParentDir() (string, error) {
 		return parent, nil
 	}
 	return "", nil
-}
-
-// getLatestBackup returns the "biggest" file or dir at a given path
-//
-// This sorting is done by assuming filenames follow a pattern like
-// file-%d.ext where %d is a sortable timestamp and the filename follows
-// lexigraphical sorting. Results are sorted in descending order and the
-// first element (if exists) is returned
-func getLatestBackup(dir string) (string, error) {
-	fis, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return "", err
-	}
-	if len(fis) == 0 {
-		return "", nil
-	}
-
-	// get largest
-	file.SortFileInfos(fis)
-	latest := fis[len(fis)-1]
-	return filepath.Join(dir, latest.Name()), nil
 }

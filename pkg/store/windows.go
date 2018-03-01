@@ -70,6 +70,10 @@ func (s windowsStore) Backup() error {
 	return nil
 }
 
+func (s windowsStore) GetLatestBackup() (string, error) {
+	return "", nil
+}
+
 func (s windowsStore) GetInfo() *Info {
 	return &Info{
 		Name:    "Windows",

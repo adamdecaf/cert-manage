@@ -149,6 +149,14 @@ func (s darwinStore) Backup() error {
 	return nil
 }
 
+func (s darwinStore) GetLatestBackup() (string, error) {
+	dir, err := getCertManageDir(darwinBackupDir)
+	if err != nil {
+		return "", fmt.Errorf("Restore: error reading backup dir, err=%v", err)
+	}
+	return getLatestBackup(dir)
+}
+
 func (s darwinStore) GetInfo() *Info {
 	return &Info{
 		Name:    "Darwin (OSX)",
@@ -464,11 +472,7 @@ func (s darwinStore) Restore(where string) error {
 	//
 	// Grab the filenames under our backup directory (e.g. login.keychain/$sha1.crt), read the cert
 	// and verify it's matching the sha1 filename and compare against the already installed certs.
-	dir, err := getCertManageDir(darwinBackupDir)
-	if err != nil {
-		return fmt.Errorf("Restore: error reading backup dir, err=%v", err)
-	}
-	dir, err = getLatestBackup(dir)
+	dir, err := s.GetLatestBackup()
 	if err != nil {
 		return fmt.Errorf("Restore: error getting latest backup, err=%v", err)
 	}

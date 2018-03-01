@@ -93,6 +93,14 @@ func (s javaStore) Backup() error {
 	return file.CopyFile(kpath, dst)
 }
 
+func (s javaStore) GetLatestBackup() (string, error) {
+	dir, err := getCertManageDir(javaCertManageDir)
+	if err != nil {
+		return "", fmt.Errorf("GetLatestBackup: error reading java backup directory, err=%v", err)
+	}
+	return getLatestBackup(dir)
+}
+
 func (s javaStore) GetInfo() *Info {
 	return &Info{
 		Name:    "Java",
@@ -172,11 +180,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s javaStore) Restore(where string) error {
-	dir, err := getCertManageDir(javaCertManageDir)
-	if err != nil {
-		return err
-	}
-	src, err := getLatestBackup(dir)
+	src, err := s.GetLatestBackup()
 	if err != nil {
 		return err
 	}

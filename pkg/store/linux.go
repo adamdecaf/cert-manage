@@ -120,6 +120,14 @@ func (s linuxStore) Backup() error {
 	return file.MirrorDir(s.ca.dir, dir)
 }
 
+func (s linuxStore) GetLatestBackup() (string, error) {
+	dir, err := getCertManageDir(linuxBackupDir)
+	if err != nil {
+		return "", fmt.Errorf("GetLatestBackup: error getting linux backup directory, err=%v", err)
+	}
+	return getLatestBackup(dir)
+}
+
 func (s linuxStore) uname(args ...string) string {
 	out, err := exec.Command("uname", args...).CombinedOutput()
 	if err != nil {
@@ -202,11 +210,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s linuxStore) Restore(where string) error {
-	dir, err := getCertManageDir(linuxBackupDir)
-	if err != nil {
-		return err
-	}
-	dir, err = getLatestBackup(dir)
+	dir, err := s.GetLatestBackup()
 	if err != nil {
 		return err
 	}
