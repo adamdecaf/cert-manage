@@ -43,6 +43,18 @@ type Saver interface {
 	// If the path is non-empty the directory or file is guarenteed
 	// to exist.
 	GetLatestBackup() (string, error)
+
+	// Restore will bring the system back to it's previous state
+	// if a backup exists, otherwise it will attempt to bring the
+	// cert trust status to the system's default state
+	//
+	// Optionally, this can take a specific filepath to use as the
+	// restore point. This may not be supported on all stores.
+	//
+	// Note: It is strongly advised that any additional certs installed
+	// be verified are still properly installed and working after
+	// Restore() is called.
+	Restore(where string) error
 }
 
 // getLatestBackup returns the "biggest" file or dir at a given path

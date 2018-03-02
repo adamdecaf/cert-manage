@@ -57,18 +57,9 @@ type Lister interface {
 	List(opts *ListOptions) ([]*x509.Certificate, error)
 }
 
-// Store represents a certificate store (set of x509 Certificates) and has
-// operations on it which can mutate the underlying state (e.g. a file or
-// directory).
-type Store interface {
-	Lister
-	Saver
-
+type Modifier interface {
 	// Add certificate(s) into the store
 	Add([]*x509.Certificate) error
-
-	// GetInfo returns basic information about the store
-	GetInfo() *Info
 
 	// Remove will distrust the certificate in the store
 	//
@@ -77,18 +68,18 @@ type Store interface {
 	// This is done when possible to limit the actual deletions to
 	// preserve restore capabilities
 	Remove(whitelist.Whitelist) error
+}
 
-	// Restore will bring the system back to it's previous state
-	// if a backup exists, otherwise it will attempt to bring the
-	// cert trust status to the system's default state
-	//
-	// Optionally, this can take a specific filepath to use as the
-	// restore point. This may not be supported on all stores.
-	//
-	// Note: It is strongly advised that any additional certs installed
-	// be verified are still properly installed and working after
-	// Restore() is called.
-	Restore(where string) error
+// Store represents a certificate store (set of x509 Certificates) and has
+// operations on it which can mutate the underlying state (e.g. a file or
+// directory).
+type Store interface {
+	Lister
+	Modifier
+	Saver
+
+	// GetInfo returns basic information about the store
+	GetInfo() *Info
 }
 
 // Info represents high-level information about a certificate store
