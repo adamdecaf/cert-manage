@@ -85,7 +85,7 @@ APPS
   Supported apps: %s
 
 FLAGS
-  -app <name>      The name of an application which to perform the given command on. (Examples: chrome, java)
+  -app <name>      The name of an application which to perform the given command on.
   -file <path>     Local file path
   -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
   -help            Show this help dialog
