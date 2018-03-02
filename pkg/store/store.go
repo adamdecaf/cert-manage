@@ -40,6 +40,23 @@ var (
 	}
 )
 
+type ListOptions struct {
+	// Include "trusted" certificates
+	// This represents what'a good acting application or would return
+	Trusted bool
+
+	// Include certificates specifically untrusted by a user/admin
+	Untrusted bool
+
+	// TODO(adam): Expired and Revoked
+}
+
+type Lister interface {
+	// List returns the currently trusted X509 certificates contained
+	// within the cert store
+	List(opts *ListOptions) ([]*x509.Certificate, error)
+}
+
 // Store represents a certificate store (set of x509 Certificates) and has
 // operations on it which can mutate the underlying state (e.g. a file or
 // directory).
