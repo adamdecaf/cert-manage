@@ -89,7 +89,7 @@ func (s windowsStore) version() string {
 	return strings.TrimSpace(string(out))
 }
 
-func (s windowsStore) List() ([]*x509.Certificate, error) {
+func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	var accum []*x509.Certificate
 	for i := range windowsStoreNames {
 		certs, err := s.certsFromStore(windowsStoreNames[i])

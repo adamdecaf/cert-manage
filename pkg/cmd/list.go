@@ -80,7 +80,9 @@ func ListCertsFromURL(where string, cfg *ui.Config) (err error) {
 // with build flags in the `certs/find_*.go` files.
 func ListCertsForPlatform(cfg *ui.Config) error {
 	st := store.Platform()
-	certificates, err := st.List()
+	certificates, err := st.List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -99,7 +101,9 @@ func ListCertsForApp(app string, cfg *ui.Config) error {
 		os.Exit(1)
 	}
 
-	certificates, err := st.List()
+	certificates, err := st.List(&store.ListOptions{
+		Trusted: true,
+	})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

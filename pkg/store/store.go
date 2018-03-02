@@ -16,7 +16,9 @@ package store
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -38,31 +40,26 @@ var (
 		"java":    JavaStore(),
 		"openssl": OpenSSLStore(),
 	}
+
+	// ErrNoBackupMade is returned if no backup of a certificate store can be found
+	ErrNoBackupMade = errors.New("unable to make backup of store")
+
+	backupDirPerms os.FileMode = file.TempDirPermissions
 )
 
-// Store represents a certificate store (set of x509 Certificates) and has
-// operations on it which can mutate the underlying state (e.g. a file or
-// directory).
-type Store interface {
-	Saver
+// Saver is an interface which represents making a copy of a certificate
+// store to a well-known filesystem path.
+type Saver interface {
+	// Backup will attempt to save a backup of the certificate store
+	// on the local system
+	Backup() error
 
-	// Add certificate(s) into the store
-	Add([]*x509.Certificate) error
-
-	// GetInfo returns basic information about the store
-	GetInfo() *Info
-
-	// List returns the currently trusted X509 certificates contained
-	// within the cert store
-	List() ([]*x509.Certificate, error)
-
-	// Remove will distrust the certificate in the store
+	// GetLatestBackup returns the latest directory (or file) backup
+	// of a certificate store.
 	//
-	// Note: This may not actually delete the certificate, but modify
-	// the store such that the certificate is no longer trusted.
-	// This is done when possible to limit the actual deletions to
-	// preserve restore capabilities
-	Remove(whitelist.Whitelist) error
+	// If the path is non-empty the directory or file is guarenteed
+	// to exist.
+	GetLatestBackup() (string, error)
 
 	// Restore will bring the system back to it's previous state
 	// if a backup exists, otherwise it will attempt to bring the
@@ -75,6 +72,69 @@ type Store interface {
 	// be verified are still properly installed and working after
 	// Restore() is called.
 	Restore(where string) error
+}
+
+// getLatestBackup returns the "biggest" file or dir at a given path
+//
+// This sorting is done by assuming filenames follow a pattern like
+// file-%d.ext where %d is a sortable timestamp and the filename follows
+// lexigraphical sorting. Results are sorted in descending order and the
+// first element (if exists) is returned
+func getLatestBackup(dir string) (string, error) {
+	fis, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return "", err
+	}
+	if len(fis) == 0 {
+		return "", nil
+	}
+
+	// get largest
+	file.SortFileInfos(fis)
+	latest := fis[len(fis)-1]
+	return filepath.Join(dir, latest.Name()), nil
+}
+
+type ListOptions struct {
+	// Include "trusted" certificates
+	// This represents what'a good acting application or would return
+	Trusted bool
+
+	// Include certificates specifically untrusted by a user/admin
+	Untrusted bool
+
+	// TODO(adam): Expired and Revoked
+}
+
+type Lister interface {
+	// List returns the currently trusted X509 certificates contained
+	// within the cert store
+	List(opts *ListOptions) ([]*x509.Certificate, error)
+}
+
+type Modifier interface {
+	// Add certificate(s) into the store
+	Add([]*x509.Certificate) error
+
+	// Remove will distrust the certificate in the store
+	//
+	// Note: This may not actually delete the certificate, but modify
+	// the store such that the certificate is no longer trusted.
+	// This is done when possible to limit the actual deletions to
+	// preserve restore capabilities
+	Remove(whitelist.Whitelist) error
+}
+
+// Store represents a certificate store (set of x509 Certificates) and has
+// operations on it which can mutate the underlying state (e.g. a file or
+// directory).
+type Store interface {
+	Lister
+	Modifier
+	Saver
+
+	// GetInfo returns basic information about the store
+	GetInfo() *Info
 }
 
 // Info represents high-level information about a certificate store

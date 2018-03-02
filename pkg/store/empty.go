@@ -40,7 +40,7 @@ func (s emptyStore) GetInfo() *Info {
 		Name: "Empty",
 	}
 }
-func (s emptyStore) List() ([]*x509.Certificate, error) {
+func (s emptyStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	s.printNotce()
 	return nil, nil
 }
