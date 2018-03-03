@@ -27,7 +27,7 @@ generate:
 	CGO_ENABLED=0 go run pkg/whitelist/blacklist_gen.go
 
 test: check dist
-	go test ./...
+	CGO_ENABLED=0 go test ./...
 	INTEGRATION=yes go test ./... -run TestIntegration__ -count 1
 
 build: check
