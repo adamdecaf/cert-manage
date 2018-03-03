@@ -62,8 +62,8 @@ Also, `cert-manage` abstracts over the following application's certificate store
 
 | Level | Application(s) |
 |-----|-----|
-| Full Support | Chrome, Firefox, Java |
-| Partial Support | OpenSSL |
+| Full Support | Java |
+| Partial Support | Chrome, Firefox, OpenSSL |
 
 ## Supporting Research
 
