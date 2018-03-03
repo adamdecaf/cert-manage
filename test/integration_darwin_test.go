@@ -234,7 +234,7 @@ import "net/http"
 func main() {
 	resp, err := http.DefaultClient.Get("https://fnb.co.za") // test site, anything without a US root
 	if err != nil {
-		defer panic("A: " + err.Error())
+		panic("A: " + err.Error())
 	}
 	if resp != nil && resp.Body != nil {
 		if err := resp.Body.Close(); err != nil {
