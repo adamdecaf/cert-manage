@@ -80,6 +80,7 @@ type nssStore struct {
 // Docs:
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
+// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/An_overview_of_NSS_Internals
 // - https://wiki.mozilla.org/NSS_Shared_DB
 // - https://www.chromium.org/Home/chromium-security/root-ca-policy
 //   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md

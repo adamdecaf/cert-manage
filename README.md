@@ -150,9 +150,10 @@ This project follows the [Google Code of Conduct](https://opensource.google.com/
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
 - [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx)
 
-## Related Documentation / Websites
+## Related Articles and Documentation
 
-- [CACert Wiki](http://wiki.cacert.org/CAcert)
+- [SSL and the Future of Authenticity](https://moxie.org/blog/ssl-and-the-future-of-authenticity/)
+- [Mozilla Certificate Policy](https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/policy/)
 - [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
 - [mozilla.dev.security.policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
 - [TLS Working Group](https://datatracker.ietf.org/wg/tls/charter/)
