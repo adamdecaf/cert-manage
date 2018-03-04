@@ -182,7 +182,7 @@ func (s darwinStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 	}
 
 	// If there's a trust policy verify it, otherwise don't bother.
-	kept := make([]*x509.Certificate, 0)
+	pool := certutil.Pool{}
 	for i := range installed {
 		// Unlike Go, we don't really have a performance concern that pushes us towards grabbing a
 		// plist file from 'security' and parsing it. We can shell out to 'security verify-cert'
@@ -190,19 +190,19 @@ func (s darwinStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 		trusted := certTrustedWithSystem(installed[i])
 		if trusted {
 			if opts.Trusted {
-				kept = append(kept, installed[i]) // TODO(adam): dedup?
+				pool.Add(installed[i])
 			}
 		} else {
 			// TODO(adam): support opts.Revoked and opts.Expired
 			if opts.Untrusted {
-				kept = append(kept, installed[i]) // TODO(adam): dedup?
+				pool.Add(installed[i])
 			}
 		}
 		if debug {
 			fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", certutil.GetHexSHA256Fingerprint(*installed[i]), trusted)
 		}
 	}
-	return kept, nil
+	return pool.GetCertificates(), nil
 }
 
 // certTrustedWithSystem calls out to `verify-cert` of the `security` cli tool to check
