@@ -44,12 +44,10 @@ func TestCertUtil__pool(t *testing.T) {
 	if len(certs) == 0 {
 		t.Fatal("found no certs")
 	}
-	for i := range certs {
-		pool.Add(certs[i])
-	}
+	pool.AddCertificates(certs)
 
 	found = pool.GetCertificates()
-	if len(found) != 1 + len(certs) {
-		t.Fatalf("found %d certs expected %d", len(found), 1 + len(certs))
+	if len(found) != 1+len(certs) {
+		t.Fatalf("found %d certs expected %d", len(found), 1+len(certs))
 	}
 }

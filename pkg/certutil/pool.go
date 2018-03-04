@@ -35,24 +35,36 @@ type Pool struct {
 // Add will include the given certificate into the pool if it does
 // not exist already
 func (p *Pool) Add(c *x509.Certificate) {
-	fp := GetHexSHA256Fingerprint(*c)
+	p.AddCertificates([]*x509.Certificate{c})
+}
 
+// AddCertificates includes multiple certificates into the pool.
+// No duplicate certificates will be added.
+func (p *Pool) AddCertificates(certs []*x509.Certificate) {
+	var addable []*cert
 	p.mu.RLock()
-	for i := range p.certs {
-		if p.certs[i].fingerprint == fp {
-			p.mu.RUnlock() // unlock first
-			return
+	for i := range certs {
+		needed := true
+		fp := GetHexSHA256Fingerprint(*certs[i])
+		for j := range p.certs {
+			// collect certs which aren't
+			if p.certs[j].fingerprint == fp {
+				needed = false
+				break
+			}
+		}
+		if needed { // never found the cert existing
+			addable = append(addable, &cert{
+				certificate: certs[i],
+				fingerprint: fp,
+			})
 		}
 	}
-	p.mu.RUnlock() // need to unlock, since we didn't return early
-	p.mu.Lock()    // relock for writes
-	defer p.mu.Unlock()
+	p.mu.RUnlock()
 
-	// we didn't find the cert, so let's add it
-	p.certs = append(p.certs, &cert{
-		certificate: c,
-		fingerprint: fp,
-	})
+	p.mu.Lock() // write lock
+	p.certs = append(p.certs, addable...)
+	p.mu.Unlock()
 }
 
 // GetCertificates returns all x509.Certificate objects included in the pool
