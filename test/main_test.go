@@ -21,6 +21,16 @@ func TestCertManage_help(t *testing.T) {
 		t.Error("expected Usage() text")
 	}
 
+	// bad argument, fs.Usage()
+	out, err = run(t, "bad-arg")
+	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+		t.Error(err)
+	}
+	fmt.Println(string(out))
+	if !strings.Contains(out, usage) {
+		t.Error("expected Usage() text")
+	}
+
 	// no sub-command, with help flag
 	helpChoices := []string{"-h", "-help", "--help"}
 	for i := range helpChoices {
