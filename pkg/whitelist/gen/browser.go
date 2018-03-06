@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/store"
 )
 
@@ -64,7 +65,7 @@ func FromAllBrowsers() ([]*url.URL, error) {
 }
 
 func BrowserCAs() ([]*x509.Certificate, error) {
-	var out []*x509.Certificate
+	pool := certutil.Pool{}
 	for i := range browserNames {
 		st, err := store.ForApp(browserNames[i])
 		if err != nil {
@@ -74,10 +75,10 @@ func BrowserCAs() ([]*x509.Certificate, error) {
 			Trusted: true,
 		})
 		if err == nil {
-			out = append(out, certs...)
+			pool.AddCertificates(certs)
 		}
 	}
-	return out, nil
+	return pool.GetCertificates(), nil
 }
 
 func FromBrowser(name string) ([]*url.URL, error) {

@@ -90,15 +90,15 @@ func (s windowsStore) version() string {
 }
 
 func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
-	var accum []*x509.Certificate
+	pool := certutil.Pool{}
 	for i := range windowsStoreNames {
 		certs, err := s.certsFromStore(windowsStoreNames[i])
 		if err != nil {
 			return nil, err
 		}
-		accum = append(accum, certs...)
+		pool.AddCertificates(certs)
 	}
-	return accum, nil
+	return pool.GetCertificates(), nil
 }
 
 func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) {

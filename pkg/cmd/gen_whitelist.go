@@ -115,9 +115,9 @@ func GenerateWhitelist(output string, from, file string) error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
 	fmt.Fprintln(w, "CA\tFingerprint\tCount\tExample DNSNames")
 
-	var acc []*x509.Certificate
+	acc := certutil.Pool{}
 	for i := range authorities {
-		acc = append(acc, authorities[i].Certificate)
+		acc.Add(authorities[i].Certificate)
 
 		// print sumamry
 		dnsNames := authorities[i].DNSNames
@@ -135,7 +135,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 	w.Flush()
 
-	wh := whitelist.FromCertificates(acc)
+	wh := whitelist.FromCertificates(acc.GetCertificates())
 	return wh.ToFile(output)
 }
 
