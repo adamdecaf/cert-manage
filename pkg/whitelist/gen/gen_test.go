@@ -108,14 +108,20 @@ func TestGen__caFind(t *testing.T) {
 }
 
 func TestGen__getChain(t *testing.T) {
-	u, _ := url.Parse("https://google.com")
-	c := getChain(u)
-	if len(c) == 0 {
-		t.Error("expected cert chain")
+	cases := []string{
+		"https://google.com",
+		"https://google.com:443",
 	}
-	for i := range c {
-		if c[i] == nil {
-			t.Fatalf("%v has nil-cert", c)
+	for i := range cases {
+		u, _ := url.Parse(cases[i])
+		c := getChain(u, nil)
+		if len(c) == 0 {
+			t.Error("expected cert chain")
+		}
+		for i := range c {
+			if c[i] == nil {
+				t.Fatalf("%v has nil-cert", c)
+			}
 		}
 	}
 }

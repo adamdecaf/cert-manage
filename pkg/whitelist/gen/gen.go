@@ -15,12 +15,15 @@
 package gen
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/httputil"
@@ -32,6 +35,8 @@ var (
 	client = httputil.New()
 
 	debug = os.Getenv("DEBUG") != ""
+
+	skipVerify = false
 )
 
 // CA holds the x509 certificate representing a signer of another x509
@@ -209,7 +214,7 @@ func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 			cas := authorities.findSigners(u.Host)
 			if len(cas) == 0 {
 				// We didn't find an existing CA, so we need to get one
-				chain := getChain(u)
+				chain := getChain(u, sysRoots)
 				if len(chain) == 0 {
 					// didn't find chain, but that's not a huge deal as
 					// the remote endpoint could be unreachable
@@ -242,17 +247,40 @@ func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 
 // Make as little of a connection as needed to get TLS handshake complete and
 // server certificates returned.
-func getChain(u *url.URL) chain {
-	resp, err := client.Get(u.String())
-	if err != nil {
-		return nil // ignore error
+func getChain(u *url.URL, roots *x509.CertPool) chain {
+	cfg := &tls.Config{
+		InsecureSkipVerify: skipVerify,
 	}
-	defer func() {
-		if resp.Body != nil {
-			resp.Body.Close()
+	if roots != nil {
+		cfg.RootCAs = roots
+	}
+	dialer := &net.Dialer{
+		Timeout: 10 * time.Second,
+	}
+
+	// figure out host/port combo
+	host, port := u.Host, u.Port()
+	if strings.Contains(host, ":") {
+		host, port, _ = net.SplitHostPort(u.Host)
+	}
+	if port == "" {
+		port = "443" // total fallback
+	}
+
+	addr := fmt.Sprintf("%s:%s", host, port)
+	if debug {
+		fmt.Printf("whitelist/gen: getChain: getting chain for addr=%q\n", addr)
+	}
+	conn, err := tls.DialWithDialer(dialer, "tcp", addr, cfg)
+	if err != nil {
+		if debug {
+			fmt.Printf("whitelist/gen: getChain: error establishing tls conn with %q err=%v", addr, err)
 		}
-	}()
-	return resp.TLS.PeerCertificates
+		return nil
+	}
+	defer conn.Close()
+
+	return conn.ConnectionState().PeerCertificates
 }
 
 // gate is a worker pool impl
