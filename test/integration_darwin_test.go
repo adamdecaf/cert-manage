@@ -44,6 +44,8 @@ func init() {
 }
 
 func TestIntegration__date(t *testing.T) {
+	t.Parallel()
+
 	cmd := Command("date", "-u", "-r", "0").Trim()
 	cmd.EqualT(t, "Thu Jan  1 00:00:00 UTC 1970")
 
@@ -57,23 +59,29 @@ Output:
 }
 
 func TestIntegration__unknown(t *testing.T) {
+	t.Parallel()
+
 	cmd := CertManage("other").Trim()
 	cmd.FailedT(t)
 }
 
 func TestIntegration__list(t *testing.T) {
-	t.Skip("darwin support is wip")
+	t.Parallel()
 
 	cmd := CertManage("list", "-count").Trim()
 	cmd.CmpIntF(t, func(i int) bool { return i > 1 })
 }
 
 func TestIntegration__listFromFile(t *testing.T) {
+	t.Parallel()
+
 	cmd := CertManage("list", "-file", "../testdata/lots.crt", "-count").Trim()
 	cmd.CmpIntF(t, func(i int) bool { return i == 5 })
 }
 
 func TestIntegration__add(t *testing.T) {
+	t.Parallel()
+
 	// don't signal we're done until this test completes
 	defer darwinKeychainWG.Done()
 
@@ -156,6 +164,8 @@ func setupKeychain(t *testing.T) {
 // Don't run this test byitself, there's a .Wait()
 // instead call `go test ... -run TestIntegration__`
 func TestIntegration__WhitelistAndRemove(t *testing.T) {
+	t.Parallel()
+
 	// wait until _add test finishes, so we don't clobber the keychain
 	darwinKeychainWG.Wait()
 
@@ -304,6 +314,8 @@ Output:
 }
 
 func TestIntegration__loadTestSite(t *testing.T) {
+	t.Parallel()
+
 	if online(t) {
 		if err := loadTestSite(t); err != nil {
 			t.Fatal(err)

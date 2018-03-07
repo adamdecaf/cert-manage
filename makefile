@@ -27,8 +27,8 @@ generate:
 	CGO_ENABLED=0 go run pkg/whitelist/blacklist_gen.go
 
 test: check dist
-	CGO_ENABLED=0 go test ./...
-	INTEGRATION=yes go test ./... -run TestIntegration__ -count 1
+	CGO_ENABLED=0 go test -test.parallel 8 ./...
+	INTEGRATION=yes go test -test.parallel 8 ./... -run TestIntegration__ -count 1
 
 build: check
 	go build -o cert-manage github.com/adamdecaf/cert-manage

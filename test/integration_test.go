@@ -25,6 +25,8 @@ import (
 
 // high-level test of entire "gen-whitelist" code path
 func TestIntegraton__genWhitelist(t *testing.T) {
+	t.Parallel()
+
 	dir, err := ioutil.TempDir("", "gen-whitelist")
 	if err != nil {
 		t.Fatal(err)

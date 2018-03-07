@@ -21,12 +21,16 @@ import (
 )
 
 func TestIntegration__date(t *testing.T) {
+	t.Parallel()
+
 	cmd := Command("date", "-u", "--date", "@0").Trim()
 	cmd.EqualT(t, "Thu Jan  1 00:00:00 UTC 1970")
 	cmd.SuccessT(t)
 }
 
 func TestIntegration__unknown(t *testing.T) {
+	t.Parallel()
+
 	cmd := CertManage("other").Trim()
 	cmd.FailedT(t)
 }

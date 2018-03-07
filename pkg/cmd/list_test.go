@@ -27,6 +27,8 @@ import (
 )
 
 func TestCmdList__file(t *testing.T) {
+	t.Parallel()
+
 	cfg := ui.Config{
 		Count: true,
 	}
@@ -37,6 +39,8 @@ func TestCmdList__file(t *testing.T) {
 }
 
 func TestCmdList__url(t *testing.T) {
+	t.Parallel()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		f, err := os.Open("../../testdata/certdata.txt.gz")
 		if err != nil {

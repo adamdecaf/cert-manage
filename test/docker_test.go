@@ -19,18 +19,24 @@ import (
 )
 
 func TestDocker_basic(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/basic")
 	img.Run("date", "-u")
 	img.SuccessT(t)
 }
 
 func TestDocker_hasSuffix(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/basic/Dockerfile")
 	img.Run("date", "-u")
 	img.SuccessT(t)
 }
 
 func TestDocker_shouldFail(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/basic")
 	img.ShouldFail("nothing")
 	img.SuccessT(t)
@@ -41,6 +47,8 @@ func TestDocker_shouldFail(t *testing.T) {
 }
 
 func TestDocker__exitCode(t *testing.T) {
+	t.Parallel()
+
 	img := Dockerfile("envs/basic")
 	img.ExitCode("0", "date")
 	img.ExitCode("127", "asjdsfjsafkjas")

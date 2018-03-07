@@ -24,6 +24,8 @@ import (
 )
 
 func TestGenWhitelist_getChoices(t *testing.T) {
+	t.Parallel()
+
 	// left off '-from file'
 	choices := getChoices("", "/dev/null")
 	if !reflect.DeepEqual(choices, []string{"file"}) {
@@ -50,6 +52,8 @@ func TestGenWhitelist_getChoices(t *testing.T) {
 }
 
 func TestGenWhitelist_accumulateUrls(t *testing.T) {
+	t.Parallel()
+
 	uacc := make(chan []*url.URL)
 	eacc := make(chan error)
 	wg := sync.WaitGroup{}

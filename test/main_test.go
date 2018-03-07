@@ -7,6 +7,8 @@ import (
 )
 
 func TestCertManage_help(t *testing.T) {
+	t.Parallel()
+
 	usage := "Usage of cert-manage version"
 	subCmdUsage := func(name string) string {
 		return fmt.Sprintf("Usage: cert-manage %s ", name)
