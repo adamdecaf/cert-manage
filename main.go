@@ -341,7 +341,7 @@ APPS
 
 	// Run whatever function we've got here..
 	c, ok := commands[strings.ToLower(os.Args[1])]
-	if !ok && calledHelp() { // sub-command wasn't found
+	if (!ok && calledHelp()) || c == nil { // sub-command wasn't found
 		fs.Usage()
 		os.Exit(1)
 	}
