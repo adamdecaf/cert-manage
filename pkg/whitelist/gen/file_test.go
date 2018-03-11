@@ -20,25 +20,48 @@ import (
 )
 
 func TestGen_fromFile(t *testing.T) {
-	urls, err := FromFile("../../../testdata/file-with-urls")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(urls) != 3 {
-		t.Errorf("got %d urls", len(urls))
+	t.Parallel()
+
+	cases := []struct {
+		path   string
+		count  int
+		answer []string
+	}{
+		{
+			path:  "../../../testdata/file-with-urls",
+			count: 3,
+			answer: []string{
+				"https://google.com",
+				"https://yahoo.com",
+				"https://bing.com",
+			},
+		},
+		{
+			path:  "../../../testdata/alexa-top-1m.csv.gz",
+			count: 1e6,
+		},
+		{
+			path:  "../../../testdata/cisco-top-1m.csv.gz",
+			count: 1e6,
+		},
 	}
 
-	var ss []string
-	for i := range urls {
-		ss = append(ss, urls[i].String())
-	}
-
-	ans := []string{
-		"https://google.com",
-		"https://yahoo.com",
-		"https://bing.com",
-	}
-	if !reflect.DeepEqual(ss, ans) {
-		t.Errorf("got %q", ss)
+	for i := range cases {
+		urls, err := FromFile(cases[i].path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(urls) != cases[i].count {
+			t.Errorf("%s got %d urls", cases[i].path, len(urls))
+		}
+		if cases[i].answer != nil {
+			var ss []string
+			for i := range urls {
+				ss = append(ss, urls[i].String())
+			}
+			if !reflect.DeepEqual(ss, cases[i].answer) {
+				t.Errorf("%s got %q", cases[i].path, ss)
+			}
+		}
 	}
 }
