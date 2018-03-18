@@ -144,9 +144,11 @@ This project follows the [Google Code of Conduct](https://opensource.google.com/
 - [drduh/macOS-Security-and-Privacy-Guide](https://github.com/drduh/macOS-Security-and-Privacy-Guide#certificate-authorities)
 - [kirei/catt](https://github.com/kirei/catt)
 - [mkcert.org](https://mkcert.org/)
+- [mozilla/tls-observatory](https://github.com/mozilla/tls-observatory)
 - [msylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
 - [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory)
 - [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
+- [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen)
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
 - [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx)
 
