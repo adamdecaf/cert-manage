@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/store"
@@ -34,11 +35,19 @@ var (
 		firefox,
 		safari,
 	}
-
-	// requires updating with store/store.go, but so does the
-	// rest of this file
 	browserNames = []string{"chrome", "firefox", "safari"}
+
+	// Don't collect history items older than this threshold
+	oldestBrowserHistoryItemDate time.Time
 )
+
+func init() {
+	t, err := time.ParseDuration(fmt.Sprintf("-%dh", 90*24)) // 90 days * 24 hours
+	if err != nil {
+		panic(err)
+	}
+	oldestBrowserHistoryItemDate = time.Now().Add(t)
+}
 
 func FromAllBrowsers() ([]*url.URL, error) {
 	var acc []*url.URL

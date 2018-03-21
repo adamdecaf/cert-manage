@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/go-sqlite/sqlite3"
@@ -39,11 +40,15 @@ func firefox() ([]*url.URL, error) {
 }
 
 func getFirefoxUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
-	getter := func(rec sqlite3.Record) string {
+	getter := func(rec sqlite3.Record) *record {
 		u, _ := rec.Values[1].(string)
-		return u
+		when, _ := rec.Values[8].(int64) // last_visit_time
+		return &record{
+			URL:        u,
+			VisistedAt: time.Unix(int64(when/1e6), 0).UTC(), // throw away nsec
+		}
 	}
-	return getSqliteHistoryUrls(db, "Firefox", "moz_places", getter)
+	return getSqliteHistoryUrls(db, "Firefox", "moz_places", getter, oldestBrowserHistoryItemDate)
 }
 
 func findFirefoxPlacesDB() (*sqlite3.DbFile, error) {

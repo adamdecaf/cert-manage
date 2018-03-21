@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/go-sqlite/sqlite3"
@@ -38,11 +39,15 @@ func safari() ([]*url.URL, error) {
 }
 
 func getSafariUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
-	getter := func(rec sqlite3.Record) string {
+	getter := func(rec sqlite3.Record) *record {
 		u, _ := rec.Values[1].(string)
-		return u
+		return &record{
+			URL: u,
+			// TODO(adam): https://github.com/adamdecaf/cert-manage/issues/188
+			VisistedAt: time.Now(),
+		}
 	}
-	return getSqliteHistoryUrls(db, "Safari", "history_items", getter)
+	return getSqliteHistoryUrls(db, "Safari", "history_items", getter, oldestBrowserHistoryItemDate)
 }
 
 func findSafariHistoryDB() (*sqlite3.DbFile, error) {
