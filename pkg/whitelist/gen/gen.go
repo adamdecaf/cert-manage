@@ -218,6 +218,7 @@ func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 				if len(chain) == 0 {
 					// didn't find chain, but that's not a huge deal as
 					// the remote endpoint could be unreachable
+					fmt.Printf("Unable to get certificates for %s\n", u.Host)
 					return
 				}
 
