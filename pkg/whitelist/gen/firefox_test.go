@@ -39,11 +39,11 @@ func TestWhitelistGen__getFirefoxUrls(t *testing.T) {
 		path  string
 	}{
 		{
-			count: 10,
+			count: 3,
 			path:  "../../../testdata/firefox-history.sqlite",
 		},
 		{
-			count: 10,
+			count: 3,
 			path:  "../../../testdata/firefox-history-win.sqlite",
 		},
 	}

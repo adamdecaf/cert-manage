@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/go-sqlite/sqlite3"
@@ -44,11 +45,21 @@ func chrome() ([]*url.URL, error) {
 }
 
 func getChromeUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
-	getter := func(rec sqlite3.Record) string {
+	getter := func(rec sqlite3.Record) *record {
 		u, _ := rec.Values[1].(string)
-		return u
+
+		// parse last_visit_time
+		// "timestamp in the visit table is formatted as the number of microseconds since midnight UTC of 1 January 1601"
+		// https://digital-forensics.sans.org/blog/2010/01/21/google-chrome-forensics/
+		w, _ := rec.Values[5].(int64)
+		when := time.Date(1601, time.January, 1, 0, 0, int(w/1e6), 0, time.UTC)
+
+		return &record{
+			URL:        u,
+			VisistedAt: when,
+		}
 	}
-	return getSqliteHistoryUrls(db, "Chrome", "urls", getter)
+	return getSqliteHistoryUrls(db, "Chrome", "urls", getter, oldestBrowserHistoryItemDate)
 }
 
 func findChromeHistoryDB() (*sqlite3.DbFile, error) {

@@ -17,16 +17,22 @@ package gen
 import (
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/go-sqlite/sqlite3"
 )
 
+type record struct {
+	URL        string
+	VisistedAt time.Time
+}
+
 // urlGetter grabs a sqlite record and returns the url
 // this varies from table to table (browser history impl)
-type urlGetter func(sqlite3.Record) string
+type urlGetter func(sqlite3.Record) *record
 
 // getSqliteHistoryUrls
-func getSqliteHistoryUrls(db *sqlite3.DbFile, name, table string, getter urlGetter) ([]*url.URL, error) {
+func getSqliteHistoryUrls(db *sqlite3.DbFile, name, table string, getter urlGetter, oldestTime time.Time) ([]*url.URL, error) {
 	var acc []*url.URL
 	err := db.VisitTableRecords(table, func(rowId *int64, rec sqlite3.Record) error {
 		if rowId == nil {
@@ -34,10 +40,17 @@ func getSqliteHistoryUrls(db *sqlite3.DbFile, name, table string, getter urlGett
 		}
 
 		raw := getter(rec)
-		if raw == "" && debug {
-			fmt.Printf("whitelist/gen: (%s) unknown rec.Values[1], %v\n", name, rec.Values[1])
+		if raw == nil && debug {
+			fmt.Printf("whitelist/gen: (%s) unknown (or ignored) rec.Values[1], %v\n", name, rec.Values[1])
 		}
-		parsed, err := url.Parse(raw)
+
+		if raw.VisistedAt.IsZero() || raw.VisistedAt.Before(oldestTime) {
+			// skip records whose time we didn't parse or
+			// records older than our cutoff
+			return nil
+		}
+
+		parsed, err := url.Parse(raw.URL)
 		if err == nil {
 			acc = append(acc, parsed)
 		}

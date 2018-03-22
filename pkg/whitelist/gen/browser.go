@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/store"
@@ -34,11 +35,19 @@ var (
 		firefox,
 		safari,
 	}
-
-	// requires updating with store/store.go, but so does the
-	// rest of this file
 	browserNames = []string{"chrome", "firefox", "safari"}
+
+	// Don't collect history items older than this threshold
+	oldestBrowserHistoryItemDate time.Time
 )
+
+func init() {
+	t, err := time.ParseDuration(fmt.Sprintf("-%dh", 90*24)) // 90 days * 24 hours
+	if err != nil {
+		panic(err)
+	}
+	oldestBrowserHistoryItemDate = time.Now().Add(t)
+}
 
 func FromAllBrowsers() ([]*url.URL, error) {
 	var acc []*url.URL
@@ -61,7 +70,7 @@ func FromAllBrowsers() ([]*url.URL, error) {
 	if len(acc) == 0 {
 		return acc, errors.New("no browser history found")
 	}
-	return acc, nil
+	return distinct(acc), nil
 }
 
 func BrowserCAs() ([]*x509.Certificate, error) {
@@ -81,14 +90,39 @@ func BrowserCAs() ([]*x509.Certificate, error) {
 	return pool.GetCertificates(), nil
 }
 
-func FromBrowser(name string) ([]*url.URL, error) {
+func FromBrowser(name string) (urls []*url.URL, err error) {
 	switch strings.ToLower(name) {
 	case "chrome":
-		return chrome()
+		urls, err = chrome()
 	case "firefox":
-		return firefox()
+		urls, err = firefox()
 	case "safari":
-		return safari()
+		urls, err = safari()
 	}
-	return nil, nil
+	return distinct(urls), err
+}
+
+// distinct returns an array with each url included only once
+// URL fragments are removed
+func distinct(urls []*url.URL) []*url.URL {
+	if len(urls) == 0 {
+		return nil
+	}
+
+	out := make(map[string]*url.URL, 0)
+
+	// add each url (key: url.URL.Host, value: *url.URL)
+	for i := range urls {
+		urls[i].Fragment = "" // drop fragment
+		if _, exists := out[urls[i].Host]; !exists {
+			out[urls[i].Host] = urls[i]
+		}
+	}
+
+	// Build result from `out`
+	var results []*url.URL
+	for _, u := range out {
+		results = append(results, u)
+	}
+	return results
 }

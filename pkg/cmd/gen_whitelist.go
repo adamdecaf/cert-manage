@@ -104,6 +104,10 @@ func GenerateWhitelist(output string, from, file string) error {
 		fmt.Printf("getting chains for %d urls\n", len(accum))
 	}
 
+	if len(accum) == 0 {
+		return errors.New("No urls found to generate whitelist from")
+	}
+
 	// Generate whitelist and write to file
 	authorities, err := gen.FindCAs(accum, pool)
 	if err != nil {
