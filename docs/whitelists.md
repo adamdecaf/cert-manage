@@ -4,7 +4,7 @@
 
 Whitelists represent an operation which disables certificate trust in a certificate store. The filters presented for a whitelist are:
 
-- `Fingerprint`: The SHA256 fingerprint of a certificate. This value will be unique across certificates given their contents are unique.
+- `Fingerprints`: The SHA256 fingerprint of a certificate. This value will be unique across certificates given their contents are unique.
 - `Countries`: ISO 3166-1 two-letter country codes of certificates to keep. (e.g. `US` - United States and `JP` - Japan)
 
 Whitelists are stored in yaml or json files. There is a basic structure to them which allows for multiple methods of whitelisting. The structure looks like:
@@ -48,7 +48,31 @@ Whitelist completed successfully
 
 ## Generating Whitelists
 
-Whitelists can be generated from your local browser history or a text file with urls.
+`cert-manage` supports generating whitelists from browser history. Either all browsers `-from browser` or specific browsers `-from chrome`.
+
+```
+$ cert-manage gen-whitelist -from browser -out wh.json
+CA                                             Fingerprint      Count Example DNSNames
+GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
+...
+
+$ cert-manage gen-whitelist -from chrome -out wh.json
+CA                                             Fingerprint      Count Example DNSNames
+GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
+...
+```
+
+### Blacklisted certificates
+
+`cert-manage` includes the [Chromium certificate blacklist](https://chromium.googlesource.com/chromium/src/+/master/net/data/ssl/blacklist/) to never whitelist certificates which are generally regarded by the industry as untrusted.
+
+There is currently no way to disable this behavior.
+
+### Files
+
+`cert-manage` can also generate whitelists from a given file. This could be a text file with a url on each line, or a comma separated file with urls in one column per row.
+
+##### Plain text files
 
 ```
 $ cat urls.txt
@@ -72,16 +96,16 @@ $ cat wh.json
 }
 ```
 
-`cert-manage` supports generating whitelists from browser history. Either all browsers `-from browser` or specific browsers `-from chrome`.
+
+##### CSV files
+
+There are several services which offer "Top N Domains" lists. Most popular is the [Alexa top sites](https://www.alexa.com/topsites), which offers the list in a csv file. `cert-manage` can generate a whitelist from such a file. The file may also be compressed with gzip.
 
 ```
-$ cert-manage gen-whitelist -from browser -out wh.json
-CA                                             Fingerprint      Count Example DNSNames
-GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
-...
-
-$ cert-manage gen-whitelist -from chrome -out wh.json
-CA                                             Fingerprint      Count Example DNSNames
-GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
+$ cert-manage gen-whitelist -out wh.json -file alexa1mil.gz
+CA                             Fingerprint      Count Example DNSNames
+DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
+Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com
+GeoTrust Inc.                  ff856a2d251dcd88 1     google.com
 ...
 ```

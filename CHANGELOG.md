@@ -1,4 +1,4 @@
-## Unreleased
+## 0.2.0 (Unreleased)
 
 BREAKING CHANGES
 
@@ -6,16 +6,30 @@ BREAKING CHANGES
 
 FEATURES
 
+- **Support YAML whitelists as the default**
 - Import browser history from Safari
-- Support YAML whitelists as the default
 - Add support for whitelisting based on CA country
+- Use Chromium's certificate blacklist to never whitelist certificates
+- Support whitelist generation from "top N domains" csv files
 
 IMPROVEMENTS
 
+- **Whitelist generation is faster**
 - Improve printed certificate names
 - Better command help output
 - Fix Darwin/OSX support for adding certificates
 - Removed SHA1 output from `-format short` (default format)
+- Create directories with tighter permissions
+- Sort certificates by Subject in web ui
+
+BUG FIXES
+
+- Make sure known Apple certificates are always restored
+- Ensure certificates are deduplicated when accumulating them
+
+BUILD
+
+- Go 1.10 is required to build and test
 
 ## 0.1.0 (2018-02-13)
 
