@@ -105,6 +105,22 @@ func javaSuite(t *testing.T, img *dockerfile, total, after string) {
 	}
 }
 
+func firefoxSuite(t *testing.T, img *dockerfile, total, after string) {
+	if total == "" || after == "" {
+		t.Fatalf("total=%q or after=%q is blank", total, after)
+	}
+	if debug {
+		fmt.Println("Firefox start")
+	}
+
+	img.RunSplit("ls -al ~/")
+	img.SuccessT(t)
+
+	if debug {
+		fmt.Println("Firefox end")
+	}
+}
+
 func incr(in string) string {
 	n, err := strconv.Atoi(in)
 	if err != nil {

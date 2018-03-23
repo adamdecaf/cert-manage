@@ -35,3 +35,10 @@ func TestUbuntu__java(t *testing.T) {
 	img := Dockerfile("envs/ubuntu")
 	javaSuite(t, img, "148", "54")
 }
+
+func TestUbuntu__firefox(t *testing.T) {
+	t.Parallel()
+
+	img := Dockerfile("envs/ubuntu")
+	firefoxSuite(t, img, "1", "1")
+}

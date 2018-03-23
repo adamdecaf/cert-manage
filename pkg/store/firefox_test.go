@@ -21,11 +21,23 @@ import (
 )
 
 func TestStoreFirefix__info(t *testing.T) {
-	st := FirefoxStore()
+	info := FirefoxStore().GetInfo()
 
-	// TOOD(adam): Support other OS's
+	// OSX
 	if file.Exists("/Applications/Firefox.app") {
-		info := st.GetInfo()
+		if info == nil {
+			t.Fatal("nil Info")
+		}
+		if info.Name == "" {
+			t.Error("blank Name")
+		}
+		if info.Version == "" {
+			t.Error("blank Version")
+		}
+	}
+
+	// Linux
+	if file.Exists("/usr/bin/firefox") {
 		if info == nil {
 			t.Fatal("nil Info")
 		}
