@@ -55,7 +55,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	pool := x509.NewCertPool()
 
 	choices := getChoices(from, file)
-	debugLog("running %d choices\n", len(choices))
+	debugLog("running %d choices", len(choices))
 	for i := range choices {
 		opt := strings.ToLower(strings.TrimSpace(choices[i]))
 		switch opt {
@@ -112,6 +112,10 @@ func GenerateWhitelist(output string, from, file string) error {
 	authorities, err := gen.FindCAs(accum, pool)
 	if err != nil {
 		return err
+	}
+
+	if len(authorities) == 0 {
+		return fmt.Errorf("Unable to find any CA's from %d urls retrieved", len(accum))
 	}
 
 	// prep summary

@@ -275,7 +275,7 @@ func getChain(u *url.URL, roots *x509.CertPool) chain {
 	conn, err := tls.DialWithDialer(dialer, "tcp", addr, cfg)
 	if err != nil {
 		if debug {
-			fmt.Printf("whitelist/gen: getChain: error establishing tls conn with %q err=%v", addr, err)
+			fmt.Printf("whitelist/gen: getChain: error establishing tls conn with %q err=%v\n", addr, err)
 		}
 		return nil
 	}
