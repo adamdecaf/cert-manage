@@ -26,8 +26,8 @@ import (
 
 var (
 	chromeBinaryPaths = []string{
-		// TODO(adam): Support other OS's (and probably Chromium)
-		`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`,
+		"/usr/bin/chromium-browser",                                    // Chromium
+		`/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, // OSX
 	}
 )
 
