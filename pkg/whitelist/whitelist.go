@@ -116,9 +116,9 @@ func FromFile(path string) (Whitelist, error) {
 	return wh, errors.New("Unable to read whitelist")
 }
 
-// ToFile take a Whitelist, encods it to json and writes the result
+// ToFile take a Whitelist, encodes it in yaml and writes the result
 func (w Whitelist) ToFile(path string) error {
-	out, err := json.Marshal(&w)
+	out, err := yaml.Marshal(&w)
 	if err != nil {
 		return err
 	}
