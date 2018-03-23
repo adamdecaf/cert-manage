@@ -149,14 +149,21 @@ func (c *CAs) findSigners(dnsName string) []*CA {
 type chain []*x509.Certificate
 
 // Grab the stored root certificate
-func (c chain) getRoot(dnsName string, sysRoots *x509.CertPool) *x509.Certificate {
+func (c chain) getRoot(dnsName string, roots *x509.CertPool) *x509.Certificate {
 	leaf := c.getLeaf()
-	chains, err := leaf.Verify(x509.VerifyOptions{
+
+	opts := x509.VerifyOptions{
 		DNSName:       dnsName,
 		Intermediates: c.asCertPool(),
-		Roots:         sysRoots,
-	})
+		Roots:         roots,
+	}
+	if opts.Roots == nil || len(opts.Roots.Subjects()) == 0 {
+		// Use system roots of the passed in chain is empty
+		sysRoots, _ := x509.SystemCertPool()
+		opts.Roots = sysRoots
+	}
 
+	chains, err := leaf.Verify(opts)
 	if err != nil {
 		fmt.Printf("WARNING: Unable to find chain for %s, err=%v\n", dnsName, err)
 		return nil
@@ -254,6 +261,11 @@ func getChain(u *url.URL, roots *x509.CertPool) chain {
 	}
 	if roots != nil {
 		cfg.RootCAs = roots
+	}
+	if cfg.RootCAs == nil || len(cfg.RootCAs.Subjects()) == 0 {
+		// Use system roots of the passed in chain is empty
+		sysRoots, _ := x509.SystemCertPool()
+		cfg.RootCAs = sysRoots
 	}
 	dialer := &net.Dialer{
 		Timeout: 10 * time.Second,
