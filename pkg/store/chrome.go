@@ -65,8 +65,23 @@ func chromeVersion() string {
 			// returns "Google Chrome 63.0.3239.132"
 			out, err := exec.Command(path, "--version").CombinedOutput()
 			if err == nil && len(out) > 0 {
+				ver := string(out)
+
+				// Drop prefix
 				r := strings.NewReplacer("Google Chrome", "")
-				return strings.TrimSpace(r.Replace(string(out)))
+				ver = strings.TrimSpace(r.Replace(ver))
+				r = strings.NewReplacer("Chromium", "")
+				ver = strings.TrimSpace(r.Replace(ver))
+
+				// Drop optional suffix
+				parts := strings.Fields(ver)
+				if len(parts) > 0 {
+					// Return just the version
+					// Original: 'Chromium 64.0.3282.140 Built on Ubuntu , running on Ubuntu 17.10'
+					// Note: 'Chromium' is dropped first
+					return parts[0]
+				}
+				return ver
 			}
 		}
 	}
