@@ -36,7 +36,8 @@ var (
 
 	debug = os.Getenv("DEBUG") != ""
 
-	skipVerify = false
+	// For now allow InsecureSkipVerify during debug
+	skipVerify = debug || false
 )
 
 // CA holds the x509 certificate representing a signer of another x509
