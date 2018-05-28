@@ -1,0 +1,14 @@
+image:
+  # - Visual Studio 2015
+  - ubuntu
+
+# Defaults to MSBuild
+build: off
+
+stack: go, docker
+
+services:
+  - docker
+
+test_script:
+  - make test
