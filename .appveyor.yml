@@ -5,7 +5,7 @@ image:
 # Defaults to MSBuild
 build: off
 
-stack: go, docker
+stack: go 1.10, docker
 
 services:
   - docker
