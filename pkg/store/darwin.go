@@ -98,7 +98,7 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 			resultType = "trustAsRoot"
 		}
 
-		cmd := exec.Command("security", "add-trusted-cert", "-r", resultType, "-p", "ssl", "-k", loginKeychain, path)
+		cmd := exec.Command("security", "add-trusted-cert", "-r", resultType, "-k", loginKeychain, path)
 		out, err := cmd.CombinedOutput()
 		if err != nil && debug {
 			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
@@ -231,7 +231,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	}
 
 	// We don't specify -k systemKeychain to use the default search path, it's what apps would do.
-	cmd := exec.Command("/usr/bin/security", "verify-cert", "-p", "ssl", "-c", tmp.Name())
+	cmd := exec.Command("/usr/bin/security", "verify-cert", "-c", tmp.Name())
 	out, err := cmd.CombinedOutput()
 	if err != nil && debug {
 		fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
@@ -311,7 +311,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 			}
 
 			// mark the certificate as 'Never Trust' in the system keychain
-			cmd := exec.Command("sudo", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "deny", "-p", "ssl", "-k", systemKeychain, tmp.Name())
+			cmd := exec.Command("sudo", "/usr/bin/security", "add-trusted-cert", "-d", "-r", "deny", "-k", systemKeychain, tmp.Name())
 			out, err := cmd.CombinedOutput()
 			if err != nil {
 				if debug {
@@ -436,7 +436,7 @@ func (s darwinStore) Restore(where string) error {
 			return fmt.Errorf("Restore: error writing cert %s to temp dir %s, err=%v", roots[i].Subject, tmp.Name(), err)
 		}
 
-		cmd := exec.Command("security", "verify-cert", "-p", "ssl", "-k", systemKeychain, "-c", tmp.Name())
+		cmd := exec.Command("security", "verify-cert", "-k", systemKeychain, "-c", tmp.Name())
 		out, err := cmd.CombinedOutput()
 		outStr := string(out)
 		if err != nil {

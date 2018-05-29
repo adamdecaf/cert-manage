@@ -211,9 +211,10 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	}
 
 	// verify we can't load our test site
-	if err := loadTestSite(t); online(t) && err != nil {
+	if err := loadTestSite(t); online(t) && err == nil {
 		// Go 1.10 calls 'security verify-cert' without -p ssl, which doesn't see the cert as untrusted.
-		t.Fatal("has golang/go#24084 been fixed? - https://github.com/golang/go/issues/24084")
+		// https://github.com/golang/go/issues/24084
+		t.Fatal("expected test site to fail")
 	}
 
 	// restore
@@ -244,7 +245,7 @@ import "net/http"
 func main() {
 	resp, err := http.DefaultClient.Get("https://fnb.co.za") // test site, anything without a US root
 	if err != nil {
-		defer panic("A: " + err.Error())
+		panic("A: " + err.Error())
 	}
 	if resp != nil && resp.Body != nil {
 		if err := resp.Body.Close(); err != nil {
