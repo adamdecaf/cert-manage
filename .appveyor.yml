@@ -9,9 +9,10 @@ clone_folder: c:\gopath\src\github.com\adamdecaf\cert-manage
 
 environment:
   GOPATH: c:\gopath
-  CGO_ENABLED: '0'
+  CGO_ENABLED: '1'
   GOOS: windows
   GOARCH: amd64
+  DEBUG: true
 
 stack: go 1.10, docker
 

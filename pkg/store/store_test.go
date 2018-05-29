@@ -40,7 +40,7 @@ func TestStore__getCertManageDir(t *testing.T) {
 
 	// If we're asking for an abs reference just return that.
 	// AKA. Don't append getCertManageParentDir()
-	dir, err := filepath.Abs("../../testdata/backups/files")
+	dir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "backups", "files"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -100,29 +100,29 @@ func TestStore__getLatestBackup(t *testing.T) {
 	}
 
 	// Get latest backup from dir of files
-	dir, err = getLatestBackup("../../testdata/backups/files")
+	dir, err = getLatestBackup(filepath.Join("..", "..", "testdata", "backups", "files"))
 	if err != nil {
 		t.Error(err)
 	}
-	if dir != "../../testdata/backups/files/lasjdaslja" {
+	if dir != filepath.Join("..", "..", "testdata", "backups", "files", "lasjdaslja") {
 		t.Errorf("got other backup file, dir=%s", dir)
 	}
 
 	// Latest backup from dir list
-	dir, err = getLatestBackup("../../testdata/backups/alpha")
+	dir, err = getLatestBackup(filepath.Join("..", "..", "testdata", "backups", "alpha"))
 	if err != nil {
 		t.Error(err)
 	}
-	if dir != "../../testdata/backups/alpha/zzzjalaj" {
+	if dir != filepath.Join("..", "..", "testdata", "backups", "alpha", "zzzjalaj") {
 		t.Errorf("got other backup dir, dir=%s", dir)
 	}
 
 	// Numeric dir list
-	dir, err = getLatestBackup("../../testdata/backups/numbers")
+	dir, err = getLatestBackup(filepath.Join("..", "..", "testdata", "backups", "numbers"))
 	if err != nil {
 		t.Error(err)
 	}
-	if dir != "../../testdata/backups/numbers/1513034181" {
+	if dir != filepath.Join("..", "..", "testdata", "backups", "numbers", "1513034181") {
 		t.Errorf("got other backup dir, dir=%s", dir)
 	}
 }

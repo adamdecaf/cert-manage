@@ -264,7 +264,7 @@ func (k keytool) expandSymlink(p string) (string, error) {
 		return "", nil // path doesn't exist
 	}
 	if bin != "" {
-		dir := strings.TrimSuffix(bin, "bin/java")
+		dir := strings.TrimSuffix(bin, filepath.Join("bin", "java"))
 		if debug {
 			fmt.Printf("store/java: expanded %s to %s and stripped to %s\n", p, bin, dir)
 		}

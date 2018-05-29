@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -62,11 +63,11 @@ func CertManage(args ...string) *Cmd {
 
 	switch runtime.GOOS {
 	case "darwin":
-		return Command(render("../bin/cert-manage-osx-%s"), args...)
+		return Command(render(filepath.Join("..", "bin", "cert-manage-osx-%s")), args...)
 	case "linux":
-		return Command(render("../bin/cert-manage-linux-%s"), args...)
+		return Command(render(filepath.Join("..", "bin", "cert-manage-linux-%s")), args...)
 	case "windows":
-		return Command(render("../bin/cert-manage-%s.exe"), args...)
+		return Command(render(filepath.Join("..", "bin", "cert-manage-%s.exe")), args...)
 	}
 	return nil
 }

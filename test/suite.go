@@ -52,13 +52,13 @@ func linuxSuite(t *testing.T, img *dockerfile, config cfg) {
 	// Whitelist
 	img.CertManage("whitelist", "-file", "/whitelist.json")
 	img.CertManage("list", "-count", "|", "grep", config.after)
-	// Verify google.com fails to load
-	img.ExitCode(config.curlExitCode, "curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
+	// Verify our test domain fails to load
+	img.ExitCode(config.curlExitCode, "curl", "-I", "https://www.yahoo.com/")
 	// Restore
 	img.CertManage("restore")
 	// Verify Restore
 	img.CertManage("list", "-count", "|", "grep", config.total)
-	img.Run("curl", "-I", "https://www.google.com/images/branding/product/ico/googleg_lodp.ico")
+	img.Run("curl", "-I", "https://www.yahoo.com/")
 	// Add certificate
 	img.CertManage("add", "-file", "/localcert.pem")
 	img.CertManage("list", "-count", "|", "grep", incr(config.total))
