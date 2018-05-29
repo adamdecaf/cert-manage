@@ -33,5 +33,8 @@ func online(t *testing.T) bool {
 }
 
 func inCI() bool {
-	return os.Getenv("TRAVIS_OS_NAME") != ""
+	inTravis := os.Getenv("TRAVIS_OS_NAME") != ""
+	inAppVeyorWin := os.Getenv("CI_WINDOWS") == "true"
+	inAppVeyorLinux := os.Getenv("CI_LINUX") == "true"
+	return inTravis || inAppVeyorWin || inAppVeyorLinux
 }

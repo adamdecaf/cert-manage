@@ -9,6 +9,9 @@ clone_folder: c:\gopath\src\github.com\adamdecaf\cert-manage
 
 environment:
   GOPATH: c:\gopath
+  CGO_ENABLED: '0'
+  GOOS: windows
+  GOARCH: amd64
 
 stack: go 1.10, docker
 
@@ -18,6 +21,5 @@ services:
 test_script:
   - go vet ./...
   - go fmt ./...
-  - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
-  - CGO_ENABLED=0 go test -test.parallel 8 ./...
-  - INTEGRATION=yes go test -test.parallel 8 ./... -run TestIntegration__ -count 1
+  - go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
+  - go test -test.parallel 8 ./...
