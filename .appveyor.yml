@@ -16,4 +16,8 @@ services:
   - docker
 
 test_script:
-  - make test
+  - go vet ./...
+  - go fmt ./...
+  - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
+  - CGO_ENABLED=0 go test -test.parallel 8 ./...
+  - INTEGRATION=yes go test -test.parallel 8 ./... -run TestIntegration__ -count 1
