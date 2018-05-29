@@ -19,8 +19,10 @@ stack: go 1.10, docker
 services:
   - docker
 
-test_script:
+before_test:
   - go vet ./...
   - go fmt ./...
   - go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
+
+test_script:
   - go test -test.parallel 8 ./...
