@@ -15,17 +15,32 @@
 package store
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 func TestStoreChrome__info(t *testing.T) {
-	// TOOD(adam): Support other OS's
+	ver := chromeVersion()
+
+	// OSX
 	if file.Exists(`/Applications/Google Chrome.app`) {
-		ver := chromeVersion()
 		if ver == "" {
 			t.Error("blank Version")
+		}
+		if strings.Contains(ver, " ") {
+			t.Errorf("has spaces, version=%q", ver)
+		}
+	}
+
+	// Linux
+	if file.Exists("/usr/bin/chromium-browser") {
+		if ver == "" {
+			t.Error("blank Version")
+		}
+		if strings.Contains(ver, " ") {
+			t.Errorf("has spaces, version=%q", ver)
 		}
 	}
 }

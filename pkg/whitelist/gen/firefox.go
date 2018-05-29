@@ -26,6 +26,7 @@ import (
 
 var (
 	firefoxProfileLocations = []string{
+		filepath.Join(file.HomeDir(), ".mozilla/firefox/*.default/places.sqlite"),                      // Ubuntu
 		filepath.Join(file.HomeDir(), "/Library/Application Support/Firefox/Profiles/*/places.sqlite"), // OSX
 		// C:\Users\%USERNAME%\AppData\Roaming\Mozilla\Firefox\Profiles\%PROFILE%.default\places.sqlite // TODO
 	}

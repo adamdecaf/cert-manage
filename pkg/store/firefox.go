@@ -52,8 +52,8 @@ func FirefoxStore() Store {
 
 var (
 	firefoxBinaryPaths = []string{
-		// TODO(adam): Support other OS's
-		`/Applications/Firefox.app/Contents/MacOS/firefox`,
+		"/usr/bin/firefox",                                 // Ubuntu
+		`/Applications/Firefox.app/Contents/MacOS/firefox`, // OSX
 	}
 )
 

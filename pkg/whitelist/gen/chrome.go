@@ -26,13 +26,10 @@ import (
 
 var (
 	chromeProfileLocations = []string{
+		filepath.Join(file.HomeDir(), ".config/google-chrome/History"),                              // Google Chrome
+		filepath.Join(file.HomeDir(), ".config/chromium/History"),                                   // Chromium
 		filepath.Join(file.HomeDir(), `/Library/Application Support/Google/Chrome/Default/History`), // OSX not signed in
-		// TODO(adam):
-		// Linux: /home/$USER/.config/google-chrome/
-		// Linux: /home/$USER/.config/chromium/
-		// Windows Vista (and Win 7): C:\Users\[USERNAME]\AppData\Local\Google\Chrome\
-		// Windows XP: C:\Documents and Settings\[USERNAME]\Local Settings\Application Data\Google\Chrome\
-		// Win 8+: C:\Users\%USERNAME%\AppData\Local\Google\Chrome\User Data\Default\Preferences
+		// TODO(adam): Win 8+: C:\Users\%USERNAME%\AppData\Local\Google\Chrome\User Data\Default\Preferences
 	}
 )
 
