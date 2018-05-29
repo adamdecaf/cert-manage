@@ -19,17 +19,30 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"fmt"
 )
 
 func GetHexSHA1Fingerprint(c x509.Certificate) string {
 	ss := sha1.New()
-	ss.Write(c.Raw)
+	n, err := ss.Write(c.Raw)
+	if err != nil {
+		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err))
+	}
+	if n == 0 {
+		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String()))
+	}
 	return hex.EncodeToString(ss.Sum(nil))
 }
 
 func GetHexSHA256Fingerprint(c x509.Certificate) string {
 	ss := sha256.New()
-	ss.Write(c.Raw)
+	n, err := ss.Write(c.Raw)
+	if err != nil {
+		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err))
+	}
+	if n == 0 {
+		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String()))
+	}
 	return hex.EncodeToString(ss.Sum(nil))
 }
 

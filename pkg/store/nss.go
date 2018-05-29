@@ -146,7 +146,6 @@ func (s nssStore) notifyToRestart() {
 	s.notify.Do(func() {
 		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
 	})
-	return
 }
 
 func (s nssStore) Add(certs []*x509.Certificate) error {

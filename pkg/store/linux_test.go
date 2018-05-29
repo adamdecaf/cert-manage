@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-func StoreLinux__cadir(t *testing.T) {
+func TestStoreLinux__cadir(t *testing.T) {
 	// just grab the linuxStore and make sure it has a cadir member
 	s, ok := platform().(linuxStore)
 	if !ok {

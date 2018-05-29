@@ -35,6 +35,9 @@ func TestStoreJava__expandSymlink(t *testing.T) {
 	// create the symlink
 	other := "java-certs"
 	err = os.Symlink(kpath, other)
+	if err != nil {
+		t.Fatalf("error creating symlink: %v", err)
+	}
 
 	// Verify it's found
 	kt1 := keytool{}

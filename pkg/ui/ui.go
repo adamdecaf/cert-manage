@@ -32,10 +32,12 @@ var (
 	}
 )
 
-// UI - what technology to display results on
+// DefaultUI returns the standard output medium
 func DefaultUI() string {
 	return cliFormat
 }
+
+// GetUIs returns all output mediums
 func GetUIs() []string {
 	var out []string
 	for k := range uiOptions {

@@ -39,10 +39,12 @@ var (
 	fingerprintPreviewLength = 16
 )
 
-// Formats - how the data is displayed on the UI
+// DefaultFormat returns the standard output format
 func DefaultFormat() string {
 	return defaultFormat
 }
+
+// GetFormats returns the names of all output formats
 func GetFormats() []string {
 	out := []string{
 		observatoryFormat, // we need to include 'observatory' as an option
@@ -136,7 +138,6 @@ func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
 			return
 		}
 	}
-	return
 }
 
 func (p opensslPrinter) close() {

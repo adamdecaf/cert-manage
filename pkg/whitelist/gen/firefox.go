@@ -45,7 +45,7 @@ func getFirefoxUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
 		when, _ := rec.Values[8].(int64) // last_visit_time
 		return &record{
 			URL:        u,
-			VisistedAt: time.Unix(int64(when/1e6), 0).UTC(), // throw away nsec
+			VisistedAt: time.Unix(when/1e6, 0).UTC(), // throw away nsec
 		}
 	}
 	return getSqliteHistoryUrls(db, "Firefox", "moz_places", getter, oldestBrowserHistoryItemDate)

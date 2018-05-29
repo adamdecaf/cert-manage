@@ -40,7 +40,7 @@ func isObservatory(format string) bool {
 type observatoryReport struct {
 	Platform     string            `yaml:"platform"`
 	Version      string            `yaml:"version"`
-	Url          string            `yaml:"url"`
+	URL          string            `yaml:"url"`
 	DateFetched  string            `yaml:"date_fetched"`
 	Count        int               `yaml:"trusted_certificates_count"`
 	Certificates []observatoryCert `yaml:"trusted_certificates"`

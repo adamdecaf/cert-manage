@@ -141,7 +141,9 @@ func GenerateWhitelist(output string, from, file string) error {
 		)
 		fmt.Fprintln(w, row)
 	}
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("problem flushing output: %v", err)
+	}
 
 	wh := whitelist.FromCertificates(acc.GetCertificates())
 	return wh.ToFile(output)

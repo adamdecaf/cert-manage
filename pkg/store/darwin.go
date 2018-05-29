@@ -472,6 +472,9 @@ func (s darwinStore) Restore(where string) error {
 		if err != nil {
 			return fmt.Errorf("Restore: error restoring apple root %s, err=%v", root.cert.Subject, err)
 		}
+		if err := root.cleanup(); err != nil {
+			return fmt.Errorf("Restore: problem cleaning up apple root %s: %v", root.cert.Subject, err)
+		}
 	}
 
 	// Restore the login.keychain

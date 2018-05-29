@@ -15,6 +15,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -110,7 +111,7 @@ func Stop() error {
 	wg.Wait()
 
 	if srv != nil {
-		return srv.Shutdown(nil)
+		return srv.Shutdown(context.TODO())
 	}
 	return nil
 }

@@ -26,16 +26,11 @@ import (
 	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/httputil"
 )
 
 var (
+	debug      = os.Getenv("DEBUG") != ""
 	maxWorkers = 25
-
-	client = httputil.New()
-
-	debug = os.Getenv("DEBUG") != ""
-
 	skipVerify = false
 )
 

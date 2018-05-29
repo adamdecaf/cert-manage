@@ -87,6 +87,9 @@ func MirrorDir(src, dst string) error {
 		return err // some fs error occurred
 	}
 	err = os.MkdirAll(dst, s.Mode()) // create `dst` with `src` perms
+	if err != nil {
+		return err
+	}
 
 	// copy files, symlinks, and dirs
 	items, err := ioutil.ReadDir(src)
