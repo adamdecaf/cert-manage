@@ -12,6 +12,7 @@ output:
 linters:
   enable-all: true
   disabled:
+    - dupl
     - golint
     - interfacer
     - gocyclo
