@@ -90,7 +90,6 @@ func (c *Cmd) exec() {
 		}
 		c.err = err
 	})
-	return
 }
 
 func (c *Cmd) Trim() *Cmd {

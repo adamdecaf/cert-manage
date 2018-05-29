@@ -109,7 +109,7 @@ func distinct(urls []*url.URL) []*url.URL {
 		return nil
 	}
 
-	out := make(map[string]*url.URL, 0)
+	out := make(map[string]*url.URL)
 
 	// add each url (key: url.URL.Host, value: *url.URL)
 	for i := range urls {

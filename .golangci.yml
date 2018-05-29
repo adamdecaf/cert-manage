@@ -11,12 +11,13 @@ output:
 
 linters:
   enable-all: true
-  disabled:
+  disable:
     - dupl
-    - golint
-    - interfacer
+    - goconst
     - gocyclo
     - gofmt
     - goimports
+    - golint
+    - interfacer
     - maligned
     - megacheck

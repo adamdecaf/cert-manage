@@ -51,7 +51,7 @@ func FromFile(path string) ([]*url.URL, error) {
 	rdr := bufio.NewScanner(decodeIfGzipped(fd))
 
 	for rdr.Scan() {
-		if u := findUrlInLine(rdr.Text()); u != nil {
+		if u := findURLInLine(rdr.Text()); u != nil {
 			res = append(res, u)
 		}
 	}
@@ -77,14 +77,14 @@ func decodeIfGzipped(r io.Reader) io.Reader {
 	return rdr
 }
 
-// findUrlInLine attempts to find the first url embedded in a line
+// findURLInLine attempts to find the first url embedded in a line
 // of plain text
 //
 // This would be from a file just containing URLS or a "top n domains"
 // from a service like alexa or cisco.
 //
 // e.g. 1,google.com
-func findUrlInLine(line string) *url.URL {
+func findURLInLine(line string) *url.URL {
 	// Split on , -- usually from the "top n domains" files
 	parts := strings.Split(line, ",")
 	for i := range parts {

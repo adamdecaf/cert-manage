@@ -145,7 +145,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 
 	// Map of short cert aliases we've already deleted
 	// Used to cleanup debug logging
-	deleted := make(map[string]bool, 0)
+	deleted := make(map[string]bool)
 
 	// compare against all listed certs
 	for i := range shortCerts {

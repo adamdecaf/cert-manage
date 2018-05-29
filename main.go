@@ -164,7 +164,7 @@ func main() {
 	}
 
 	// Build up sub-commands
-	commands := make(map[string]*command, 0)
+	commands := make(map[string]*command)
 	commands["add"] = &command{
 		fn: func() error {
 			if *flagFile == "" {
