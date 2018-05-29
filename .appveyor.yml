@@ -1,24 +1,14 @@
 image:
-  # - Visual Studio 2015
-  - ubuntu
+  - Visual Studio 2015
+  # - ubuntu
 
 # Defaults to MSBuild
 build: off
 
-clone_folder: |
-  if ($isLinux) {
-    /usr/go/src/github.com/adamdecaf/cert-manage
-  } else {
-    c:\gopath\src\github.com\elastic\go-windows
-  }
+clone_folder: c:\gopath\src\github.com\elastic\go-windows
 
 environment:
-  GOPATH: |
-    if ($isLinux) {
-      /usr/go
-    } else {
-      c:\gopath
-    }
+  GOPATH: c:\gopath
 
 stack: go 1.10, docker
 
