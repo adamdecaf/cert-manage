@@ -5,7 +5,7 @@ image:
 # Defaults to MSBuild
 build: off
 
-clone_folder: c:\gopath\src\github.com\elastic\go-windows
+clone_folder: c:\gopath\src\github.com\adamdecaf\cert-manage
 
 environment:
   GOPATH: c:\gopath
