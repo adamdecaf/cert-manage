@@ -34,7 +34,7 @@ func TestIntegraton__genWhitelist(t *testing.T) {
 	output := filepath.Join(dir, "whitelist.json")
 
 	// generate whitelist
-	err = cmd.GenerateWhitelist(output, "", "../testdata/file-with-urls")
+	err = cmd.GenerateWhitelist(output, "", filepath.Join("..", "testdata", "file-with-urls"))
 	if err != nil {
 		t.Fatal(err)
 	}

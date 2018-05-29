@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"unicode/utf8"
 )
@@ -27,6 +28,10 @@ import (
 const (
 	TempFilePermissions = 0600 // rw for owner only
 	TempDirPermissions  = 0700 | os.ModeDir
+)
+
+var (
+	windowsExecutableSuffixes = []string{".exe", ".cmd", ".bat"}
 )
 
 // Exists returns true if the give path represents a file or directory
@@ -45,6 +50,15 @@ func Exists(path string) bool {
 func IsExecutable(path string) bool {
 	s, err := os.Stat(path)
 	if err != nil {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		name := filepath.Base(s.Name())
+		for i := range windowsExecutableSuffixes {
+			if strings.HasSuffix(name, windowsExecutableSuffixes[i]) {
+				return true
+			}
+		}
 		return false
 	}
 	return s.Mode()&0100 == 0100

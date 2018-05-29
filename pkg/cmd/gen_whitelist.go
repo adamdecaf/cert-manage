@@ -109,7 +109,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	// Generate whitelist and write to file
-	authorities, err := gen.FindCAs(accum, pool)
+	authorities, err := gen.FindCAs(accum, nil)
 	if err != nil {
 		return err
 	}

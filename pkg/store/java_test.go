@@ -48,19 +48,19 @@ func TestStoreJava__expandSymlink(t *testing.T) {
 	}
 
 	// Verify bin/java can be removed
-	err = os.MkdirAll("other/bin", 0777|os.ModeDir)
+	err = os.MkdirAll(filepath.Join("other", "bin"), 0777|os.ModeDir)
 	if err != nil {
 		t.Error(err)
 	}
-	err = os.Symlink(filepath.Join(dir, "bin/java"), "other/bin/java")
+	err = os.Symlink(filepath.Join(dir, "bin", "java"), filepath.Join("other", "bin", "java"))
 	if err != nil {
 		t.Error(err)
 	}
-	p, _ := kt1.expandSymlink("other/bin/java")
+	p, _ := kt1.expandSymlink(filepath.Join("other", "bin", "java"))
 	if p != dir {
 		t.Errorf("%s should have been %s", p, dir)
 	}
-	os.RemoveAll("other/")
+	os.RemoveAll("other" + string(os.PathSeparator))
 }
 
 func TestStoreJava__getKeystorePath(t *testing.T) {

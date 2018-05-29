@@ -16,6 +16,7 @@ package store
 
 import (
 	"os/exec"
+	"runtime"
 	"testing"
 )
 
@@ -23,6 +24,9 @@ func TestStoreOpenSSL__paths(t *testing.T) {
 	err := exec.Command("openssl", "version").Run()
 	if err != nil {
 		t.Skipf("can't find openssl, err=%v", err)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("openssl store unsupported on windows")
 	}
 
 	st := opensslStore{}

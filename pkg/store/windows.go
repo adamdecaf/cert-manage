@@ -75,18 +75,25 @@ func (s windowsStore) GetLatestBackup() (string, error) {
 }
 
 func (s windowsStore) GetInfo() *Info {
-	return &Info{
-		Name:    "Windows",
-		Version: s.version(),
-	}
-}
-
-func (s windowsStore) version() string {
-	out, err := exec.Command("ver").CombinedOutput()
+	// From https://stackoverflow.com/a/42778990
+	out, err := exec.Command("systeminfo").CombinedOutput()
 	if err != nil {
-		return ""
+		return &Info{
+			Name: "Windows",
+		}
 	}
-	return strings.TrimSpace(string(out))
+	info := string(out)
+
+	nameRegex := regexp.MustCompile(`OS Name:\s*([\w\s]*)`)
+	versionRegex := regexp.MustCompile(`OS Version:\s*([\w\s\.\/]*)`)
+
+	name := strings.TrimPrefix(nameRegex.FindString(info), "OS Name:")
+	version := strings.TrimPrefix(versionRegex.FindString(info), "OS Version:")
+
+	return &Info{
+		Name:    strings.TrimSpace(name),
+		Version: strings.TrimSpace(version),
+	}
 }
 
 func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
@@ -136,7 +143,7 @@ var (
 	// ================ Certificate 0 ================
 	// Serial Number: 72696afcd5edce864658141cb588a3a8
 	winSerialNumberPrefix = "Serial Number:"
-	winSerialNumberRegex  = regexp.MustCompile(fmt.Sprintf(`%s ([0-9a-f]+)\r`, winSerialNumberPrefix))
+	winSerialNumberRegex  = regexp.MustCompile(fmt.Sprintf(`%s ([0-9a-f]+)\r?\n?`, winSerialNumberPrefix))
 )
 
 func (s windowsStore) readCertSerials(out string) ([]string, error) {

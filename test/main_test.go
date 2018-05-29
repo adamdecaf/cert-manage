@@ -25,10 +25,12 @@ func TestCertManage_help(t *testing.T) {
 
 	// bad argument, fs.Usage()
 	out, err = run(t, "bad-arg")
-	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		t.Error(err)
+	if err == nil {
+		t.Errorf("expected error, got nothing. output=%q", out)
 	}
-	fmt.Println(string(out))
+	if err != nil && !strings.Contains(err.Error(), "exit status 1") {
+		t.Errorf("unexpected error: %v", err)
+	}
 	if !strings.Contains(out, usage) {
 		t.Error("expected Usage() text")
 	}

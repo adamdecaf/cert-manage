@@ -46,8 +46,11 @@ func TestFile__existsFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err=%v creating %s", err, loc)
 	}
-	if !Exists(loc) || !Exists(f.Name()) {
-		t.Fatalf("%s | %s should exist", loc, f.Name())
+	if !Exists(loc) {
+		t.Fatalf("%s should exist", loc)
+	}
+	if !Exists(f.Name()) {
+		t.Fatalf("%s should exist", f.Name())
 	}
 
 	// Delete
@@ -59,8 +62,11 @@ func TestFile__existsFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s wasn't removable err=%v", loc, err)
 	}
-	if Exists(loc) || Exists(f.Name()) {
-		t.Fatalf("%s | %s shouldn't exist anymore", loc, f.Name())
+	if Exists(loc) {
+		t.Fatalf("%s shouldn't exist anymore", loc)
+	}
+	if Exists(f.Name()) {
+		t.Fatalf("%s shouldn't exist anymore", f.Name())
 	}
 }
 
@@ -86,7 +92,7 @@ func TestFile__existsDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	if Exists(loc) {
-		t.Fatalf("%s doesn't exist anymore", loc)
+		t.Fatalf("%s shouldn't exist anymore", loc)
 	}
 }
 
