@@ -33,6 +33,15 @@ const (
 <html>
   <head>
     <title>cert-mange {{.Operation}}</title>
+  <style>
+  div.cert-wrapper {
+    padding: 5px;
+  }
+  div.cert-wrapper:nth-child(even) {
+    background: #CCC;
+    border-radius: 5px;
+  }
+  </style>
   </head>
   <body>
 `
@@ -54,9 +63,11 @@ function toggle(sel) {
 Options: <a href="/done" style="color: #000;">Close</a>
 <hr />
 {{range $idx, $cert := .Certificates}}
+<div class="cert-wrapper">
 Subject: {{ $cert.Subject }}<br />
 <a href="#" onclick="toggle('cert{{ $idx }}'); return false;" style="color: #000;">Details</a><br />
-<span class="certificate" id="cert{{ $idx }}" style="display:none;"><pre>{{ $cert.Raw }}</pre></span><br />
+<span class="certificate" id="cert{{ $idx }}" style="display:none;"><pre>{{ $cert.Raw }}</pre></span>
+</div>
 {{else}}
 <strong>No certificates</strong>
 {{end}}
