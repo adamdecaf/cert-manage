@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Generated on 2018-02-25T01:22:51Z by adam, any modifications will be overwritten
+// Generated on 2018-05-29T09:11:15Z by adam, any modifications will be overwritten
 package whitelist
 
 var blacklistedFingerprints = []string{
@@ -82,7 +82,7 @@ var blacklistedFingerprints = []string{
 	`b8686723e415534bc0dbd16326f9486f85b0b0799bf6639334e61daae67f36cd`,
 	// CN=Certipost E-Trust Primary Normalised CA,O=Certipost s.a./n.v.,C=BE
 	`b8c1b957c077ea76e00b0f45bff5ae3acb696f221d2e062164fe37125e5a8d25`,
-	// x509: cannot parse dnsName "global trustee"
+	// CN=global trustee,OU=Global Trustee+OU=Hosted by GTI Group Corporation+OU=PlatinumSSL,O=Global Trustee,POSTALCODE=38477,STREET=Sea Village 10,L=Tampa,ST=Florida,C=US
 	`be144b56fb1163c49c9a0e6b5a458df6b29f7e6449985960c178a4744624b7bc`,
 	// CN=www.live.fi,OU=Domain Control Validated+OU=Free SSL
 	`c67d722c1495be02cbf9ef1159f5ca4aa782dc832dc6aa60c9aa076a0ad1e69d`,
