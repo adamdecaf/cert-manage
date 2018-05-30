@@ -32,15 +32,12 @@ import (
 var (
 	// docker image tags which are required to pass
 	stableTags = []string{
-		"1.9-alpine3.7",
-		"1.9-stretch",
+		"1.10-alpine3.7",
+		"1.10-stretch",
 	}
 
 	// docker image tags which can fail
-	unstableTags = []string{
-		"1.10rc2-alpine3.7",
-		"1.10rc2-stretch",
-	}
+	unstableTags = []string{}
 )
 
 func TestLinux__stable(t *testing.T) {
