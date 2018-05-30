@@ -44,6 +44,10 @@ func (p *Pool) AddCertificates(certs []*x509.Certificate) {
 	var addable []*cert
 	p.mu.RLock()
 	for i := range certs {
+		if certs[i] == nil {
+			continue
+		}
+
 		needed := true
 		fp := GetHexSHA256Fingerprint(*certs[i])
 		for j := range p.certs {

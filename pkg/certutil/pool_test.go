@@ -15,6 +15,7 @@
 package certutil
 
 import (
+	"crypto/x509"
 	"testing"
 )
 
@@ -49,5 +50,24 @@ func TestCertUtil__pool(t *testing.T) {
 	found = pool.GetCertificates()
 	if len(found) != 1+len(certs) {
 		t.Fatalf("found %d certs expected %d", len(found), 1+len(certs))
+	}
+}
+
+func TestCertUtil__nil(t *testing.T) {
+	pool := Pool{}
+
+	pool.Add(nil)
+	if n := len(pool.GetCertificates()); n != 0 {
+		t.Errorf("got %d", n)
+	}
+
+	pool.AddCertificates(nil)
+	if n := len(pool.GetCertificates()); n != 0 {
+		t.Errorf("got %d", n)
+	}
+
+	pool.AddCertificates([]*x509.Certificate{nil})
+	if n := len(pool.GetCertificates()); n != 0 {
+		t.Errorf("got %d", n)
 	}
 }
