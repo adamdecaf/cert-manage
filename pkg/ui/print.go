@@ -159,7 +159,10 @@ func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 		fmt.Fprintf(w, "  Subject: %s\n", certutil.StringifyPKIXName(certs[i].Subject))
 		fmt.Fprintf(w, "  Issuer: %s\n", certutil.StringifyPKIXName(certs[i].Issuer))
 		fmt.Fprintf(w, "  NotBefore: %s | NotAfter: %s\n", certs[i].NotBefore, certs[i].NotAfter)
-		fmt.Fprintf(w, "  IsCA:  %t\n", certs[i].IsCA)
+
+		if certs[i].IsCA {
+			fmt.Fprintf(w, "  IsCA: %t\n", certs[i].IsCA)
+		}
 
 		if len(certs[i].DNSNames) > 0 {
 			fmt.Fprintf(w, "  DNSNames:\n")
