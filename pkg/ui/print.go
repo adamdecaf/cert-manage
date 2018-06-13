@@ -154,43 +154,43 @@ func (shortPrinter) close() {}
 func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	for i := range certs {
 		fmt.Fprintf(w, "Certificate\n")
-		fmt.Fprintf(w, "  SHA256 Fingerprint - %s\n", certutil.GetHexSHA256Fingerprint(*certs[i]))
+		fmt.Fprintf(w, "  SHA256 Fingerprint: %s\n", certutil.GetHexSHA256Fingerprint(*certs[i]))
 		fmt.Fprintf(w, "  SerialNumber: %d\n", certs[i].SerialNumber)
 		fmt.Fprintf(w, "  Subject: %s\n", certutil.StringifyPKIXName(certs[i].Subject))
 		fmt.Fprintf(w, "  Issuer: %s\n", certutil.StringifyPKIXName(certs[i].Issuer))
-		fmt.Fprintf(w, "  NotBefore - %s, NotAfter - %s\n", certs[i].NotBefore, certs[i].NotAfter)
-		fmt.Fprintf(w, "  IsCA - %t\n", certs[i].IsCA)
+		fmt.Fprintf(w, "  NotBefore: %s | NotAfter: %s\n", certs[i].NotBefore, certs[i].NotAfter)
+		fmt.Fprintf(w, "  IsCA:  %t\n", certs[i].IsCA)
 
 		if len(certs[i].DNSNames) > 0 {
-			fmt.Fprintf(w, "  DNSNames\n")
+			fmt.Fprintf(w, "  DNSNames:\n")
 			for j := range certs[i].DNSNames {
 				fmt.Fprintf(w, "    %s\n", certs[i].DNSNames[j])
 			}
 		}
 
 		if len(certs[i].EmailAddresses) > 0 {
-			fmt.Fprintf(w, "  EmailAddresses\n")
+			fmt.Fprintf(w, "  EmailAddresses:\n")
 			for j := range certs[i].EmailAddresses {
 				fmt.Fprintf(w, "    %s\n", certs[i].EmailAddresses[j])
 			}
 		}
 
 		if len(certs[i].IPAddresses) > 0 {
-			fmt.Fprintf(w, "  IPAddresses\n")
+			fmt.Fprintf(w, "  IPAddresses:\n")
 			for j := range certs[i].IPAddresses {
 				fmt.Fprintf(w, "    %s\n", certs[i].IPAddresses[j])
 			}
 		}
 
 		if len(certs[i].PermittedDNSDomains) > 0 {
-			fmt.Fprintf(w, "  PermittedDNSDomains\n")
+			fmt.Fprintf(w, "  PermittedDNSDomains:\n")
 			for j := range certs[i].PermittedDNSDomains {
 				fmt.Fprintf(w, "    %s\n", certs[i].PermittedDNSDomains[j])
 			}
 		}
 
 		if len(certs[i].CRLDistributionPoints) > 0 {
-			fmt.Fprintf(w, "  CRLDistributionPoints\n")
+			fmt.Fprintf(w, "  CRLDistributionPoints:\n")
 			for j := range certs[i].CRLDistributionPoints {
 				fmt.Fprintf(w, "    %s\n", certs[i].CRLDistributionPoints[j])
 			}
