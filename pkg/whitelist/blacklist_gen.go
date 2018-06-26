@@ -115,6 +115,7 @@ func getChromeCerts(u string) ([]*cert, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getChromeCerts: can't build request for %s: %v", u, err)
 	}
+	req.Close = true
 
 	resp, err := httputil.New().Do(req)
 	defer func() {
