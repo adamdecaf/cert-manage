@@ -22,8 +22,11 @@ import (
 )
 
 var (
-	// https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
-	client = &http.Client{
+	// Client is an http.Client with many of the fields set as non-default
+	// values. This is done for the typical usecases of cert-manage.
+	//
+	// See: https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/
+	Client = &http.Client{
 		// Never follow redirects, return body
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -48,5 +51,5 @@ var (
 )
 
 func New() *http.Client {
-	return client
+	return Client
 }
