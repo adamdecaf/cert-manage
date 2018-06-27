@@ -242,13 +242,19 @@ var loadTestSiteSourceCode = []byte(`package main
 import "net/http"
 
 func main() {
-	resp, err := http.DefaultClient.Get("https://fnb.co.za") // test site, anything without a US root
+	// test site, anything without a US root
+	req, err := http.NewRequest("GET", "https://fnb.co.za", nil)
 	if err != nil {
 		defer panic("A: " + err.Error())
 	}
+	req.Close = true
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		defer panic("B: " + err.Error())
+	}
 	if resp != nil && resp.Body != nil {
 		if err := resp.Body.Close(); err != nil {
-			panic("B: " + err.Error())
+			panic("C: " + err.Error())
 		}
 	}
 }`)

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
@@ -48,8 +49,13 @@ func ListCertsFromFile(where string, cfg *ui.Config) error {
 // ListCertsFromURL downloads a url and shows the certificates
 // according to the ui/format options.
 func ListCertsFromURL(where string, cfg *ui.Config) (err error) {
-	client := httputil.New()
-	resp, err := client.Get(where)
+	req, err := http.NewRequest("GET", where, nil)
+	if err != nil {
+		return fmt.Errorf("unable to create request for %s: %v", where, err)
+	}
+	req.Close = true
+
+	resp, err := httputil.New().Do(req)
 	defer func() {
 		if resp.Body != nil {
 			err = resp.Body.Close()

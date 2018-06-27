@@ -111,7 +111,13 @@ type cert struct {
 }
 
 func getChromeCerts(u string) ([]*cert, error) {
-	resp, err := httputil.New().Get(u)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getChromeCerts: can't build request for %s: %v", u, err)
+	}
+	req.Close = true
+
+	resp, err := httputil.New().Do(req)
 	defer func() {
 		if resp != nil && resp.Body != nil {
 			err := resp.Body.Close()
