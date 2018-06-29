@@ -8,6 +8,7 @@ os:
 go:
   - "1.10.x"
   - master
+  - 1.11beta1
 
 osx_image: xcode9.1
 
