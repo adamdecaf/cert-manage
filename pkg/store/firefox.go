@@ -24,7 +24,7 @@ import (
 )
 
 // returns a slice of "suggestions" for where cert8.db files live.
-// The idea of tihs slice is to generalize over randomly named directories
+// The idea of this slice is to generalize over randomly named directories
 // (how firefox names profiles) and handle user-specific filepaths
 func firefoxCertdbLocations() []cert8db {
 	uhome := file.HomeDir()

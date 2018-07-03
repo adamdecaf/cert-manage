@@ -519,7 +519,7 @@ func (s darwinStore) Restore(where string) error {
 		}
 		// find cert whose fingerprint matches filename
 		for j := range certs {
-			if fp == certutil.GetHexSHA256Fingerprint(*certs[j]) { // found cert, now add if it's not already in keychian
+			if fp == certutil.GetHexSHA256Fingerprint(*certs[j]) { // found cert, now add if it's not already in keychain
 				shouldAdd := true
 				for k := range alreadyInstalledFingerprints {
 					if fp == alreadyInstalledFingerprints[k] {

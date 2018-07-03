@@ -28,7 +28,7 @@ type cert struct {
 // Pool represents an append-only collection of x509 Certificates. There are no nessary connections
 // between the certificates, except that each will only appear once in the pool.
 type Pool struct {
-	mu    sync.RWMutex // protectes all fields
+	mu    sync.RWMutex // protects all fields
 	certs []*cert
 }
 

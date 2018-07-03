@@ -87,7 +87,7 @@ type Store interface {
 	// GetLatestBackup returns the latest directory (or file) backup
 	// of a certificate store.
 	//
-	// If the path is non-empty the directory or file is guarenteed
+	// If the path is non-empty the directory or file is guaranteed
 	// to exist.
 	GetLatestBackup() (string, error)
 
@@ -105,7 +105,7 @@ type Store interface {
 }
 
 // Info represents high-level information about a certificate store
-// There are no guarentees of machine parsing on this data, but it should
+// There are no guarantees of machine parsing on this data, but it should
 // be easily human readable.
 type Info struct {
 	Name    string
