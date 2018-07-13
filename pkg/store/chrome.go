@@ -15,7 +15,7 @@
 package store
 
 import (
-	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -32,7 +32,9 @@ var (
 )
 
 // ChromeStore returns a Google Chrome implementation of Store
-// Docs: https://www.chromium.org/Home/chromium-security/root-ca-policy
+// Docs:
+//  - https://www.chromium.org/Home/chromium-security/root-ca-policy
+//  - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
 func ChromeStore() Store {
 	switch runtime.GOOS {
 	case "darwin", "windows":
@@ -42,7 +44,10 @@ func ChromeStore() Store {
 			Platform(),
 		}
 	case "linux":
-		return chromeLinux()
+		where := filepath.Join(file.HomeDir(), ".pki/nssdb")
+		if _, err := os.Stat(where); !os.IsNotExist(err) {
+			return NssStore("chrome", chromeVersion(), where)
+		}
 	}
 	return emptyStore{}
 }
@@ -86,24 +91,4 @@ func chromeVersion() string {
 		}
 	}
 	return ""
-}
-
-func chromeCertdbLocations() []cert8db {
-	uhome := file.HomeDir()
-	if uhome == "" {
-		if debug {
-			fmt.Println("store/chrome: unable to find user's home dir")
-		}
-		return nil
-	}
-
-	return []cert8db{
-		cert8db(filepath.Join(uhome, ".pki/nssdb")),
-	}
-}
-
-func chromeLinux() Store {
-	suggestions := chromeCertdbLocations()
-	found := locateCert8db(suggestions)
-	return NssStore("chrome", chromeVersion(), suggestions, found)
 }

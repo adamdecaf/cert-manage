@@ -15,7 +15,6 @@
 package store
 
 import (
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -23,39 +22,30 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
-// returns a slice of "suggestions" for where cert8.db files live.
-// The idea of this slice is to generalize over randomly named directories
-// (how firefox names profiles) and handle user-specific filepaths
-func firefoxCertdbLocations() []cert8db {
-	uhome := file.HomeDir()
-	if uhome == "" {
-		if debug {
-			fmt.Println("store/firefox: unable to find user's home dir")
-		}
-		return nil
+var (
+	firefoxProfileSuggestions = []string{
+		filepath.Join(file.HomeDir(), ".mozilla/firefox/*.default"),                              // Ubuntu
+		filepath.Join(file.HomeDir(), "/Library/Application Support/Firefox/Profiles/*.default"), // Darwin
 	}
 
-	paths := []cert8db{
-		cert8db(filepath.Join(uhome, ".mozilla/firefox/*.default")),                              // Linux
-		cert8db(filepath.Join(uhome, "/Library/Application Support/Firefox/Profiles/*.default")), // darwin
+	firefoxBinaryPaths = []string{
+		"/usr/bin/firefox",                                 // Ubuntu
+		`/Applications/Firefox.app/Contents/MacOS/firefox`, // Darwin
 	}
-
-	return paths
-}
+)
 
 // FirefoxStore returns a Mozilla Firefox implementation of Store
 func FirefoxStore() Store {
-	suggestions := firefoxCertdbLocations()
-	found := locateCert8db(suggestions)
-	return NssStore("firefox", firefoxVersion(), suggestions, found)
-}
-
-var (
-	firefoxBinaryPaths = []string{
-		"/usr/bin/firefox",                                 // Ubuntu
-		`/Applications/Firefox.app/Contents/MacOS/firefox`, // OSX
+	for i := range firefoxProfileSuggestions {
+		matches, _ := filepath.Glob(firefoxProfileSuggestions[i])
+		for j := range matches {
+			if containsCertdb(matches[j]) {
+				return NssStore("firefox", firefoxVersion(), matches[j])
+			}
+		}
 	}
-)
+	return emptyStore{}
+}
 
 func firefoxVersion() string {
 	for i := range firefoxBinaryPaths {
