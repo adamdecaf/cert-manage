@@ -12,6 +12,8 @@ Trust with another party needs to be earned, not defaulted. `cert-manage` is a t
 
 - [Add](docs/basics.md#add)
   - Add certificates to a store
+- [Connect](docs/basics.md#connect)
+  - Establish a TLS connection with a remote host using a provided certificate store
 - [List](docs/basics.md#list)
   - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
 - [Whitelist](docs/whitelists.md#whitelisting)
