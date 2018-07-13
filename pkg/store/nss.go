@@ -94,7 +94,7 @@ func containsCertdb(where string) bool {
 }
 
 // NSS apps sometimes require being restarted to get the updated set of trustAttrs for each certificate
-// TOOD(adam): I think this is only true for cert8.db installs...
+// TODO(adam): I think this is only true for cert8.db installs...
 func (s nssStore) notifyToRestart() {
 	s.notify.Do(func() {
 		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
@@ -175,14 +175,13 @@ func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 		return nil, errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCertdbLocation, opts)
+	items, err := cutil.listCertsFromDB(s.foundCertdbLocation)
 	if err != nil {
 		return nil, err
 	}
 
 	kept := make([]*x509.Certificate, 0)
 	for i := range items {
-		// TODO(adam): Check for opts.Expired or opts.Revoked
 		if opts.Trusted && items[i].trustedForSSL() {
 			kept = append(kept, items[i].certs...)
 		}
@@ -198,10 +197,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 		return errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCertdbLocation, &ListOptions{
-		Trusted:   true,
-		Untrusted: true,
-	})
+	items, err := cutil.listCertsFromDB(s.foundCertdbLocation)
 	if err != nil {
 		return err
 	}
@@ -322,7 +318,9 @@ func (c crtutil) addCertificate(dir string, where string, nick string) error {
 
 // Emulates the following
 // /usr/local/opt/nss/bin/crtutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
-func (c crtutil) listCertsFromDB(path string, opts *ListOptions) ([]certdbItem, error) {
+//
+// TODO(adam): Check for opts.Expired or opts.Revoked
+func (c crtutil) listCertsFromDB(path string) ([]certdbItem, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
