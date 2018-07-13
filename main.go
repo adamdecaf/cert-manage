@@ -15,8 +15,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -67,9 +69,10 @@ func init() {
 		fmt.Printf(`Usage of cert-manage version %s
 SUB-COMMANDS
   add           Add certificate(s) to a store
-                Accepts: -app, -file
 
   backup        Take a backup of the specified certificate store
+
+  connect       Attempt to load a remote URL with the platform (or app) store
 
   gen-whitelist Create a whitelist from various sources
 
@@ -189,8 +192,7 @@ func main() {
     cert-manage add -file <path> -app <name>
 
 APPS
-  Supported apps: %s`,
-			strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
 	commands["backup"] = &command{
 		fn: func() error {
@@ -204,8 +206,30 @@ APPS
   Backup a certificate store. This can be done for the platform or a given app.
 
 APPS
-  Supported apps: %s`,
-			strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+	}
+	commands["connect"] = &command{
+		fn: func() error {
+			u, err := parseConnectUrl(fs)
+			if err != nil {
+				return err
+			}
+			return cmd.ConnectWithPlatformStore(u)
+		},
+		appfn: func(a string) error {
+			u, err := parseConnectUrl(fs)
+			if err != nil {
+				return err
+			}
+			return cmd.ConnectWithAppStore(u, *flagApp)
+		},
+		help: fmt.Sprintf(`Usage: cert-manage connect [-app <name>] <url>
+
+Attempt an HTTP connect to <url> with the given certificate store. If -app is provided then
+the certificates for that application are loaded and used for the connection.
+
+APPS
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
 	commands["gen-whitelist"] = &command{
 		fn: func() error {
@@ -229,8 +253,7 @@ APPS
     cert-manage gen-whitelist -from browsers -out whitelist.json
 
 APPS
-  Supported apps: %s`,
-			strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
 	commands["list"] = &command{
 		fn: func() error {
@@ -298,8 +321,7 @@ APPS
     cert-manage restore -app java
 
 APPS
-  Supported apps: %s`,
-			strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
 	commands["whitelist"] = &command{
 		fn: func() error {
@@ -325,8 +347,7 @@ APPS
     cert-manage whitelist -file whitelist.json -app java
 
 APPS
-  Supported apps: %s`,
-			strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
 	commands["version"] = &command{
 		fn: func() error {
@@ -374,4 +395,23 @@ APPS
 
 func getVersion() string {
 	return fmt.Sprintf("%s (Go: %s)", Version, runtime.Version())
+}
+
+func parseConnectUrl(fs *flag.FlagSet) (*url.URL, error) {
+	if fs.NArg() != 1 {
+		return nil, fmt.Errorf("unknown arguments: %s", strings.Join(fs.Args(), ", "))
+	}
+
+	raw := fs.Arg(0)
+	if raw == "" {
+		return nil, errors.New("no url specified")
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %v", raw, err)
+	}
+	if u.Scheme != "https" {
+		return nil, fmt.Errorf("non-secure url scheme used: %s", u.String())
+	}
+	return u, nil
 }
