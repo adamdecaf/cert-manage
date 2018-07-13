@@ -78,7 +78,10 @@ func BrowserCAs() ([]*x509.Certificate, error) {
 	for i := range browserNames {
 		st, err := store.ForApp(browserNames[i])
 		if err != nil {
-			fmt.Printf("WARNING: error getting hard-coded browser %s, err=%v\n", browserNames[i], err)
+			if debug {
+				fmt.Printf("DEBUG: error getting hard-coded browser %s, err=%v\n", browserNames[i], err)
+			}
+			continue
 		}
 		certs, err := st.List(&store.ListOptions{
 			Trusted: true,
