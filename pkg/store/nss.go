@@ -41,34 +41,22 @@ var (
 		},
 	}
 
-	// We're only going to support the current version (cert8.db)
-	// https://wiki.mozilla.org/NSS_Shared_DB#Where_we_are_today
-	cert8Filename = "cert8.db"
-
-	// Trust Attributes which signify "No Trust"
+	// certutil trust attrubutes
 	// Run `crtutil -A -H` for the full list
-	trustAttrsNoTrust = "p,p,p"
+	trustAttrsProhibited = "p,p,p"
+	trustAttrsTrusted    = "CT,C,C"
 )
 
 type nssStore struct {
-	// nssType refers to the application using this nss cert8.db instance
-	// often multiple applications can share one db, or there are multiple
-	// cert8.db files on a system.
-	// This allows backups and restores to operate on the correct cert8.db file
-	// for a given application.
+	// nssType refers to the application using this NSS instance
+	// This is used for printing back to the user and for backup/restore.
 	nssType string
 
-	// upstreamVersion refers to the version of whatever tool is using NSS
-	upstreamVersion string
+	// appVersion refers to the version of whatever tool is using NSS
+	appVersion string
 
-	// cert8dbSuggestedDirs represent the fs locations where cert8.db are stored
-	// In the case of an app like Firefox this would be looking in the following locations:
-	//  ~/Library/Application Support/Firefox/Profiles/*  (Darwin)
-	cert8dbSuggestedDirs []cert8db
-
-	// foundCert8dbLocation is a shortcut for a locally found cert8.db file
-	// The expected result is a directory that can be passed into crtutil's -d option
-	foundCert8dbLocation cert8db
+	// foundCertdbLocation is the locally found filepath to a cert.db file
+	foundCertdbLocation string
 
 	// Holds a trigger if we've made modifications (useful for triggering a "Restart app" message
 	// after we're done with modifications.
@@ -79,69 +67,34 @@ type nssStore struct {
 //
 // Docs:
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS
-// - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
 // - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/An_overview_of_NSS_Internals
 // - https://wiki.mozilla.org/NSS_Shared_DB
-// - https://www.chromium.org/Home/chromium-security/root-ca-policy
-//   - https://chromium.googlesource.com/chromium/src/+/master/docs/linux_cert_management.md
-//   - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
-func NssStore(nssType string, upstreamVersion string, suggestedDirs []cert8db, foundCert8db cert8db) Store {
+// - https://wiki.mozilla.org/NSS_Shared_DB_And_LINUX
+func NssStore(nssType string, appVersion string, certdbPath string) Store {
 	return nssStore{
-		nssType:              nssType,
-		upstreamVersion:      upstreamVersion,
-		cert8dbSuggestedDirs: suggestedDirs,
-		foundCert8dbLocation: foundCert8db,
-		notify:               &sync.Once{},
+		nssType:             nssType,
+		appVersion:          appVersion,
+		foundCertdbLocation: certdbPath,
+		notify:              &sync.Once{},
 	}
 }
 
-func locateCert8db(suggestions []cert8db) cert8db {
-	if debug {
-		if len(suggestions) == 0 {
-			fmt.Println("store/nss: no cert8.db paths suggested")
-			return cert8db("")
-		}
-		fmt.Printf("store/nss: suggestions: ")
-		for i := range suggestions {
-			fmt.Printf("%s, ", string(suggestions[i]))
-		}
-		fmt.Printf("\n")
+// Checks if a cert8.db or cert9.db file exists at the given path
+func containsCertdb(where string) bool {
+	if fd, err := os.Stat(where); err != nil || !fd.IsDir() {
+		return false // ignore non-directories
 	}
-
-	for i := range suggestions {
-		// Glob and find a cert8.db file
-		matches, err := filepath.Glob(string(suggestions[i]))
-		if err != nil {
-			if debug {
-				fmt.Printf("store/nss: %v\n", err)
-			}
-			return cert8db("")
-		}
-
-		// Accumulate dirs with a cert8.db file
-		for j := range matches {
-			if containsCert8db(matches[j]) {
-				return cert8db(matches[j])
-			}
-		}
+	if fd, err := os.Stat(filepath.Join(where, "cert9.db")); !os.IsNotExist(err) {
+		return fd.Size() > 0
 	}
-
-	return cert8db("")
+	if fd, err := os.Stat(filepath.Join(where, "cert8.db")); !os.IsNotExist(err) {
+		return fd.Size() > 0
+	}
+	return false
 }
 
-func containsCert8db(p string) bool {
-	where := filepath.Join(p, cert8Filename)
-	if debug {
-		fmt.Printf("store/nss: guessing cert8.db location: %s\n", where)
-	}
-	s, err := os.Stat(where)
-	if err != nil {
-		return false
-	}
-	return s.Size() > 0
-}
-
-// NSS apps often require being restarted to get the updated set of trustAttrs for each certificate
+// NSS apps sometimes require being restarted to get the updated set of trustAttrs for each certificate
+// TOOD(adam): I think this is only true for cert8.db installs...
 func (s nssStore) notifyToRestart() {
 	s.notify.Do(func() {
 		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
@@ -166,35 +119,33 @@ func (s nssStore) Add(certs []*x509.Certificate) error {
 		}
 
 		nick := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
-		err = cutil.addCertificate(s.foundCert8dbLocation, path, nick)
+		err = cutil.addCertificate(s.foundCertdbLocation, path, nick)
 		if err != nil {
 			return err
 		}
 	}
 
 	if len(certs) > 0 {
-		// Since we got past the for loop without errors, we added at least one cert
 		s.notifyToRestart()
 	}
 
 	return nil
 }
 
-// we should be able to backup a cert8.db file directly
 func (s nssStore) Backup() error {
 	dir, err := getCertManageDir(s.nssType)
 	if err != nil {
 		return err
 	}
 
-	// Only backup the first nss cert8.db path for now
-	if s.foundCert8dbLocation.empty() {
+	// Only backup the first nss cert.db path for now
+	if s.foundCertdbLocation == "" {
 		return errors.New("No NSS cert db paths found")
 	}
 
 	// Copy file into backup location
-	src := filepath.Join(string(s.foundCert8dbLocation), cert8Filename)
-	dst := filepath.Join(dir, fmt.Sprintf("cert8.db-%d", time.Now().Unix()))
+	src := filepath.Join(s.foundCertdbLocation, filepath.Base(s.foundCertdbLocation))
+	dst := filepath.Join(dir, fmt.Sprintf("cert.db-%d", time.Now().Unix()))
 	return file.CopyFile(src, dst)
 }
 
@@ -209,22 +160,22 @@ func (s nssStore) GetLatestBackup() (string, error) {
 func (s nssStore) GetInfo() *Info {
 	return &Info{
 		Name:    strings.Title(s.nssType),
-		Version: s.upstreamVersion,
+		Version: s.appVersion,
 	}
 }
 
-// List returns the installed (and trusted) certificates contained in a NSS cert8.db file
+// List returns the installed (and trusted) certificates contained in a NSS cert.db file
 //
 // To list certificates with the NSS `crtutil` tool the following would be ran
 // $ /usr/local/opt/nss/bin/crtutil -L -d "$dir"
 //
-// Note: `dir` represents a directory path which contains a cert8.db file
+// Note: `dir` represents a directory path which contains a cert.db file
 func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
-	if s.foundCert8dbLocation.empty() {
+	if s.foundCertdbLocation == "" {
 		return nil, errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation, opts)
+	items, err := cutil.listCertsFromDB(s.foundCertdbLocation, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -243,11 +194,11 @@ func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 }
 
 func (s nssStore) Remove(wh whitelist.Whitelist) error {
-	if s.foundCert8dbLocation.empty() {
+	if s.foundCertdbLocation == "" {
 		return errors.New("unable to find NSS db directory")
 	}
 
-	items, err := cutil.listCertsFromDB(s.foundCert8dbLocation, &ListOptions{
+	items, err := cutil.listCertsFromDB(s.foundCertdbLocation, &ListOptions{
 		Trusted:   true,
 		Untrusted: true,
 	})
@@ -263,7 +214,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 
 		// whitelist didn't match, blacklist cert
 		defer s.notifyToRestart()
-		err = cutil.modifyTrustAttributes(s.foundCert8dbLocation, items[i].nick, trustAttrsNoTrust)
+		err = cutil.modifyTrustAttributes(s.foundCertdbLocation, items[i].nick, trustAttrsProhibited)
 		if err != nil {
 			return err
 		}
@@ -277,45 +228,21 @@ func (s nssStore) Restore(where string) error {
 		return err
 	}
 
-	// Try and find a dir that eixsts, which could hold a cert8.db file
-	var dst string
-	for i := range s.cert8dbSuggestedDirs {
-		matches, err := filepath.Glob(string(s.cert8dbSuggestedDirs[i]))
-		if err != nil {
-			return err
-		}
-
-		for j := range matches {
-			if st, err := os.Stat(matches[j]); err == nil && st.IsDir() {
-				dst = matches[j]
-				break
-			}
-		}
-		if dst != "" {
-			break
-		}
-	}
-	if dst == "" {
-		return fmt.Errorf("No directory found to restore %s certificates", s.nssType)
+	// Find filename from src (latest backup)
+	fname := "cert9.db"
+	if _, err := os.Stat(filepath.Join(src, "cert8.db")); !os.IsNotExist(err) {
+		fname = "cert8.db"
 	}
 
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
 	// Restore the latest backup file
-	dst = filepath.Join(dst, cert8Filename)
-	return file.CopyFile(src, dst)
+	return file.CopyFile(src, filepath.Join(s.foundCertdbLocation, fname))
 }
 
-// cert8db represents a fs path for a cert8.db file
-type cert8db string
-
-func (c cert8db) empty() bool {
-	return string(c) == ""
-}
-
-// cert8Item represents an x509 Certificate with the NSS trust attributes
-type cert8Item struct {
+// certdbItem represents an x509 Certificate with the NSS trust attributes
+type certdbItem struct {
 	nick  string
 	certs []*x509.Certificate
 
@@ -324,8 +251,9 @@ type cert8Item struct {
 	trustAttrs string
 }
 
-func (c cert8Item) trustedForSSL() bool {
-	parts := strings.SplitN(c.trustAttrs, ",", 2) // We only care about the first C,.,. attribute
+func (c certdbItem) trustedForSSL() bool {
+	// We only care about the first C,.,. attribute, which is for SSL
+	parts := strings.SplitN(c.trustAttrs, ",", 2)
 	if len(parts) != 2 {
 		if debug {
 			fmt.Printf("store/nss: after trustAttrs split (in %d parts): %s\n", len(parts), parts)
@@ -334,7 +262,7 @@ func (c cert8Item) trustedForSSL() bool {
 	}
 
 	// The only attribute for explicit distrust is 'p', which per the docs:
-	// 'p 	 prohibited (explicitly distrusted)'
+	//  p 	 prohibited (explicitly distrusted)
 	//
 	// The other flags refer to sending warnings (but still trusted), user certs,
 	// or other attributes which may limit, but not explicitly remove trust
@@ -343,6 +271,7 @@ func (c cert8Item) trustedForSSL() bool {
 }
 
 // crtutil represents the NSS cli tool by the same name
+// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
 type crtutil struct {
 	execPaths []string
 }
@@ -353,12 +282,21 @@ func (c crtutil) getExecPath() (string, error) {
 			return c.execPaths[i], nil
 		}
 	}
-	return "", errors.New("No executable for `crtutil` found")
+	return "", errors.New("No executable for NSS `crtutil` found")
+}
+
+// Different versions of NSS/cert.db files require different prefixes
+// when passed to crtutil.
+func (c crtutil) appendScheme(where string) string {
+	if filepath.Base(where) == "cert9.db" {
+		return "sql:" + where
+	}
+	return "dbm:" + where
 }
 
 // Emulates the following
 // /usr/local/opt/nss/bin/certutil -A -a -n <nick> -t 'CT,C,C' -i cert.pem -d <dir>
-func (c crtutil) addCertificate(dir cert8db, where string, nick string) error {
+func (c crtutil) addCertificate(dir string, where string, nick string) error {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return err
@@ -366,9 +304,9 @@ func (c crtutil) addCertificate(dir cert8db, where string, nick string) error {
 	args := []string{
 		"-A", "-a",
 		"-n", nick,
-		"-t", "CT,C,C",
+		"-t", trustAttrsTrusted,
 		"-i", where,
-		"-d", string(dir),
+		"-d", c.appendScheme(dir),
 	}
 	cmd := exec.Command(expath, args...)
 	out, err := cmd.CombinedOutput()
@@ -384,7 +322,7 @@ func (c crtutil) addCertificate(dir cert8db, where string, nick string) error {
 
 // Emulates the following
 // /usr/local/opt/nss/bin/crtutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
-func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, error) {
+func (c crtutil) listCertsFromDB(path string, opts *ListOptions) ([]certdbItem, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
@@ -392,7 +330,7 @@ func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, 
 
 	args := []string{
 		"-L",
-		"-d", string(path),
+		"-d", c.appendScheme(path),
 	}
 	cmd := exec.Command(expath, args...)
 
@@ -415,7 +353,7 @@ func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, 
 	// Certificate Nickname                                         Trust Attributes
 	// SSL,S/MIME,JAR/XPI
 	//
-	items := make([]cert8Item, 0)
+	items := make([]certdbItem, 0)
 	for {
 		// read next line
 		line, err := stdout.ReadString(byte('\n'))
@@ -423,8 +361,8 @@ func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, 
 			return nil, err
 		}
 
-		// convert the line into a cert8Item
-		nick, trust := c.parseCert8Item(line)
+		// convert the line into a certdbItem
+		nick, trust := c.parseCertdbItem(line)
 		if nick == "" || trust == "" {
 			if err == io.EOF {
 				break
@@ -436,7 +374,7 @@ func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, 
 			return nil, err
 		}
 
-		items = append(items, cert8Item{
+		items = append(items, certdbItem{
 			nick:       nick,
 			certs:      certs,
 			trustAttrs: trust,
@@ -451,7 +389,7 @@ func (c crtutil) listCertsFromDB(path cert8db, opts *ListOptions) ([]cert8Item, 
 	return items, nil
 }
 
-func (c crtutil) parseCert8Item(line string) (nick string, trust string) {
+func (c crtutil) parseCertdbItem(line string) (nick string, trust string) {
 	line = strings.TrimSpace(line)
 
 	if len(line) == 0 ||
@@ -472,8 +410,10 @@ func (c crtutil) parseCert8Item(line string) (nick string, trust string) {
 	return
 }
 
+// Emulates
+//
 // /usr/local/opt/nss/bin/crtutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
-func (c crtutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Certificate, error) {
+func (c crtutil) readCertificatesForNick(path string, nick string) ([]*x509.Certificate, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return nil, err
@@ -482,7 +422,7 @@ func (c crtutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Cer
 	args := []string{
 		"-L",
 		"-a",
-		"-d", string(path),
+		"-d", c.appendScheme(path),
 		"-n", nick,
 	}
 	cmd := exec.Command(expath, args...)
@@ -505,8 +445,10 @@ func (c crtutil) readCertificatesForNick(path cert8db, nick string) ([]*x509.Cer
 	return certs, nil
 }
 
+// Emulates
+//
 // $ /usr/local/opt/nss/bin/crtutil -M -n <nick> -t <trust-args> -d <dir>
-func (c crtutil) modifyTrustAttributes(path cert8db, nick, trustAttrs string) error {
+func (c crtutil) modifyTrustAttributes(path string, nick, trustAttrs string) error {
 	expath, err := c.getExecPath()
 	if err != nil {
 		return err
@@ -516,7 +458,7 @@ func (c crtutil) modifyTrustAttributes(path cert8db, nick, trustAttrs string) er
 		"-M",
 		"-n", nick,
 		"-t", trustAttrs,
-		"-d", string(path),
+		"-d", c.appendScheme(path),
 	}
 	cmd := exec.Command(expath, args...)
 	var stdout bytes.Buffer
