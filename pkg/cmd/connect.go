@@ -22,10 +22,9 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/httputil"
 	"github.com/adamdecaf/cert-manage/pkg/store"
-	"github.com/adamdecaf/cert-manage/pkg/ui"
 )
 
-func ConnectWithPlatformStore(uri *url.URL, cfg *ui.Config) error {
+func ConnectWithPlatformStore(uri *url.URL) error {
 	st := store.Platform()
 	certs, err := st.List(&store.ListOptions{
 		Trusted: true,
@@ -36,7 +35,7 @@ func ConnectWithPlatformStore(uri *url.URL, cfg *ui.Config) error {
 	return connect(uri, certs)
 }
 
-func ConnectWithAppStore(uri *url.URL, app string, cfg *ui.Config) error {
+func ConnectWithAppStore(uri *url.URL, app string) error {
 	st, err := store.ForApp(app)
 	if err != nil {
 		return fmt.Errorf("problem finding %s: %v", app, err)

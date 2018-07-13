@@ -214,14 +214,14 @@ APPS
 			if err != nil {
 				return err
 			}
-			return cmd.ConnectWithPlatformStore(u, cfg)
+			return cmd.ConnectWithPlatformStore(u)
 		},
 		appfn: func(a string) error {
 			u, err := parseConnectUrl(fs)
 			if err != nil {
 				return err
 			}
-			return cmd.ConnectWithAppStore(u, *flagApp, cfg)
+			return cmd.ConnectWithAppStore(u, *flagApp)
 		},
 		help: fmt.Sprintf(`Usage: cert-manage connect [-app <name>] <url>
 
