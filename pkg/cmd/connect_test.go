@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime"
 	"testing"
 )
 
@@ -38,6 +39,10 @@ func init() {
 func TestCmdConnect_platform(t *testing.T) {
 	t.Parallel()
 
+	if runtime.GOOS == "windows" {
+		t.Skip("windows isn't supported, yet")
+	}
+
 	if err := ConnectWithPlatformStore(connectExampleUrl); err != nil {
 		t.Fatalf("problem with -connect on platform store: %v", err)
 	}
@@ -45,6 +50,10 @@ func TestCmdConnect_platform(t *testing.T) {
 
 func TestCmdConnect_app(t *testing.T) {
 	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("java on windows isn't supported, yet")
+	}
 
 	if os.Getenv("JAVA_HOME") == "" {
 		t.Skip("can't quickly find java")
