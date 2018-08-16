@@ -34,6 +34,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os/user"
 	"runtime"
 	"strings"
