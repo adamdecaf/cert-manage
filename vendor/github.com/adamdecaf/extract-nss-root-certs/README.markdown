@@ -3,6 +3,8 @@ Extracting Mozilla's Root Certificates
 
 **This is a fork** that changes this code into a library that apps can use.
 
+You should probably use the [mozilla/OneCRL-Tools  certdata tool](https://github.com/mozilla/OneCRL-Tools/blob/master/certdata/certdata.go)
+
 Godoc: https://godoc.org/github.com/adamdecaf/extract-nss-root-certs
 
 When people need a list of root certificates, they often turn to Mozilla's. However, Mozilla doesn't produce a nice list of PEM encoded certificate, rather they keep them in a form which is convenient for NSS to build from:

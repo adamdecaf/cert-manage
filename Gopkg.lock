@@ -3,40 +3,55 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:9dfbc9146cf4b398e491e29c8c02b84273cf480bb8f90372aad6e14fdaf0581a"
   name = "github.com/adamdecaf/extract-nss-root-certs"
   packages = ["."]
-  revision = "8cf5de493e5745e8d431f5906377dc81809bd974"
+  pruneopts = ""
+  revision = "b4eb4db979cb2095100da30308451910ca03f873"
 
 [[projects]]
   branch = "master"
+  digest = "1:8a387acb6a9cc6f779e2ae073f1a89e0917232a9af54923427e34b7fda00b01d"
   name = "github.com/go-sqlite/sqlite3"
   packages = ["."]
-  revision = "586e4c920af663bb8089920a403b83a6a6bbb60c"
+  pruneopts = ""
+  revision = "53dd8e640ee7dd6005bd7199eed0c470ab43a16e"
 
 [[projects]]
-  branch = "master"
+  digest = "1:a28cc81312968de65837065f8087994a9edac8f07622bd4216260ce082a07fe9"
   name = "github.com/gonuts/binary"
   packages = ["."]
-  revision = "21c37b530bec7c512af0208bfb15f34400301682"
+  pruneopts = ""
+  revision = "556ab97fd809b9bdc749aaf346118dc919649076"
+  version = "v0.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:97fb4f02b231deef44704b6fa74d31e46f669fb217f192754ba603c2b32a190b"
   name = "golang.org/x/crypto"
   packages = [
     "pkcs12",
-    "pkcs12/internal/rc2"
+    "pkcs12/internal/rc2",
   ]
-  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
+  pruneopts = ""
+  revision = "aabede6cba87e37f413b3e60ebfc214f8eeca1b0"
 
 [[projects]]
   branch = "v2"
+  digest = "1:f0620375dd1f6251d9973b5f2596228cc8042e887cd7f827e4220bc1ce8c30e2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "d670f9405373e636a5a2765eea47fac0c9bc91a4"
+  pruneopts = ""
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "720ed9d5b6241d2fdad3cd5a3d2ac7066521eec0aa93ec1374cbdd3a413c705e"
+  input-imports = [
+    "github.com/adamdecaf/extract-nss-root-certs",
+    "github.com/go-sqlite/sqlite3",
+    "golang.org/x/crypto/pkcs12",
+    "gopkg.in/yaml.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

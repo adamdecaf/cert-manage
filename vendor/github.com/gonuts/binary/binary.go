@@ -29,9 +29,10 @@ func Unmarshal(b []byte, v interface{}) error {
 }
 
 type Encoder struct {
-	Order binary.ByteOrder
-	w     io.Writer
-	buf   []byte
+	Order  binary.ByteOrder
+	w      io.Writer
+	buf    []byte
+	strict bool
 }
 
 func NewEncoder(w io.Writer) *Encoder {
@@ -40,6 +41,16 @@ func NewEncoder(w io.Writer) *Encoder {
 		w:     w,
 		buf:   make([]byte, 8),
 	}
+}
+
+// NewStrictEncoder creates an encoder similar to NewEncoder, however
+// if this encoder attempts to encode a struct and the struct has no encodable
+// fields an error is returned whereas the encoder returned from NewEncoder
+// will simply not write anything to `w`.
+func NewStrictEncoder(w io.Writer) *Encoder {
+	e := NewEncoder(w)
+	e.strict = true
+	return e
 }
 
 func (e *Encoder) writeVarint(v int) error {
@@ -91,14 +102,17 @@ func (b *Encoder) Encode(v interface{}) (err error) {
 
 		case reflect.Struct:
 			l := rv.NumField()
+			n := 0
 			for i := 0; i < l; i++ {
-				if v := rv.Field(i); v.CanSet() && t.Field(i).Name != "_" {
-					// take the address of the field, so structs containing structs
-					// are correctly encoded.
-					if err = b.Encode(v.Addr().Interface()); err != nil {
+				if v := rv.Field(i); t.Field(i).Name != "_" {
+					if err = b.Encode(v.Interface()); err != nil {
 						return
 					}
+					n++
 				}
+			}
+			if b.strict && n == 0 {
+				return fmt.Errorf("binary: struct had no encodable fields")
 			}
 
 		case reflect.Map:

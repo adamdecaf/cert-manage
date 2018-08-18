@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	expectedCertCount = 133
+	expectedCertCount = 132
 
 	isTravis = os.Getenv("TRAVIS_OS_NAME") != ""
 	isCron = os.Getenv("TRAVIS_EVENT_TYPE") == "cron"
@@ -32,7 +32,7 @@ func TestExtractNSS(t *testing.T) {
 	}
 
 	if len(certs) != expectedCertCount {
-		t.Errorf("got %d certs", len(certs))
+		t.Errorf("got %d certs, expected %d", len(certs), expectedCertCount)
 	}
 }
 
