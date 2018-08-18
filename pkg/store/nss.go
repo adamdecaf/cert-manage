@@ -93,12 +93,13 @@ func containsCertdb(where string) bool {
 	return false
 }
 
-// NSS apps sometimes require being restarted to get the updated set of trustAttrs for each certificate
-// TODO(adam): I think this is only true for cert8.db installs...
+// NSS apps on cert8.db require being restarted to get the updated set of trustAttrs for each certificate
 func (s nssStore) notifyToRestart() {
-	s.notify.Do(func() {
-		fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
-	})
+	if strings.Contains(s.foundCertdbLocation, "cert8.db") {
+		s.notify.Do(func() {
+			fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
+		})
+	}
 }
 
 func (s nssStore) Add(certs []*x509.Certificate) error {
