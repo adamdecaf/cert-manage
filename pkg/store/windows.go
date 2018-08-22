@@ -54,15 +54,14 @@ var (
 		"AuthRoot", // "Third-Party Root Certification Authorities"
 	}
 
+	winSetup sync.Once
 	winRootStore *windowsRootStore
 )
 
-type windowsStore struct {
-	once sync.Once
-}
+type windowsStore struct {}
 
 func (s windowsStore) setup() {
-	s.once.Do(func() {
+	winSetup.Do(func() {
 		store, err := loadWindowsRootStore("Root")
 		if err != nil {
 			panic(fmt.Sprintf("problem loading windows store: %v", err))
