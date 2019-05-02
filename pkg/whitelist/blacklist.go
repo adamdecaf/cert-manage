@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Generated on 2018-05-29T09:11:15Z by adam, any modifications will be overwritten
+// Generated on 2018-08-15T06:49:40Z by adam, any modifications will be overwritten
 package whitelist
 
 var blacklistedFingerprints = []string{
@@ -28,14 +28,20 @@ var blacklistedFingerprints = []string{
 	`1f17f2cbb109f01c885c94d9e74a48625ae9659665d6d7e7bc5a10332976370f`,
 	// CN=DigiNotar Root CA G2,O=DigiNotar,C=NL
 	`294f55ef3bd7244c6ff8a68ab797e9186ec27582751a791515e3292e48372d61`,
+	// CN=Aastra,OU=Aastra,O=Aastra,L=GUY,ST=IDF,C=FR
+	`2a33f5b48176523fd3c0d854f20093417175bfd498ef354cc7f38b54adabaf1a`,
 	// CN=login.live.com,OU=Tech Dept.+OU=Hosted by GTI Group Corporation+OU=PlatinumSSL,O=Google Ltd.,POSTALCODE=38477,STREET=Sea Village 10,L=English,ST=Florida,C=US
 	`2a3699deca1e9fd099ba45de8489e205977c9f2a5e29d5dd747381eec0744d71`,
+	// CN=Mitel Networks ICP CA,OU=VoIP Platforms,O=Mitel Networks,L=Ottawa,ST=Ontario,C=CA
+	`2d11e736f0427fd6ba4b372755d34a0edd8d83f7e9e7f6c01b388c9b7afa850d`,
 	// CN=DigiNotar PKIoverheid CA Overheid,O=DigiNotar B.V.,C=NL
 	`31c8fd37db9b56e708b03d1f01848b068c6da66f36fb5d82c008c6040fa3e133`,
 	// CN=e-islem.kktcmerkezbankasi.org,O=KKTC Merkez Bankasi,L=Lefkosa,ST=Lefkosa,C=TR
 	`372447c43185c38edd2ce0e9c853f9ac1576ddd1704c2f54d96076c089cb4227`,
 	// CN=DigiNotar PKIoverheid CA Overheid en Bedrijven,O=DigiNotar B.V.,C=NL
 	`3946901f46b0071e90d78279e82fababca177231a704be72c5b0e8918566ea66`,
+	// CN=Aastra,OU=Aastra,O=Aastra,L=GUY,ST=IDF,C=FR
+	`3ab0fcc7287454c405863e3aa204fea8eb0c50a524d2a7e15524a830cd4ab0fe`,
 	// CN=Egypt Trust Class 3 Managed PKI Operational Administrator CA,OU=VeriSign Trust Network+OU=Terms of use at https://www.egypttrust.com/repository/rpa (c)08,O=Egypt Trust,C=EG
 	`3e26492e20b52de79e15766e6cb4251a1d566b0dbfb225aa7d08dda1dcebbf0a`,
 	// CN=*.EGO.GOV.TR,OU=EGO BILGI ISLEM,O=EGO,L=ANKARA,ST=ANKARA,C=TR
@@ -48,6 +54,8 @@ var blacklistedFingerprints = []string{
 	`4bf6bb839b03b72839329b4ea70bb1b2f0d07e014d9d24aa9cc596114702bee3`,
 	// CN=DigiNotar Root CA,O=DigiNotar,C=NL
 	`4fee0163686ecbd65db968e7494f55d84b25486d438e9de558d629d28cd4d176`,
+	// CN=Mitel Networks ICP CA,OU=VoIP Platforms,O=Mitel Networks,ST=ON,C=CA
+	`60911c79835c3739432d08c45df64311e06985c5889dc5420ce3d142c8c7ef58`,
 	// CN=NIC CA 2011,OU=Certifying Authority,O=National Informatics Centre,POSTALCODE=110003,STREET=Lodhi Road\, New Delhi,ST=Delhi,C=IN
 	`67ed4b703d15dc555f8c444b3a05a32579cb7599bd19c9babe10c584ea327ae0`,
 	// CN=login.yahoo.com,OU=Tech Dept.+OU=Hosted by GTI Group Corporation+OU=PlatinumSSL,O=Google Ltd.,POSTALCODE=38477,STREET=Sea Village 10,L=English,ST=Florida,C=US
@@ -112,4 +120,8 @@ var blacklistedFingerprints = []string{
 	`f8a5ff189fedbfe34e21103389a68340174439ad12974a4e8d4d784d1f3a0faa`,
 	// CN=DigiNotar Cyber CA,O=DigiNotar,C=NL
 	`fdedb5bdfcb67411513a61aee5cb5b5d7c52af06028efc996cc1b05b1d6cea2b`,
+	// CN=localhost.megasyncloopback.mega.nz,OU=InstantSSL Pro,O=Mega Limited,POSTALCODE=1010,STREET=15\, Pwc Tower\, 188 Quay Street\,,L=Auckland,ST=Auckland,C=NZ
+	`04db0e79f2aa22d91f66fdea2b03193b04d1987b5ae5f3b5ce326e9539bde550`,
+	// CN=localhost.megasyncloopback.mega.nz
+	`de549fa946e0564e4d50f21ced16035f1dc25be26099a7add70d55efb39d5811`,
 }
