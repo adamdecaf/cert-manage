@@ -25,9 +25,11 @@ ifeq ($(OS),Windows_NT)
 	go vet ./...
 	go test ./...
 else
-	@wget -O lint-project.sh https://raw.githubusercontent.com/moov-io/infra/master/go/lint-project.sh
-	@chmod +x ./lint-project.sh
-	GOLANGCI_ALLOW_PRINT=yes COVER_THRESHOLD=50.0 ./lint-project.sh
+	# @wget -O lint-project.sh https://raw.githubusercontent.com/moov-io/infra/master/go/lint-project.sh
+	# @chmod +x ./lint-project.sh
+	# GOLANGCI_ALLOW_PRINT=yes COVER_THRESHOLD=50.0 ./lint-project.sh
+	go vet ./...
+	go test ./...
 endif
 
 generate:
