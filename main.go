@@ -36,7 +36,6 @@ var (
 	// incantations of "--help"
 	flagHelp1 = fs.Bool("h", false, "")
 	flagHelp2 = fs.Bool("help", false, "")
-	flagHelp3 = fs.Bool("-help", false, "") // --help
 
 	// -file is used to specify an input file path
 	flagFile = fs.String("file", "", "")
@@ -115,7 +114,7 @@ DEBUGGING
 }
 
 func calledHelp() bool {
-	return callForHelp || *flagHelp1 || *flagHelp2 || *flagHelp3
+	return callForHelp || *flagHelp1 || *flagHelp2
 }
 
 type command struct {

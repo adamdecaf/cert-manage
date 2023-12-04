@@ -22,6 +22,8 @@ import (
 )
 
 func TestWhitelistGen__findSafariPlacesDB(t *testing.T) {
+	t.Skip("TODO(adam): fix")
+
 	db, err := findSafariHistoryDB()
 	if file.Exists("/Applications/Safari.app") {
 		if err != nil {

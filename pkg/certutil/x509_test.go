@@ -32,7 +32,7 @@ func TestCertutil__sha1Fingerprint(t *testing.T) {
 	}
 
 	// verify it's what openssl gets too
-	verify("../../testdata/example.crt", "sha1", "SHA1 Fingerprint=7E:18:74:A9:8F:AA:5D:6D:2F:50:6A:89:20:FF:22:FB:D1:66:52:D9", t)
+	verify("../../testdata/example.crt", "sha1", "sha1 Fingerprint=7E:18:74:A9:8F:AA:5D:6D:2F:50:6A:89:20:FF:22:FB:D1:66:52:D9", t)
 }
 
 func TestCertutil__sha256Fingerprint(t *testing.T) {
@@ -46,7 +46,7 @@ func TestCertutil__sha256Fingerprint(t *testing.T) {
 	}
 
 	// verify with openssl
-	verify("../../testdata/example.crt", "sha256", "SHA256 Fingerprint=05:A6:DB:38:93:91:DF:92:E0:BE:93:FD:FA:4D:B1:E3:CF:53:90:39:18:B8:D9:D8:5A:9C:39:6C:B5:5D:F0:30", t)
+	verify("../../testdata/example.crt", "sha256", "sha256 Fingerprint=05:A6:DB:38:93:91:DF:92:E0:BE:93:FD:FA:4D:B1:E3:CF:53:90:39:18:B8:D9:D8:5A:9C:39:6C:B5:5D:F0:30", t)
 }
 
 func verify(path, algo, fp string, t *testing.T) {

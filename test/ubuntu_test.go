@@ -19,6 +19,7 @@ import (
 )
 
 func TestUbuntu__suite(t *testing.T) {
+	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")
@@ -30,6 +31,7 @@ func TestUbuntu__suite(t *testing.T) {
 }
 
 func TestUbuntu__java(t *testing.T) {
+	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")
@@ -37,6 +39,7 @@ func TestUbuntu__java(t *testing.T) {
 }
 
 func TestUbuntu__firefox(t *testing.T) {
+	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")

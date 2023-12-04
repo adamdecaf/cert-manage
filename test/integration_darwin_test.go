@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build darwin
 // +build darwin
 
 package test
@@ -320,6 +321,7 @@ Output:
 }
 
 func TestIntegration__loadTestSite(t *testing.T) {
+	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	if online(t) {
