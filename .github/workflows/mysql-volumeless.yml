@@ -1,0 +1,27 @@
+name: Publish MySQL Docker Image
+
+on:
+  push:
+    tags: [ "v*.*.*" ]
+
+jobs:
+  docker:
+    name: Build and push MySQL volumeless docker image
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mysql
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Build docker image from MySQL initialized DB inside container
+      run: make build
+
+    - name: Docker Push
+      run: |+
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          make push
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}

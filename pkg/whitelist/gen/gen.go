@@ -280,7 +280,7 @@ func getChain(u *url.URL, roots *x509.CertPool) chain {
 }
 
 // gate is a worker pool impl
-type gate struct {
+type gate struct { // TODO(adam): replace with go4.org/sync.Gate
 	c chan struct{}
 }
 
@@ -291,7 +291,7 @@ func (g gate) done() {
 	select {
 	case <-g.c:
 	default:
-		panic("invalid state")
+		panic("invalid state") //nolint:forbidigo
 	}
 }
 func newgate(n int) *gate {

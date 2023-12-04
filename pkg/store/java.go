@@ -419,7 +419,7 @@ func (c *cert) String() string {
 // Keystore type: JKS
 // Keystore provider: SUN
 //
-// Your keystore contains 105 entries
+// # Your keystore contains 105 entries
 //
 // verisignclass2g2ca [jdk], Aug 25, 2016, trustedCertEntry,
 // Certificate fingerprint (SHA1): B3:EA:C4:47:76:C9:C8:1C:EA:F2:9D:95:B6:CC:A0:08:1B:67:EC:9D

@@ -29,7 +29,7 @@ var (
 	}
 
 	firefoxBinaryPaths = []string{
-		"/usr/bin/firefox",                                 // Ubuntu
+		"/usr/bin/firefox", // Ubuntu
 		`/Applications/Firefox.app/Contents/MacOS/firefox`, // Darwin
 	}
 )

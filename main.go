@@ -127,11 +127,13 @@ type command struct {
 func trace() *cmd.Trace {
 	trace, err := cmd.NewTrace(os.Getenv("TRACE"))
 	if err != nil {
-		panic(err)
+		fmt.Printf("ERROR: setting up tracing: %v", err)
+		os.Exit(1)
 	}
 	err = trace.Start()
 	if err != nil {
-		panic(err)
+		fmt.Printf("ERROR: starting trace: %v", err)
+		os.Exit(1)
 	}
 	return trace
 }
@@ -141,7 +143,8 @@ func main() {
 	defer func() {
 		err := t.Stop()
 		if err != nil {
-			panic(err)
+			fmt.Printf("ERROR: stopping trace: %v", err)
+			os.Exit(1)
 		}
 	}()
 

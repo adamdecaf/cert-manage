@@ -124,7 +124,7 @@ func firefoxSuite(t *testing.T, img *dockerfile, total, after string) {
 func incr(in string) string {
 	n, err := strconv.Atoi(in)
 	if err != nil {
-		panic(err)
+		panic(err) //nolint:forbidigo
 	}
 	return fmt.Sprintf("%d", n+1)
 }

@@ -26,10 +26,10 @@ func GetHexSHA1Fingerprint(c x509.Certificate) string {
 	ss := sha1.New()
 	n, err := ss.Write(c.Raw)
 	if err != nil {
-		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err))
+		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err)) //nolint:forbidigo
 	}
 	if n == 0 {
-		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String()))
+		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String())) //nolint:forbidigo
 	}
 	return hex.EncodeToString(ss.Sum(nil))
 }
@@ -38,10 +38,10 @@ func GetHexSHA256Fingerprint(c x509.Certificate) string {
 	ss := sha256.New()
 	n, err := ss.Write(c.Raw)
 	if err != nil {
-		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err))
+		panic(fmt.Sprintf("error writing %s: %v", c.Subject.String(), err)) //nolint:forbidigo
 	}
 	if n == 0 {
-		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String()))
+		panic(fmt.Sprintf("no bytes written for %s", c.Subject.String())) //nolint:forbidigo
 	}
 	return hex.EncodeToString(ss.Sum(nil))
 }

@@ -44,7 +44,7 @@ var (
 func init() {
 	t, err := time.ParseDuration(fmt.Sprintf("-%dh", 90*24)) // 90 days * 24 hours
 	if err != nil {
-		panic(err)
+		panic(err) //nolint:forbidigo
 	}
 	oldestBrowserHistoryItemDate = time.Now().Add(t)
 }

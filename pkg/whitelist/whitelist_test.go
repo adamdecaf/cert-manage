@@ -24,11 +24,11 @@ import (
 
 func TestWhitelist_nocert(t *testing.T) {
 	cases := []Whitelist{
-		Whitelist{},
-		Whitelist{
+		{},
+		{
 			Fingerprints: []string{"a"},
 		},
-		Whitelist{
+		{
 			Countries: []string{"US"},
 		},
 	}

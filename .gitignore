@@ -20,3 +20,7 @@ build/*/*.class
 !testdata/*.yaml
 *.json
 !testdata/*.json
+
+
+/bin/
+/lint-project.sh
