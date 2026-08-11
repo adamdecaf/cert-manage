@@ -35,9 +35,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os/user"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
@@ -79,10 +81,16 @@ package whitelist
 `, when, who.Username)
 
 	// get certs from tarball
-	certs, err := getChromeCerts(chromeBlacklistTarball)
+	chromeCerts, err := getChromeCerts(chromeBlacklistTarball)
 	if err != nil {
 		log.Fatalf("error getting chrome certs, err=%v", err)
 	}
+
+	crtshCerts, err := getCrtshCerts([]string{
+		"630835231", "631048444", // https://bugzilla.mozilla.org/show_bug.cgi?id=1480853
+	})
+
+	certs := append(chromeCerts, crtshCerts...)
 
 	// write certs to file
 	fmt.Fprintf(&buf, "var blacklistedFingerprints = []string{\n")
@@ -173,6 +181,55 @@ func getChromeCerts(u string) ([]*cert, error) {
 			}
 		}
 	}
+
+	return certs, nil
+}
+
+// Download certificates by their crt.sh id
+func getCrtshCerts(ids []string) ([]*cert, error) {
+	client := httputil.New()
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(ids))
+
+	mu := sync.Mutex{}
+	var certs []*cert
+
+	for i := range ids {
+		id := ids[i]
+		go func(wg *sync.WaitGroup, id string) {
+			defer wg.Done()
+
+			address := fmt.Sprintf("https://crt.sh/?d=%s", id)
+			resp, err := client.Get(address)
+			if err != nil {
+				panic(fmt.Sprintf("error downloading %s: %v", address, err))
+			}
+			if resp.Body != nil {
+				defer resp.Body.Close()
+			}
+
+			bs, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				panic(fmt.Sprintf("problem reading %s response: %v", address, err))
+			}
+			cs, err := certutil.ParsePEM(bs)
+			if err != nil {
+				panic(fmt.Sprintf("problem parsing %s cert: %v", address, err))
+			}
+
+			mu.Lock()
+			for i := range cs {
+				certs = append(certs, &cert{
+					fingerprint: certutil.GetHexSHA256Fingerprint(*cs[i]),
+					desc: cs[i].Subject.String(),
+				})
+			}
+			mu.Unlock()
+		}(&wg, id)
+	}
+
+	wg.Wait()
 
 	return certs, nil
 }
