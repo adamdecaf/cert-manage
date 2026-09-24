@@ -18,17 +18,16 @@
 package store
 
 import (
-	"bytes"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
+	"syscall"
+	"unsafe"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/file"
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
@@ -55,9 +54,22 @@ var (
 		"CA",       // "Intermediate Certification Authorities"
 		"AuthRoot", // "Third-Party Root Certification Authorities"
 	}
+
+	winSetup sync.Once
+	winRootStore *windowsRootStore
 )
 
-type windowsStore struct{}
+type windowsStore struct {}
+
+func (s windowsStore) setup() {
+	winSetup.Do(func() {
+		store, err := loadWindowsRootStore("Root")
+		if err != nil {
+			panic(fmt.Sprintf("problem loading windows store: %v", err))
+		}
+		winRootStore = &store
+	})
+}
 
 func platform() Store {
 	return windowsStore{}
@@ -92,130 +104,14 @@ func (s windowsStore) GetInfo() *Info {
 	version := strings.TrimPrefix(versionRegex.FindString(info), "OS Version:")
 
 	return &Info{
-		Name:    strings.TrimSpace(name),
-		Version: strings.TrimSpace(version),
+		Name:    strings.Split(strings.TrimSpace(name), "\r")[0],
+		Version: strings.Split(strings.TrimSpace(version), "\r")[0],
 	}
 }
 
 func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
-	pool := certutil.Pool{}
-	for i := range windowsStoreNames {
-		certs, err := s.certsFromStore(windowsStoreNames[i])
-		if err != nil {
-			return nil, err
-		}
-		pool.AddCertificates(certs)
-	}
-	return pool.GetCertificates(), nil
-}
-
-func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) {
-	serials, err := s.certSerialsFromStore(store)
-	if err != nil {
-		return nil, err
-	}
-	var accum []*x509.Certificate
-	for i := range serials {
-		cert, err := s.exportCertFromStore(serials[i], store)
-		if err != nil {
-			return nil, err
-		}
-		if cert != nil {
-			accum = append(accum, cert)
-		}
-	}
-	return accum, nil
-}
-
-func (s windowsStore) certSerialsFromStore(store string) ([]string, error) {
-	cmd := exec.Command("certutil", "-store", store)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	err := cmd.Run()
-	if err != nil {
-		return nil, fmt.Errorf("error reading serials from store %s err=%v", store, err)
-	}
-	return s.readCertSerials(string(stdout.Bytes()))
-}
-
-var (
-	// C:\Users>certutil -store Root
-	// Root "Trusted Root Certification Authorities"
-	// ================ Certificate 0 ================
-	// Serial Number: 72696afcd5edce864658141cb588a3a8
-	winSerialNumberPrefix = "Serial Number:"
-	winSerialNumberRegex  = regexp.MustCompile(fmt.Sprintf(`%s ([0-9a-f]+)\r?\n?`, winSerialNumberPrefix))
-)
-
-func (s windowsStore) readCertSerials(out string) ([]string, error) {
-	matches := winSerialNumberRegex.FindAllString(out, -1)
-	for i := range matches {
-		matches[i] = strings.TrimSpace(strings.Replace(matches[i], winSerialNumberPrefix, "", -1))
-	}
-	return matches, nil
-}
-
-var (
-	pfxPassword = "password"
-)
-
-func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certificate, error) {
-	tmp, err := ioutil.TempFile("", "cert-manage-windows")
-	if err != nil {
-		return nil, fmt.Errorf("error creating temp file, err=%v", err)
-	}
-
-	// close and rm file, we got a unique name
-	// This avoids: "The process cannot access the file because it is being used by another process."
-	err = tmp.Close()
-	if err != nil {
-		return nil, err
-	}
-	err = os.Remove(tmp.Name())
-	if err != nil {
-		return nil, err
-	}
-	defer func() { // then make sure it's gone afterwords
-		if file.Exists(tmp.Name()) {
-			os.Remove(tmp.Name())
-		}
-	}()
-
-	// export cert into PKCS #12 format
-	out, err := exec.Command("certutil", "-exportPFX", "-f", "-p", pfxPassword, store, serial, tmp.Name()).CombinedOutput()
-	if debug {
-		fmt.Printf("%q\n", string(out))
-	}
-	if err != nil {
-		if debug && bytes.Contains(out, []byte("Keyset does not exist")) {
-			// TODO(adam): Issue repair? That might muck with the store(s)
-			return nil, nil
-		}
-		if debug && bytes.Contains(out, []byte("Cannot find object or property.")) {
-			// TODO(adam): uhh..?
-			// CertUtil: -exportPFX command FAILED: 0x80092004 (-2146885628 CRYPT_E_NOT_FOUND)\r\nCertUtil: Cannot find object or property.
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12 err=%q", serial, store, err)
-	}
-
-	bs, err := ioutil.ReadFile(tmp.Name())
-	if err != nil {
-		return nil, fmt.Errorf("error reading temp file, err=%v", err)
-	}
-	cert, err := certutil.DecodePKCS12(bs, pfxPassword)
-	if err != nil {
-		if debug && strings.Contains(err.Error(), "expected exactly two items in the authenticated safe") {
-			// TODO(adam): https://github.com/golang/go/issues/23499
-			return nil, nil
-		}
-		if debug && strings.Contains(err.Error(), "OID 1.3.6.1.4.1.311.17.2") {
-			// TODO(adam): http://oidref.com/1.3.6.1.4.1.311.17.2
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
-	}
-	return cert, nil
+	s.setup()
+	return winRootStore.getCertificates()
 }
 
 func (s windowsStore) Remove(wh whitelist.Whitelist) error {
@@ -224,4 +120,60 @@ func (s windowsStore) Remove(wh whitelist.Whitelist) error {
 
 func (s windowsStore) Restore(where string) error {
 	return nil
+}
+
+var (
+	modcrypt32                           = syscall.NewLazyDLL("crypt32.dll")
+	procCertCloseStore                   = modcrypt32.NewProc("CertCloseStore")
+	procCertDuplicateCertificateContext  = modcrypt32.NewProc("CertDuplicateCertificateContext")
+	procCertEnumCertificatesInStore      = modcrypt32.NewProc("CertEnumCertificatesInStore")
+	procCertOpenSystemStoreW             = modcrypt32.NewProc("CertOpenSystemStoreW")
+)
+
+// windowsRootStore represents a pointer to a Root Certificate store on Windows
+// This code is inspired from FiloSottile/mkcert's truststore_windows.go, but adapted
+// for this projects usecase.
+type windowsRootStore uintptr
+
+func loadWindowsRootStore(name string) (windowsRootStore, error) {
+	store, _, err := procCertOpenSystemStoreW.Call(0, uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(name))))
+	if store != 0 {
+		return windowsRootStore(store), nil
+	}
+	return 0, fmt.Errorf("problem opening windows root store: %v", err)
+}
+
+func (w windowsRootStore) close() error {
+	ret, _, err := procCertCloseStore.Call(uintptr(w), 0)
+	if ret != 0 {
+		return nil
+	}
+	return fmt.Errorf("problem closing windows root store: %v", err)
+}
+
+func (w windowsRootStore) getCertificates() ([]*x509.Certificate, error) {
+	var cert *syscall.CertContext
+	pool := certutil.Pool{}
+	for {
+		// Read next certificate
+		certPtr, _, err := procCertEnumCertificatesInStore.Call(uintptr(w), uintptr(unsafe.Pointer(cert)))
+		if cert = (*syscall.CertContext)(unsafe.Pointer(certPtr)); cert == nil {
+			// TODO(adam): figure out from FiloSottile/mkcert what "0x80092004" is exactly for..
+			if errno, ok := err.(syscall.Errno); ok && errno == 0x80092004 {
+				break
+			}
+			return nil, fmt.Errorf("problem enumerating certs: %v", err)
+		}
+
+		// Parse cert
+		// Using C.GoBytes requires gcc, but crypto/x509 uses this trick too
+		// https://github.com/golang/go/blob/22e17d0ac7db5321a0f6e073bd0afb949f44dd70/src/crypto/x509/root_windows.go#L70
+		certBytes := (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:cert.Length]
+		parsedCert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			continue
+		}
+		pool.Add(parsedCert)
+	}
+	return pool.GetCertificates(), nil
 }
