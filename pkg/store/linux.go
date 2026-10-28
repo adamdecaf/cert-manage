@@ -230,20 +230,64 @@ func (s linuxStore) Restore(where string) error {
 		fmt.Printf("store/linux: restoring from backup dir %s\n", dir)
 	}
 
-	// Remove the current dir
-	if file.Exists(s.ca.dir) {
-		err := os.RemoveAll(s.ca.dir)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
-
-	// Restore
-	err = file.MirrorDir(dir, s.ca.dir)
-	if err != nil {
+	// Mirror into a sibling temp dir, then swap into place. A failed copy
+	// must leave the live CA directory untouched.
+	tmp := s.ca.dir + ".restore-tmp"
+	if err := os.RemoveAll(tmp); err != nil {
 		return err
 	}
-	return s.rebundleCerts()
+	err = file.MirrorDir(dir, tmp)
+	if err != nil {
+		os.RemoveAll(tmp)
+		return err
+	}
+
+	aside := s.ca.dir + ".restore-old"
+	liveExists := file.Exists(s.ca.dir)
+	if liveExists {
+		if err := os.RemoveAll(aside); err != nil {
+			os.RemoveAll(tmp)
+			return err
+		}
+		if err := os.Rename(s.ca.dir, aside); err != nil {
+			os.RemoveAll(tmp)
+			return err
+		}
+		// Log the aside path so a crash between this move and the swap
+		// (or before refresh succeeds) is recoverable by an operator.
+		fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
+	}
+
+	if err := os.Rename(tmp, s.ca.dir); err != nil {
+		if liveExists {
+			os.Rename(aside, s.ca.dir)
+		}
+		os.RemoveAll(tmp)
+		return err
+	}
+
+	// Keep aside until update-ca-certificates (rebundleCerts) succeeds so
+	// a refresh failure can roll the live directory back.
+	if err := s.rebundleCerts(); err != nil {
+		if liveExists {
+			failed := s.ca.dir + ".restore-failed"
+			os.RemoveAll(failed)
+			if rerr := os.Rename(s.ca.dir, failed); rerr != nil {
+				return fmt.Errorf("%v (previous CA dir still at %s)", err, aside)
+			}
+			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
+				os.Rename(failed, s.ca.dir)
+				return fmt.Errorf("%v (failed to restore previous CA dir from %s: %v)", err, aside, rerr)
+			}
+			os.RemoveAll(failed)
+		}
+		return err
+	}
+
+	if liveExists {
+		os.RemoveAll(aside)
+	}
+	return nil
 }
 
 // Update the certs trust system-wide

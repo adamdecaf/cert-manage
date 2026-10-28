@@ -19,6 +19,7 @@ package store
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -246,11 +247,9 @@ func mustRead(t *testing.T, path string) []byte {
 	return b
 }
 
-func TestLinuxRestore_DeletesLiveDirBeforeCopy(t *testing.T) {
-	// TODO: restore should mirror to a temp dir then swap into place.
-	// linuxStore.Restore currently os.RemoveAll(s.ca.dir) before MirrorDir,
-	// so a failure after the delete leaves the live CA directory wiped.
+func TestLinuxRestore_FailedRestoreLeavesLiveDirIntact(t *testing.T) {
 	s := linuxTestStore(t)
+	want := snapshotDir(t, s.ca.dir)
 
 	if err := s.Backup(); err != nil {
 		t.Fatalf("Backup: %v", err)
@@ -278,22 +277,115 @@ func TestLinuxRestore_DeletesLiveDirBeforeCopy(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected Restore to fail after backup was replaced with a file")
 	}
+	assertDirSnapshotEqual(t, s.ca.dir, want)
+	if fileExists(t, s.ca.dir+".restore-tmp") {
+		t.Errorf("restore-tmp left behind after failed MirrorDir: %s", s.ca.dir+".restore-tmp")
+	}
+}
 
-	st, statErr := os.Stat(s.ca.dir)
-	switch {
-	case os.IsNotExist(statErr):
-		// live dir was wiped and not recreated
-	case statErr != nil:
-		t.Fatalf("stat ca.dir: %v", statErr)
-	case st.IsDir():
-		entries, readErr := os.ReadDir(s.ca.dir)
-		if readErr != nil {
-			t.Fatalf("ReadDir ca.dir: %v", readErr)
-		}
-		if len(entries) > 0 {
-			t.Errorf("ca.dir still has %d entries after failed Restore; documenting delete-before-copy, expected wiped/empty", len(entries))
-		}
-	default:
-		t.Errorf("ca.dir exists as a non-directory after failed Restore: %s", s.ca.dir)
+func fileExists(t *testing.T, path string) bool {
+	t.Helper()
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	t.Fatalf("stat %s: %v", path, err)
+	return false
+}
+
+func TestLinuxRestore_RestoreTmpCleanedOnMirrorFailure(t *testing.T) {
+	// *.restore-tmp must be removed when MirrorDir fails (backup is not a dir).
+	s := linuxTestStore(t)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+	if err := os.RemoveAll(latest); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(latest, []byte("not-a-directory\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	tmp := s.ca.dir + ".restore-tmp"
+	_ = os.MkdirAll(tmp, 0755) // leftover from a previous crash
+	if err := s.Restore(""); err == nil {
+		t.Fatal("expected Restore to fail")
+	}
+	if fileExists(t, tmp) {
+		t.Fatalf("expected %s to be cleaned up after MirrorDir failure", tmp)
+	}
+}
+
+func TestLinuxRestore_RebundleFailureRollsBackAside(t *testing.T) {
+	// Aside is kept until refresh succeeds; a failed rebundle swaps live back.
+	s := linuxTestStore(t)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+
+	// Mutate live after backup. Restore will swap in the backup, then fail
+	// rebundle and roll back to this pre-swap live snapshot.
+	if err := os.WriteFile(filepath.Join(s.ca.dir, "extra.crt"), []byte("pre-restore-mutation\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	liveBeforeRestore := snapshotDir(t, s.ca.dir)
+	s.ca.refresh = "/bin/false"
+
+	err := s.Restore("")
+	if err == nil {
+		t.Fatal("expected Restore to fail when refresh returns non-zero")
+	}
+	assertDirSnapshotEqual(t, s.ca.dir, liveBeforeRestore)
+	if fileExists(t, s.ca.dir+".restore-old") {
+		t.Errorf("restore-old should be consumed by rollback, still at %s", s.ca.dir+".restore-old")
+	}
+	if fileExists(t, s.ca.dir+".restore-tmp") {
+		t.Errorf("restore-tmp left behind: %s", s.ca.dir+".restore-tmp")
+	}
+	if fileExists(t, s.ca.dir+".restore-failed") {
+		t.Errorf("restore-failed left behind: %s", s.ca.dir+".restore-failed")
+	}
+}
+
+func TestLinuxRestore_LogsAsidePath(t *testing.T) {
+	// Operators need the *.restore-old path if a crash happens between the
+	// move-aside and a successful refresh.
+	s := linuxTestStore(t)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	aside := s.ca.dir + ".restore-old"
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	err = s.Restore("")
+	_ = w.Close()
+	os.Stdout = old
+	if err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	out, err := io.ReadAll(r)
+	_ = r.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out, []byte(aside)) {
+		t.Fatalf("expected stdout to mention aside path %s, got %q", aside, out)
+	}
+	if !bytes.Contains(out, []byte("moved aside")) {
+		t.Fatalf("expected recoverability log about moved-aside dir, got %q", out)
+	}
+	if fileExists(t, aside) {
+		t.Errorf("aside should be removed after successful rebundle: %s", aside)
 	}
 }
