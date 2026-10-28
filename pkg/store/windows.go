@@ -118,7 +118,10 @@ func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) 
 	for i := range serials {
 		cert, err := s.exportCertFromStore(serials[i], store)
 		if err != nil {
-			return nil, err
+			if debug {
+				fmt.Printf("store/windows: skipping cert %s from %s: %v\n", serials[i], store, err)
+			}
+			continue
 		}
 		if cert != nil {
 			accum = append(accum, cert)
@@ -202,17 +205,24 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 	}
 	cert, err := certutil.DecodePKCS12(bs, pfxPassword)
 	if err != nil {
-		if debug && strings.Contains(err.Error(), "expected exactly two items in the authenticated safe") {
-			// TODO(adam): https://github.com/golang/go/issues/23499
-			return nil, nil
-		}
-		if debug && strings.Contains(err.Error(), "OID 1.3.6.1.4.1.311.17.2") {
-			// TODO(adam): http://oidref.com/1.3.6.1.4.1.311.17.2
+		if skipWindowsPKCS12(err) {
+			if debug {
+				fmt.Printf("store/windows: skipping PKCS#12 parse for %s from %s: %v\n", serial, store, err)
+			}
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
 	}
 	return cert, nil
+}
+
+func skipWindowsPKCS12(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "expected exactly two items in the authenticated safe") ||
+		strings.Contains(s, "OID 1.3.6.1.4.1.311.17.2")
 }
 
 func skipWindowsExport(out string, err error) bool {

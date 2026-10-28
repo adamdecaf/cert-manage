@@ -59,6 +59,16 @@ Serial Number: 214817429841748bbbcccca`
 	}
 }
 
+func TestSkipWindowsPKCS12(t *testing.T) {
+	err := fmt.Errorf("pkcs12: expected exactly two items in the authenticated safe")
+	if !skipWindowsPKCS12(err) {
+		t.Fatal("expected skip for authenticated safe parse error")
+	}
+	if skipWindowsPKCS12(fmt.Errorf("fatal boom")) {
+		t.Fatal("unknown errors must not be skipped")
+	}
+}
+
 func TestSkipWindowsExport(t *testing.T) {
 	err := fmt.Errorf("exit status 0x8009000b")
 	if !skipWindowsExport(`error exporting cert "40d7e251fd60952593ea3fa7809cf71b" (from My)`, err) {

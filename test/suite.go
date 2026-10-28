@@ -29,14 +29,12 @@ func linuxSuite(t *testing.T, img *dockerfile) {
 	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/linux | wc -l | tr -d ' ')" -ge 1`)
 	img.CertManage("whitelist", "-file", "/whitelist.json")
 	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count); test "$after" -lt "$(cat /tmp/total)"`)
-	img.Run("set +e")
-	img.Run("curl", "-fsS", "-o", "/dev/null", "-I", "--max-time", "20", "https://www.yahoo.com/")
-	img.Run("code=$?")
-	img.Run("set -e")
-	img.Run("test", "$code", "-ne", "0")
+	// Probe TLS only. Do not use -f/-I: GitHub Actions IPs get HTTP 429 from
+	// large sites, which curl -f treats as failure even when TLS succeeded.
+	img.Run("sh", "-c", `set +e; curl -sS -o /dev/null --max-time 20 https://example.com/; code=$?; set -e; echo "whitelist_curl=$code"; test "$code" -ne 0`)
 	img.CertManage("restore")
 	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count)" -eq "$(cat /tmp/total)"`)
-	img.Run("curl", "-fsS", "-o", "/dev/null", "-I", "--max-time", "20", "https://www.yahoo.com/")
+	img.Run("sh", "-c", `curl -sS -o /dev/null --max-time 20 https://example.com/`)
 	img.CertManage("add", "-file", "/localcert.pem")
 	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count)" -eq $(( $(cat /tmp/total) + 1 ))`)
 	img.SuccessT(t)
