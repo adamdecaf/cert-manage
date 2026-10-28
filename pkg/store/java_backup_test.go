@@ -28,25 +28,54 @@ import (
 
 const dockerJavaImage = "eclipse-temurin:21-jdk-jammy"
 
-// tempJavaHomeWithCacerts builds a throwaway JAVA_HOME whose cacerts file is a
-// real keystore. The keystore is created with keytool when it is on PATH, or
-// with docker running keytool (falling back to copying the image cacerts).
-// The host JDK is never read or written.
-func tempJavaHomeWithCacerts(t *testing.T) string {
-	t.Helper()
+// javaHomeLayout describes where cacerts lives under a JAVA_HOME-style root.
+// Layouts mirror distro OpenJDK installs so Backup/Restore are exercised
+// against the same relative paths production discovery uses.
+type javaHomeLayout struct {
+	name string
+	// relativeKeystorePath is relative to JAVA_HOME (no leading slash).
+	relativeKeystorePath string
+}
 
-	tmp := t.TempDir()
-	sec := filepath.Join(tmp, "lib", "security")
-	if err := os.MkdirAll(sec, 0755); err != nil {
-		t.Fatal(err)
-	}
-	cacerts := filepath.Join(sec, "cacerts")
-	refuseSystemKeystore(t, cacerts)
+// linuxJavaLayouts covers the Linux distro matrix (alpine, debian, ubuntu)
+// used by the docker integration suites and production java_linux.go paths.
+var linuxJavaLayouts = []javaHomeLayout{
+	{name: "ubuntu-openjdk", relativeKeystorePath: "lib/security/cacerts"},
+	{name: "debian-openjdk", relativeKeystorePath: "lib/security/cacerts"},
+	{name: "alpine-openjdk", relativeKeystorePath: "lib/security/cacerts"},
+	// Production java_linux.go also lists the older jre/ subtree (alpine).
+	{name: "alpine-jre", relativeKeystorePath: "jre/lib/security/cacerts"},
+}
+
+// darwinJavaLayouts / windowsJavaLayouts are intentionally empty in this PR;
+// add entries when those platform CI jobs exist.
+var (
+	darwinJavaLayouts  []javaHomeLayout
+	windowsJavaLayouts []javaHomeLayout
+)
+
+func activeJavaLayouts() []javaHomeLayout {
+	// Unit tests create temp trees for Linux OpenJDK layouts on every OS.
+	// Darwin/Windows fixture rows stay empty until those CI jobs exist.
+	out := append([]javaHomeLayout(nil), linuxJavaLayouts...)
+	out = append(out, darwinJavaLayouts...)
+	out = append(out, windowsJavaLayouts...)
+	return out
+}
+
+// sharedTempCacertsBytes returns bytes of a real keystore created once per
+// test process (keytool or docker). Copied into each layout under a temp dir.
+func sharedTempCacertsBytes(t *testing.T) []byte {
+	t.Helper()
 
 	example := filepath.Join("..", "..", "testdata", "example.crt")
 	if _, err := os.Stat(example); err != nil {
 		t.Fatalf("testdata example.crt: %v", err)
 	}
+
+	staging := t.TempDir()
+	cacerts := filepath.Join(staging, "cacerts")
+	refuseSystemKeystore(t, cacerts)
 
 	var errs []string
 	if bin, err := exec.LookPath("keytool"); err != nil {
@@ -55,15 +84,23 @@ func tempJavaHomeWithCacerts(t *testing.T) string {
 		errs = append(errs, fmt.Sprintf("local keytool: %v", err))
 	} else {
 		assertWritableNonEmptyCacerts(t, cacerts)
-		return tmp
+		b, err := os.ReadFile(cacerts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return b
 	}
 
-	if err := createCacertsWithDocker(t, tmp, example, cacerts); err != nil {
+	if err := createCacertsWithDocker(t, staging, example, cacerts); err != nil {
 		errs = append(errs, err.Error())
 		t.Skipf("cannot create a temp Java cacerts keystore: %s", strings.Join(errs, "; "))
 	}
 	assertWritableNonEmptyCacerts(t, cacerts)
-	return tmp
+	b, err := os.ReadFile(cacerts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func importCertWithKeytool(keytoolBin, exampleCrt, cacertsPath string) error {
@@ -80,7 +117,7 @@ func importCertWithKeytool(keytoolBin, exampleCrt, cacertsPath string) error {
 	return nil
 }
 
-func createCacertsWithDocker(t *testing.T, javaHome, exampleCrt, cacertsPath string) error {
+func createCacertsWithDocker(t *testing.T, workDir, exampleCrt, cacertsPath string) error {
 	t.Helper()
 
 	docker, err := exec.LookPath("docker")
@@ -88,7 +125,7 @@ func createCacertsWithDocker(t *testing.T, javaHome, exampleCrt, cacertsPath str
 		return fmt.Errorf("docker not on PATH: %v", err)
 	}
 
-	absHome, err := filepath.Abs(javaHome)
+	absWork, err := filepath.Abs(workDir)
 	if err != nil {
 		return err
 	}
@@ -96,7 +133,7 @@ func createCacertsWithDocker(t *testing.T, javaHome, exampleCrt, cacertsPath str
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(absHome, "example.crt"), b, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(absWork, "example.crt"), b, 0644); err != nil {
 		return err
 	}
 
@@ -108,11 +145,11 @@ func createCacertsWithDocker(t *testing.T, javaHome, exampleCrt, cacertsPath str
 		args = append(args, "--user", fmt.Sprintf("%d:%d", uid, os.Getgid()))
 	}
 	args = append(args,
-		"-v", absHome+":/work",
+		"-v", absWork+":/work",
 		dockerJavaImage,
 		"keytool", "-importcert", "-noprompt", "-alias", "example",
 		"-file", "/work/example.crt",
-		"-keystore", "/work/lib/security/cacerts",
+		"-keystore", "/work/cacerts",
 		"-storepass", defaultKeystorePassword,
 	)
 	out, err := exec.CommandContext(ctx, docker, args...).CombinedOutput()
@@ -185,12 +222,22 @@ func refuseSystemKeystore(t *testing.T, path string) {
 	}
 }
 
-// javaBackupTestEnv points package-level ktool at a temp JAVA_HOME and HOME
-// so Backup/Restore never touch the host JDK or the real backup directory.
-func javaBackupTestEnv(t *testing.T) (javaStore, string) {
+// javaBackupTestEnvFor points package-level ktool at a temp JAVA_HOME built
+// for layout, with a temp copy of cacerts at layout.relativeKeystorePath.
+func javaBackupTestEnvFor(t *testing.T, layout javaHomeLayout, cacertsBytes []byte) (javaStore, string) {
 	t.Helper()
 
-	javaHome := tempJavaHomeWithCacerts(t)
+	javaHome := t.TempDir()
+	cacertsPath := filepath.Join(javaHome, filepath.FromSlash(layout.relativeKeystorePath))
+	if err := os.MkdirAll(filepath.Dir(cacertsPath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cacertsPath, cacertsBytes, 0644); err != nil {
+		t.Fatal(err)
+	}
+	refuseSystemKeystore(t, cacertsPath)
+	assertWritableNonEmptyCacerts(t, cacertsPath)
+
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -199,13 +246,9 @@ func javaBackupTestEnv(t *testing.T) (javaStore, string) {
 	orig := ktool
 	t.Cleanup(func() { ktool = orig })
 	ktool = keytool{
-		javahome:         javaHome,
-		javaInstallPaths: nil,
-		// Use a relative path (no leading slash). Production linux/darwin
-		// relativeKeystorePaths are "/lib/security/cacerts"-style; on older
-		// Go, filepath.Join treated those as absolute and dropped javahome.
-		// Go 1.27 keeps the home prefix either way; stay relative for clarity.
-		relativeKeystorePaths: []string{"lib/security/cacerts"},
+		javahome:              javaHome,
+		javaInstallPaths:      nil,
+		relativeKeystorePaths: []string{layout.relativeKeystorePath},
 	}
 
 	kpath, err := ktool.getKeystorePath()
@@ -214,6 +257,9 @@ func javaBackupTestEnv(t *testing.T) (javaStore, string) {
 	}
 	refuseIfOutside(t, javaHome, kpath, "keystore")
 	refuseSystemKeystore(t, kpath)
+	if filepath.Clean(kpath) != filepath.Clean(cacertsPath) {
+		t.Fatalf("getKeystorePath=%s want %s for layout %s", kpath, cacertsPath, layout.name)
+	}
 
 	backupDir, err := getCertManageDir(javaCertManageDir)
 	if err != nil {
@@ -225,62 +271,73 @@ func javaBackupTestEnv(t *testing.T) (javaStore, string) {
 }
 
 func TestJavaBackupRestoreRoundTrip(t *testing.T) {
-	s, kpath := javaBackupTestEnv(t)
+	layouts := activeJavaLayouts()
+	if len(layouts) == 0 {
+		t.Skip("no java home layouts configured")
+	}
+	cacertsBytes := sharedTempCacertsBytes(t)
 
-	original, err := os.ReadFile(kpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(original) == 0 {
-		t.Fatal("snapshot of live cacerts is empty")
-	}
+	for _, layout := range layouts {
+		layout := layout
+		t.Run(layout.name, func(t *testing.T) {
+			s, kpath := javaBackupTestEnvFor(t, layout, cacertsBytes)
 
-	if err := s.Backup(); err != nil {
-		t.Fatalf("Backup: %v", err)
-	}
-	latest, err := s.GetLatestBackup()
-	if err != nil {
-		t.Fatalf("GetLatestBackup: %v", err)
-	}
-	if latest == "" {
-		t.Fatal("GetLatestBackup returned empty path")
-	}
-	st, err := os.Stat(latest)
-	if err != nil {
-		t.Fatalf("stat backup: %v", err)
-	}
-	if st.IsDir() {
-		t.Fatalf("latest backup %s is a directory, want file", latest)
-	}
-	backed, err := os.ReadFile(latest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(backed, original) {
-		t.Fatalf("backup is not a complete copy: got %d bytes, want %d", len(backed), len(original))
-	}
+			original, err := os.ReadFile(kpath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(original) == 0 {
+				t.Fatal("snapshot of live cacerts is empty")
+			}
 
-	marker := []byte("MUTATED-JAVA-CACERTS-" + t.Name() + "\n")
-	if err := os.WriteFile(kpath, marker, 0644); err != nil {
-		t.Fatal(err)
-	}
-	mutated, err := os.ReadFile(kpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Equal(mutated, original) {
-		t.Fatal("mutation did not change live cacerts bytes")
-	}
+			if err := s.Backup(); err != nil {
+				t.Fatalf("Backup: %v", err)
+			}
+			latest, err := s.GetLatestBackup()
+			if err != nil {
+				t.Fatalf("GetLatestBackup: %v", err)
+			}
+			if latest == "" {
+				t.Fatal("GetLatestBackup returned empty path")
+			}
+			st, err := os.Stat(latest)
+			if err != nil {
+				t.Fatalf("stat backup: %v", err)
+			}
+			if st.IsDir() {
+				t.Fatalf("latest backup %s is a directory, want file", latest)
+			}
+			backed, err := os.ReadFile(latest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(backed, original) {
+				t.Fatalf("backup is not a complete copy: got %d bytes, want %d", len(backed), len(original))
+			}
 
-	if err := s.Restore(""); err != nil {
-		t.Fatalf("Restore: %v", err)
-	}
-	got, err := os.ReadFile(kpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(got, original) {
-		t.Fatalf("live cacerts after Restore does not match original snapshot: got %d bytes, want %d", len(got), len(original))
+			marker := []byte("MUTATED-JAVA-CACERTS-" + t.Name() + "\n")
+			if err := os.WriteFile(kpath, marker, 0644); err != nil {
+				t.Fatal(err)
+			}
+			mutated, err := os.ReadFile(kpath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Equal(mutated, original) {
+				t.Fatal("mutation did not change live cacerts bytes")
+			}
+
+			if err := s.Restore(""); err != nil {
+				t.Fatalf("Restore: %v", err)
+			}
+			got, err := os.ReadFile(kpath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, original) {
+				t.Fatalf("live cacerts after Restore does not match original snapshot: got %d bytes, want %d", len(got), len(original))
+			}
+		})
 	}
 }
 
@@ -289,53 +346,64 @@ func TestJavaRestore_IgnoresWherePath(t *testing.T) {
 	// restores from GetLatestBackup(). The CLI -file flag is plumbed from
 	// main.go through cmd.RestoreForApp into Store.Restore, but
 	// javaStore.Restore never reads the argument.
-	s, kpath := javaBackupTestEnv(t)
+	layouts := activeJavaLayouts()
+	if len(layouts) == 0 {
+		t.Skip("no java home layouts configured")
+	}
+	cacertsBytes := sharedTempCacertsBytes(t)
 
-	original, err := os.ReadFile(kpath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, layout := range layouts {
+		layout := layout
+		t.Run(layout.name, func(t *testing.T) {
+			s, kpath := javaBackupTestEnvFor(t, layout, cacertsBytes)
 
-	if err := s.Backup(); err != nil {
-		t.Fatalf("Backup: %v", err)
-	}
-	latest, err := s.GetLatestBackup()
-	if err != nil || latest == "" {
-		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
-	}
+			original, err := os.ReadFile(kpath)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if err := os.WriteFile(kpath, []byte("MUTATED-BEFORE-RESTORE-WHERE\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
+			if err := s.Backup(); err != nil {
+				t.Fatalf("Backup: %v", err)
+			}
+			latest, err := s.GetLatestBackup()
+			if err != nil || latest == "" {
+				t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+			}
 
-	alternate := filepath.Join(t.TempDir(), "alternate-java.bck")
-	altBytes := []byte("ALTERNATE-JAVA-BACKUP-MARKER\n")
-	if err := os.WriteFile(alternate, altBytes, 0644); err != nil {
-		t.Fatal(err)
-	}
-	if alternate == latest {
-		t.Fatal("alternate path unexpectedly equals latest backup")
-	}
+			if err := os.WriteFile(kpath, []byte("MUTATED-BEFORE-RESTORE-WHERE\n"), 0644); err != nil {
+				t.Fatal(err)
+			}
 
-	if err := s.Restore(alternate); err != nil {
-		t.Fatalf("Restore(alternate): %v", err)
-	}
+			alternate := filepath.Join(t.TempDir(), "alternate-java.bck")
+			altBytes := []byte("ALTERNATE-JAVA-BACKUP-MARKER\n")
+			if err := os.WriteFile(alternate, altBytes, 0644); err != nil {
+				t.Fatal(err)
+			}
+			if alternate == latest {
+				t.Fatal("alternate path unexpectedly equals latest backup")
+			}
 
-	got, err := os.ReadFile(kpath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if bytes.Equal(got, altBytes) {
-		t.Error("Restore used the `where` path; javaStore.Restore currently ignores it and restores GetLatestBackup()")
-	}
-	if !bytes.Equal(got, original) {
-		t.Errorf("live cacerts does not match original snapshot after Restore(where)")
-	}
-	latestBytes, err := os.ReadFile(latest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(got, latestBytes) {
-		t.Errorf("live cacerts does not match GetLatestBackup() contents")
+			if err := s.Restore(alternate); err != nil {
+				t.Fatalf("Restore(alternate): %v", err)
+			}
+
+			got, err := os.ReadFile(kpath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if bytes.Equal(got, altBytes) {
+				t.Error("Restore used the `where` path; javaStore.Restore currently ignores it and restores GetLatestBackup()")
+			}
+			if !bytes.Equal(got, original) {
+				t.Errorf("live cacerts does not match original snapshot after Restore(where)")
+			}
+			latestBytes, err := os.ReadFile(latest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, latestBytes) {
+				t.Errorf("live cacerts does not match GetLatestBackup() contents")
+			}
+		})
 	}
 }
