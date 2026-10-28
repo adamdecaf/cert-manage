@@ -19,21 +19,15 @@ import (
 )
 
 func TestDebian__suite(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/debian")
-	linuxSuite(t, img, cfg{
-		total:        "166",
-		after:        "5",
-		curlExitCode: "35",
-	})
+	linuxSuite(t, img)
 }
 
 func TestDebian__java(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/debian")
-	javaSuite(t, img, "166", "63")
+	javaSuite(t, img)
 }

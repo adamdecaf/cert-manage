@@ -33,6 +33,9 @@ func online(t *testing.T) bool {
 }
 
 func inCI() bool {
+	if os.Getenv("GITHUB_ACTIONS") == "true" {
+		return true
+	}
 	inTravis := os.Getenv("TRAVIS_OS_NAME") != ""
 	inAppVeyorWin := os.Getenv("CI_WINDOWS") == "true"
 	inAppVeyorLinux := os.Getenv("CI_LINUX") == "true"

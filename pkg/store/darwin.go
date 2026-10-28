@@ -52,10 +52,8 @@ var (
 	// is typically where overrides (e.g. corporate CA's) are installed into.
 	loginKeychain = filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain")
 
-	// If people run into issues with 'login.keychain' not being found it's likely that
-	// they have ~/Library/Keychains/login.keychain-db instead (from Sierra installs),
-	// but for now I'm not going to hook in support for both.
-	// See: https://github.com/fastlane/fastlane/issues/5649
+	// Sierra+ stores the login keychain as login.keychain-db. The security CLI
+	// still accepts 'login.keychain' as an alias, but os.Stat does not.
 
 	// Folder under ~/Library/cert-manage/ to put backups
 	darwinBackupDir = "darwin"
@@ -99,7 +97,7 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 			resultType = "trustAsRoot"
 		}
 
-		cmd := exec.Command("security", "add-trusted-cert", "-r", resultType, "-p", "ssl", "-k", loginKeychain, path)
+		cmd := exec.Command("security", "add-trusted-cert", "-r", resultType, "-p", "ssl", "-k", loginKeychainFile(), path)
 		out, err := cmd.CombinedOutput()
 		if err != nil && debug {
 			fmt.Printf("Command ran: %q\n", strings.Join(cmd.Args, " "))
@@ -119,7 +117,8 @@ func (s darwinStore) Backup() error {
 	// Backup the certificates from the login keychain and export each into a separate file
 	// The backup format looks like this: darwin/$time/$keychain-name/$fingerprint.crt
 	// Files are PEM encoded x509 certificates.
-	if _, err := os.Stat(loginKeychain); os.IsNotExist(err) {
+	login := loginKeychainFile()
+	if _, err := os.Stat(login); os.IsNotExist(err) {
 		if debug {
 			fmt.Printf("store/darwin: Backup: skipping login keychain as it's missing")
 		}
@@ -127,9 +126,9 @@ func (s darwinStore) Backup() error {
 	}
 
 	_, fname := filepath.Split(loginKeychain)
-	certs, err := readInstalledCerts(loginKeychain)
+	certs, err := readInstalledCerts(login)
 	if err != nil {
-		return fmt.Errorf("Backup: error reading installed certs from %s, err=%v", loginKeychain, err)
+		return fmt.Errorf("Backup: error reading installed certs from %s, err=%v", login, err)
 	}
 	dir, err := getCertManageDir(filepath.Join(parent, fname))
 	if err != nil {
@@ -176,34 +175,154 @@ func (s darwinStore) version() string {
 }
 
 func (s darwinStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
-	// Grab certs from all keychains which are readable
-	installed, err := readInstalledCerts(systemRootCertificates, systemKeychain, loginKeychain)
+	if opts == nil {
+		opts = &ListOptions{Trusted: true}
+	}
+
+	installed, err := readInstalledCerts(darwinKeychainPaths()...)
 	if err != nil {
 		return nil, err
 	}
 
-	// If there's a trust policy verify it, otherwise don't bother.
+	// verify-cert -p ssl treats each item as an SSL *server* cert. Root CAs
+	// typically have no SSL EKU, so that check drops the whole store (0 certs
+	// on a clean GitHub Actions runner). Trust settings are one `security`
+	// invocation per domain instead of one process per certificate.
+	trust := readDarwinTrustSettings()
+
 	pool := certutil.Pool{}
 	for i := range installed {
-		// Unlike Go, we don't really have a performance concern that pushes us towards grabbing a
-		// plist file from 'security' and parsing it. We can shell out to 'security verify-cert'
-		// and encur the time penality.
-		trusted := certTrustedWithSystem(installed[i])
-		if trusted {
-			if opts.Trusted {
-				pool.Add(installed[i])
-			}
-		} else {
-			// TODO(adam): support opts.Revoked and opts.Expired
+		denied := trust.certDenied(installed[i])
+		if denied {
 			if opts.Untrusted {
 				pool.Add(installed[i])
 			}
+			continue
 		}
-		if debug {
-			fmt.Printf("store/darwin: %s trust status after verify-cert: %v\n", certutil.GetHexSHA256Fingerprint(*installed[i]), trusted)
+		if opts.Trusted {
+			pool.Add(installed[i])
 		}
 	}
 	return pool.GetCertificates(), nil
+}
+
+// loginKeychainFile returns the on-disk login keychain path. Sierra+ uses
+// login.keychain-db; older systems use login.keychain.
+func loginKeychainFile() string {
+	db := loginKeychain + "-db"
+	if file.Exists(loginKeychain) {
+		return loginKeychain
+	}
+	if file.Exists(db) {
+		return db
+	}
+	return loginKeychain
+}
+
+func darwinKeychainPaths() []string {
+	paths := []string{systemRootCertificates, systemKeychain, loginKeychain}
+	if db := loginKeychain + "-db"; file.Exists(db) {
+		paths = append(paths, db)
+	}
+	return paths
+}
+
+type darwinTrustSettings struct {
+	trusted map[string]struct{}
+	denied  map[string]struct{}
+}
+
+func (t darwinTrustSettings) isDenied(name string) bool {
+	_, ok := t.denied[name]
+	return ok
+}
+
+func (t darwinTrustSettings) isTrusted(name string) bool {
+	if t.isDenied(name) {
+		return false
+	}
+	_, ok := t.trusted[name]
+	return ok
+}
+
+func (t darwinTrustSettings) certDenied(c *x509.Certificate) bool {
+	if c == nil {
+		return false
+	}
+	for _, n := range darwinCertNames(c) {
+		if t.isDenied(n) {
+			return true
+		}
+	}
+	return false
+}
+
+func darwinCertNames(c *x509.Certificate) []string {
+	var names []string
+	if c.Subject.CommonName != "" {
+		names = append(names, c.Subject.CommonName)
+	}
+	if s := certutil.StringifyPKIXName(c.Subject); s != "" && s != c.Subject.CommonName {
+		names = append(names, s)
+	}
+	return names
+}
+
+func readDarwinTrustSettings() darwinTrustSettings {
+	t := darwinTrustSettings{
+		trusted: make(map[string]struct{}),
+		denied:  make(map[string]struct{}),
+	}
+	flags := [][]string{
+		{"-s"},
+		{"-d"},
+		nil, // user domain
+	}
+	for _, extra := range flags {
+		args := append([]string{"dump-trust-settings"}, extra...)
+		out, _ := exec.Command("/usr/bin/security", args...).CombinedOutput()
+		parseDarwinTrustSettings(string(out), &t)
+	}
+	return t
+}
+
+func parseDarwinTrustSettings(out string, t *darwinTrustSettings) {
+	if t.trusted == nil {
+		t.trusted = make(map[string]struct{})
+	}
+	if t.denied == nil {
+		t.denied = make(map[string]struct{})
+	}
+
+	var current string
+	var denied bool
+	flush := func() {
+		if current == "" {
+			return
+		}
+		if denied {
+			t.denied[current] = struct{}{}
+		} else {
+			t.trusted[current] = struct{}{}
+		}
+		current = ""
+		denied = false
+	}
+
+	for _, raw := range strings.Split(out, "\n") {
+		line := strings.TrimSpace(raw)
+		if strings.HasPrefix(line, "Cert ") {
+			if idx := strings.Index(line, ":"); idx >= 0 {
+				flush()
+				current = strings.TrimSpace(line[idx+1:])
+			}
+			continue
+		}
+		if strings.Contains(line, "Result Type") && strings.Contains(line, "Deny") {
+			denied = true
+		}
+	}
+	flush()
 }
 
 // certTrustedWithSystem calls out to `verify-cert` of the `security` cli tool to check
@@ -491,7 +610,7 @@ func (s darwinStore) Restore(where string) error {
 		fmt.Printf("store/darwin: Found backup dir at %s\n", dir)
 	}
 
-	alreadyInstalled, err := readInstalledCerts(loginKeychain)
+	alreadyInstalled, err := readInstalledCerts(loginKeychainFile())
 	if err != nil {
 		return fmt.Errorf("Restore: error getting login keychain certs, err=%v", err)
 	}

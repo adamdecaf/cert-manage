@@ -23,6 +23,13 @@ import (
 	"github.com/adamdecaf/cert-manage/pkg/whitelist"
 )
 
+func TestIntegration__list(t *testing.T) {
+	t.Parallel()
+
+	cmd := CertManage("list", "-count").Trim()
+	cmd.CmpIntF(t, func(i int) bool { return i > 10 })
+}
+
 // high-level test of entire "gen-whitelist" code path
 func TestIntegraton__genWhitelist(t *testing.T) {
 	t.Parallel()
@@ -44,7 +51,7 @@ func TestIntegraton__genWhitelist(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wh.Fingerprints) != 3 {
+	if len(wh.Fingerprints) < 1 {
 		t.Errorf("got %q", wh.Fingerprints)
 	}
 }

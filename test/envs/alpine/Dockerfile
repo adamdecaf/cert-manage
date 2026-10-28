@@ -1,17 +1,15 @@
-FROM alpine:3.7
+FROM alpine:3.21
 
-RUN apk update && apk add ca-certificates curl openjdk8 java-cacerts
+RUN apk add --no-cache ca-certificates curl openjdk21-jdk
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 COPY Download.java /Download.java
-ENV JAVA_HOME /usr/lib/jvm/java-1.8-openjdk
-RUN cd / && /usr/lib/jvm/java-1.8-openjdk/bin/javac /Download.java
+RUN javac /Download.java
 
 COPY globalsign-whitelist.json /whitelist.json
 COPY us-whitelist.yaml /whitelist.yaml
-COPY cert-manage-linux-amd64 /bin/cert-manage
-
 COPY localcert.pem /localcert.pem
 
-COPY script.sh /bin/script.sh
-RUN chmod +x /bin/script.sh
-CMD /bin/script.sh
+# cert-manage and script.sh are bind-mounted at run so suite/java share this image.
+CMD ["/bin/script.sh"]

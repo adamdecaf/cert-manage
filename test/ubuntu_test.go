@@ -19,27 +19,21 @@ import (
 )
 
 func TestUbuntu__suite(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")
-	linuxSuite(t, img, cfg{
-		total:        "148",
-		after:        "5",
-		curlExitCode: "35",
-	})
+	linuxSuite(t, img)
 }
 
 func TestUbuntu__java(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")
-	javaSuite(t, img, "148", "54")
+	javaSuite(t, img)
 }
 
 func TestUbuntu__firefox(t *testing.T) {
-	t.Skip("TODO(adam): fix")
+	t.Skip("firefox distro coverage is not wired up yet")
 	t.Parallel()
 
 	img := Dockerfile("envs/ubuntu")

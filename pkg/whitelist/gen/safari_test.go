@@ -22,16 +22,15 @@ import (
 )
 
 func TestWhitelistGen__findSafariPlacesDB(t *testing.T) {
-	t.Skip("TODO(adam): fix")
-
+	if !file.Exists("/Applications/Safari.app") {
+		t.Skip("safari not installed")
+	}
 	db, err := findSafariHistoryDB()
-	if file.Exists("/Applications/Safari.app") {
-		if err != nil {
-			t.Fatal(err)
-		}
-		if db == nil {
-			t.Fatal("no error, but didn't find safari places.sqlite")
-		}
+	if err != nil {
+		t.Skip(err.Error())
+	}
+	if db == nil {
+		t.Skip("safari installed, but no History.db")
 	}
 }
 

@@ -20,6 +20,7 @@ package store
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -110,21 +111,68 @@ func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 }
 
 func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) {
-	serials, err := s.certSerialsFromStore(store)
+	// Trust-store certs have no private key, so certutil -exportPFX cannot
+	// represent them (PKCS#12 parse fails, list returns 0). Dump DER via
+	// PowerShell in one call per store instead of one certutil per cert.
+	tmp, err := ioutil.TempFile("", "cert-manage-win-store")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating temp file, err=%v", err)
 	}
-	var accum []*x509.Certificate
-	for i := range serials {
-		cert, err := s.exportCertFromStore(serials[i], store)
+	path := tmp.Name()
+	tmp.Close()
+	defer os.Remove(path)
+
+	psPath := strings.ReplaceAll(path, "'", "''")
+	script := fmt.Sprintf(`
+$ErrorActionPreference = 'SilentlyContinue'
+$sb = New-Object System.Text.StringBuilder
+Get-ChildItem -LiteralPath 'Cert:\LocalMachine\%s' | ForEach-Object {
+  [void]$sb.AppendLine('-----BEGIN CERTIFICATE-----')
+  [void]$sb.AppendLine([Convert]::ToBase64String($_.RawData))
+  [void]$sb.AppendLine('-----END CERTIFICATE-----')
+}
+[IO.File]::WriteAllText('%s', $sb.ToString(), [Text.UTF8Encoding]::new($false))
+`, store, psPath)
+
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("error reading store %s: %v: %s", store, err, strings.TrimSpace(string(out)))
+	}
+
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading exported store %s: %v", store, err)
+	}
+	if len(bytes.TrimSpace(bs)) == 0 {
+		return nil, nil
+	}
+	return parseWindowsPEM(bs), nil
+}
+
+// parseWindowsPEM extracts certificates from a PEM blob and skips entries Go
+// cannot parse (legacy negative serials, etc.) so one bad root cannot empty
+// the whole store.
+func parseWindowsPEM(blob []byte) []*x509.Certificate {
+	var certs []*x509.Certificate
+	for {
+		var block *pem.Block
+		block, blob = pem.Decode(blob)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
-			return nil, err
+			if debug {
+				fmt.Printf("store/windows: skipping unparsable cert: %v\n", err)
+			}
+			continue
 		}
-		if cert != nil {
-			accum = append(accum, cert)
-		}
+		certs = append(certs, cert)
 	}
-	return accum, nil
+	return certs
 }
 
 func (s windowsStore) certSerialsFromStore(store string) ([]string, error) {
@@ -187,13 +235,10 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 		fmt.Printf("%q\n", string(out))
 	}
 	if err != nil {
-		if debug && bytes.Contains(out, []byte("Keyset does not exist")) {
-			// TODO(adam): Issue repair? That might muck with the store(s)
-			return nil, nil
-		}
-		if debug && bytes.Contains(out, []byte("Cannot find object or property.")) {
-			// TODO(adam): uhh..?
-			// CertUtil: -exportPFX command FAILED: 0x80092004 (-2146885628 CRYPT_E_NOT_FOUND)\r\nCertUtil: Cannot find object or property.
+		if skipWindowsExport(string(out), err) {
+			if debug {
+				fmt.Printf("store/windows: skipping cert %s from %s: %s\n", serial, store, string(out))
+			}
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12 err=%q", serial, store, err)
@@ -205,17 +250,43 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 	}
 	cert, err := certutil.DecodePKCS12(bs, pfxPassword)
 	if err != nil {
-		if debug && strings.Contains(err.Error(), "expected exactly two items in the authenticated safe") {
-			// TODO(adam): https://github.com/golang/go/issues/23499
-			return nil, nil
-		}
-		if debug && strings.Contains(err.Error(), "OID 1.3.6.1.4.1.311.17.2") {
-			// TODO(adam): http://oidref.com/1.3.6.1.4.1.311.17.2
+		if skipWindowsPKCS12(err) {
+			if debug {
+				fmt.Printf("store/windows: skipping PKCS#12 parse for %s from %s: %v\n", serial, store, err)
+			}
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
 	}
 	return cert, nil
+}
+
+func skipWindowsPKCS12(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := err.Error()
+	return strings.Contains(s, "expected exactly two items in the authenticated safe") ||
+		strings.Contains(s, "OID 1.3.6.1.4.1.311.17.2")
+}
+
+func skipWindowsExport(out string, err error) bool {
+	if err == nil {
+		return false
+	}
+	s := out + err.Error()
+	for _, n := range []string{
+		"Keyset does not exist",
+		"Cannot find object or property.",
+		"0x8009000b",
+		"NTE_BAD_KEY_STATE",
+		"CRYPT_E_NOT_FOUND",
+	} {
+		if strings.Contains(s, n) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s windowsStore) Remove(wh whitelist.Whitelist) error {

@@ -26,9 +26,13 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
+)
+
+var (
+	dockerImageMu sync.Mutex
+	dockerImages  = map[string]error{}
 )
 
 var (
@@ -46,6 +50,9 @@ type dockerfile struct {
 	// -t flag with build/run
 	tag string
 
+	// host path of the generated script, bind-mounted at run
+	scriptPath string
+
 	// any errors specific to the dockerfile from `docker` commands
 	err error
 
@@ -61,10 +68,10 @@ func Dockerfile(where string) *dockerfile {
 		where = filepath.Join(where, "/Dockerfile")
 	}
 
-	// Grab the env name (e.g. envs/$env_name/Dockerfile)
+	// Grab the env name (e.g. envs/$env_name/Dockerfile). Stable tags let
+	// suite + java tests in the same process share one image build.
 	dir := filepath.Dir(where)
-	now := time.Now().Unix()
-	tag := fmt.Sprintf("cert-manage:%s-%d", filepath.Base(dir), now)
+	tag := fmt.Sprintf("cert-manage:%s", filepath.Base(dir))
 
 	return &dockerfile{
 		base: where,
@@ -116,12 +123,19 @@ func (d *dockerfile) CertManageEQ(args, answer string) {
 	d.CertManage(append(strings.Split(args, " "), d.OutputEquals(answer)...)...)
 }
 
+func linuxBinary() string {
+	return filepath.Join("..", "bin", fmt.Sprintf("cert-manage-linux-%s", runtime.GOARCH))
+}
+
 func (d *dockerfile) SuccessT(t *testing.T) {
 	if !d.enabled() {
 		t.Skip("docker isn't enabled")
 	}
-	if runtime.GOOS == "darwin" && inCI() {
-		t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
+	if runtime.GOOS != "linux" {
+		t.Skip("docker distro tests run on linux")
+	}
+	if !file.Exists(linuxBinary()) {
+		t.Skip("linux binary not built")
 	}
 
 	d.prep()
@@ -136,26 +150,25 @@ func (d *dockerfile) build() {
 	d.wg.Add(1)
 	defer d.wg.Done()
 
-	// Copy our original image's contents into the dst file
-	dir, err := ioutil.TempDir("", d.tag)
+	// Copy our original image's contents into the dst file.
+	// Image tags contain a colon (cert-manage:alpine); that must not appear
+	// in the host path or `docker run -v src:dst` treats the rest as a mode.
+	dir, err := ioutil.TempDir("", dockerTempPrefix(d.tag))
 	if err != nil {
 		d.err = fmt.Errorf("tempfile create err=%v", err)
 		return
 	}
 
-	// Copy cert-manage and whitelist to the temp directory and assume it's linux
-	copyable := []string{
-		"../bin/cert-manage-linux-amd64",
-		"../testdata/Download.java",
-		"../testdata/globalsign-whitelist.json",
-		"../testdata/us-whitelist.yaml",
-		"../testdata/localcert.pem",
+	copies := []struct{ src, dst string }{
+		{"../testdata/Download.java", "Download.java"},
+		{"../testdata/globalsign-whitelist.json", "globalsign-whitelist.json"},
+		{"../testdata/us-whitelist.yaml", "us-whitelist.yaml"},
+		{"../testdata/localcert.pem", "localcert.pem"},
 	}
-	for i := range copyable {
-		name := filepath.Base(copyable[i])
-		err = file.CopyFile(copyable[i], filepath.Join(dir, name))
+	for i := range copies {
+		err = file.CopyFile(copies[i].src, filepath.Join(dir, copies[i].dst))
 		if err != nil {
-			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", name, err)
+			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", copies[i].dst, err)
 			return
 		}
 	}
@@ -165,7 +178,6 @@ func (d *dockerfile) build() {
 		d.err = fmt.Errorf("tmp Dockerfile create err=%v", err)
 		return
 	}
-	defer os.Remove(dst.Name())
 
 	src, err := os.Open(d.base)
 	if err != nil {
@@ -185,14 +197,17 @@ func (d *dockerfile) build() {
 		d.err = fmt.Errorf("dst fsync err=%v", err)
 		return
 	}
+	if err := dst.Close(); err != nil {
+		d.err = fmt.Errorf("dst close err=%v", err)
+		return
+	}
 
-	// Add all commands to a script copied Dockerfile
+	// Script is bind-mounted at run so suite and java tests share one image.
 	script, err := os.Create(filepath.Join(dir, "script.sh"))
 	if err != nil {
 		d.err = err
 		return
 	}
-	defer os.Remove(script.Name())
 	_, err = script.WriteString(`#!/bin/sh
 set +x
 set -e` + "\n") // force newline
@@ -201,22 +216,31 @@ set -e` + "\n") // force newline
 		return
 	}
 	for i := range d.commands {
-		line := fmt.Sprintf("%s %s\n", d.commands[i].command, strings.Join(d.commands[i].args, " "))
+		line := formatScriptLine(d.commands[i]) + "\n"
 		if _, err := script.WriteString(line); err != nil {
 			d.err = fmt.Errorf("command=%q err=%v", line, err)
 			return
 		}
 	}
-	d.err = script.Sync()
-	if d.err != nil {
+	if err := script.Sync(); err != nil {
+		d.err = err
+		return
+	}
+	if err := script.Close(); err != nil {
+		d.err = err
+		return
+	}
+	if err := os.Chmod(script.Name(), 0755); err != nil {
+		d.err = err
+		return
+	}
+	d.scriptPath, err = filepath.Abs(script.Name())
+	if err != nil {
+		d.err = err
 		return
 	}
 
-	// Build docker image now
-	out, err := exec.Command("docker", "build", "-t", d.tag, dir).CombinedOutput()
-	if err != nil {
-		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
-	}
+	d.err = ensureDockerImage(d.tag, dir)
 }
 
 func (d *dockerfile) run() {
@@ -228,10 +252,24 @@ func (d *dockerfile) run() {
 		return
 	}
 
-	// build `docker run` flags
-	args := []string{"run"}
+	args := []string{"run", "--rm"}
 	if debug {
 		args = append(args, "-e", "DEBUG=true")
+	}
+	if d.scriptPath != "" {
+		args = append(args, bindMount(d.scriptPath, "/bin/script.sh")...)
+	}
+	if bin := linuxBinary(); file.Exists(bin) {
+		abs, err := filepath.Abs(bin)
+		if err != nil {
+			d.err = err
+			return
+		}
+		if err := os.Chmod(abs, 0755); err != nil {
+			d.err = err
+			return
+		}
+		args = append(args, bindMount(abs, "/bin/cert-manage")...)
 	}
 	args = append(args, "-t", d.tag)
 
@@ -267,4 +305,52 @@ func IsDockerEnabled() bool {
 	// Docker creates '.dockerenv' in the FS root, so if we see that
 	// declare docker is disabled (avoid docker-in-docker)
 	return !file.Exists("/.dockerenv")
+}
+
+func ensureDockerImage(tag, contextDir string) error {
+	dockerImageMu.Lock()
+	defer dockerImageMu.Unlock()
+	if err, ok := dockerImages[tag]; ok {
+		return err
+	}
+	out, err := exec.Command("docker", "build", "-t", tag, contextDir).CombinedOutput()
+	if err != nil {
+		err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
+	}
+	dockerImages[tag] = err
+	return err
+}
+
+// formatScriptLine renders a command into a POSIX shell line. `sh -c` bodies
+// are single-quoted so `$()`, pipes, and tests survive as one script.
+func formatScriptLine(c *Cmd) string {
+	if c == nil {
+		return ""
+	}
+	if c.command == "sh" && len(c.args) >= 2 && c.args[0] == "-c" {
+		return "sh -c " + posixQuote(strings.Join(c.args[1:], " "))
+	}
+	parts := make([]string, 0, 1+len(c.args))
+	parts = append(parts, c.command)
+	parts = append(parts, c.args...)
+	return strings.Join(parts, " ")
+}
+
+func posixQuote(s string) string {
+	return "'" + strings.Replace(s, "'", `'"'"'`, -1) + "'"
+}
+
+func dockerTempPrefix(tag string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case ':', '/', '\\':
+			return '-'
+		default:
+			return r
+		}
+	}, tag)
+}
+
+func bindMount(host, dest string) []string {
+	return []string{"--mount", fmt.Sprintf("type=bind,source=%s,target=%s", host, dest)}
 }

@@ -18,6 +18,7 @@
 package store
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -55,6 +56,44 @@ Serial Number: 214817429841748bbbcccca`
 	}
 	if !reflect.DeepEqual(serials, ans) {
 		t.Errorf("got %q", serials)
+	}
+}
+
+func TestSkipWindowsPKCS12(t *testing.T) {
+	err := fmt.Errorf("pkcs12: expected exactly two items in the authenticated safe")
+	if !skipWindowsPKCS12(err) {
+		t.Fatal("expected skip for authenticated safe parse error")
+	}
+	if skipWindowsPKCS12(fmt.Errorf("fatal boom")) {
+		t.Fatal("unknown errors must not be skipped")
+	}
+}
+
+func TestSkipWindowsExport(t *testing.T) {
+	err := fmt.Errorf("exit status 0x8009000b")
+	if !skipWindowsExport(`error exporting cert "40d7e251fd60952593ea3fa7809cf71b" (from My)`, err) {
+		t.Fatal("expected skip for 0x8009000b")
+	}
+	if skipWindowsExport("", fmt.Errorf("fatal boom")) {
+		t.Fatal("unknown errors must not be skipped")
+	}
+}
+
+func TestParseWindowsPEM_skipsBad(t *testing.T) {
+	// A truncated CERTIFICATE block should not fail the rest of the blob.
+	blob := []byte("-----BEGIN CERTIFICATE-----\nQQ==\n-----END CERTIFICATE-----\n")
+	if certs := parseWindowsPEM(blob); len(certs) != 0 {
+		t.Fatalf("got %d certs from garbage PEM", len(certs))
+	}
+}
+
+func TestStoreWindows__List(t *testing.T) {
+	certs, err := platform().List(&ListOptions{Trusted: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) <= 10 {
+		t.Errorf("expected more than 10 trusted platform certs, got %d", len(certs))
 	}
 }
 

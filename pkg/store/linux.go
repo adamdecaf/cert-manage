@@ -59,12 +59,19 @@ func (ca *cadir) empty() bool {
 var (
 	// From Go's source, src/crypto/x509/root_linux.go
 	cadirs = []cadir{
-		// Debian/Ubuntu/Gentoo/etc..
+		// Debian/Ubuntu/Alpine/Gentoo
 		{
 			add:     "/usr/local/share/ca-certificates",
 			dir:     "/usr/share/ca-certificates",
 			all:     "/etc/ssl/certs/ca-certificates.crt",
 			refresh: "/usr/sbin/update-ca-certificates",
+		},
+		// Fedora/RHEL/CentOS
+		{
+			add:     "/etc/pki/ca-trust/source/anchors",
+			dir:     "/etc/pki/ca-trust/source/anchors",
+			all:     "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+			refresh: "/usr/bin/update-ca-trust",
 		},
 	}
 
@@ -76,17 +83,12 @@ type linuxStore struct {
 }
 
 func platform() Store {
-	var ca cadir
-	// find the cadir, if it exists
-	for _, ca = range cadirs {
-		if ca.empty() {
-			break
+	for _, ca := range cadirs {
+		if !ca.empty() {
+			return linuxStore{ca: ca}
 		}
 	}
-
-	return linuxStore{
-		ca: ca,
-	}
+	return linuxStore{}
 }
 
 func (s linuxStore) Add(certs []*x509.Certificate) error {

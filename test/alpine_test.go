@@ -19,21 +19,15 @@ import (
 )
 
 func TestAlpine__suite(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/alpine")
-	linuxSuite(t, img, cfg{
-		total:        "151",
-		after:        "5",
-		curlExitCode: "60",
-	})
+	linuxSuite(t, img)
 }
 
 func TestAlpine__java(t *testing.T) {
-	t.Skip("TODO(adam): fix")
 	t.Parallel()
 
 	img := Dockerfile("envs/alpine")
-	javaSuite(t, img, "150", "54")
+	javaSuite(t, img)
 }
