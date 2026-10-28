@@ -20,8 +20,6 @@ win_64:
 
 dist: linux osx win
 
-deps:
-	dep ensure -update
 
 .PHONY: check
 check:

@@ -32,7 +32,7 @@ BUG FIXES
 
 BUILD
 
-- Go 1.10 is required to build and test
+- Go 1.27 is required to build and test
 - Run tests on windows for PR's
 
 ## 0.1.0 (2018-02-13)
