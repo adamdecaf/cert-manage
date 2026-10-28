@@ -1,0 +1,290 @@
+// Copyright 2018 Adam Shannon
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build linux
+// +build linux
+
+package store
+
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// linuxTestStore builds a linuxStore whose CA paths and backup destination
+// all live under t.TempDir(). HOME is pointed at a separate temp dir so
+// backups land in $HOME/.cert-manage/linux/... rather than the real home.
+//
+// Restore always runs rebundleCerts, which prefixes the refresh command with
+// sudo unless the process is already root. Tests install a PATH-shadowing
+// passthrough sudo so `sudo /bin/true` succeeds without touching the host
+// (this environment's real sudo requires a password).
+func linuxTestStore(t *testing.T) linuxStore {
+	t.Helper()
+
+	caRoot := t.TempDir()
+	caDir := filepath.Join(caRoot, "ca")
+	caAdd := filepath.Join(caRoot, "add")
+	caAll := filepath.Join(caRoot, "all.pem")
+	if err := os.MkdirAll(caDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(caAdd, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	installPassthroughSudo(t)
+
+	example, err := os.ReadFile(filepath.Join("..", "..", "testdata", "example.crt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(caDir, "example.crt"), example, 0644); err != nil {
+		t.Fatal(err)
+	}
+	extra := []byte("extra-ca-file-for-backup-tests\n")
+	if err := os.WriteFile(filepath.Join(caDir, "extra.crt"), extra, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(caAll, example, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := linuxStore{
+		ca: cadir{
+			add:     caAdd,
+			dir:     caDir,
+			all:     caAll,
+			refresh: "/bin/true",
+		},
+	}
+	refuseSystemCAPaths(t, s)
+	return s
+}
+
+func installPassthroughSudo(t *testing.T) {
+	t.Helper()
+	dir := t.TempDir()
+	script := filepath.Join(dir, "sudo")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nexec \"$@\"\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func refuseSystemCAPaths(t *testing.T, s linuxStore) {
+	t.Helper()
+	for _, p := range []string{s.ca.dir, s.ca.add, s.ca.all} {
+		cleaned := filepath.Clean(p)
+		if strings.HasPrefix(cleaned, "/etc/") || strings.HasPrefix(cleaned, "/usr/") {
+			t.Fatalf("refusing to run against system CA path %s", p)
+		}
+	}
+}
+
+func snapshotDir(t *testing.T, dir string) map[string][]byte {
+	t.Helper()
+	out := make(map[string][]byte)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		out[rel] = b
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func assertDirSnapshotEqual(t *testing.T, gotDir string, want map[string][]byte) {
+	t.Helper()
+	got := snapshotDir(t, gotDir)
+	if len(got) != len(want) {
+		t.Errorf("file count: got %d want %d", len(got), len(want))
+	}
+	for name, wantb := range want {
+		gotb, ok := got[name]
+		if !ok {
+			t.Errorf("missing file %s", name)
+			continue
+		}
+		if !bytes.Equal(gotb, wantb) {
+			t.Errorf("file %s: content mismatch", name)
+		}
+	}
+	for name := range got {
+		if _, ok := want[name]; !ok {
+			t.Errorf("unexpected file %s", name)
+		}
+	}
+}
+
+func TestBackupProducesCompleteCopy(t *testing.T) {
+	s := linuxTestStore(t)
+	want := snapshotDir(t, s.ca.dir)
+	if len(want) < 2 {
+		t.Fatalf("expected multiple files in ca.dir, got %d", len(want))
+	}
+
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil {
+		t.Fatalf("GetLatestBackup: %v", err)
+	}
+	if latest == "" {
+		t.Fatal("GetLatestBackup returned empty path")
+	}
+	st, err := os.Stat(latest)
+	if err != nil {
+		t.Fatalf("stat backup dir: %v", err)
+	}
+	if !st.IsDir() {
+		t.Fatalf("latest backup %s is not a directory", latest)
+	}
+
+	assertDirSnapshotEqual(t, latest, want)
+}
+
+func TestBackupRestoreRoundTrip(t *testing.T) {
+	s := linuxTestStore(t)
+	want := snapshotDir(t, s.ca.dir)
+
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+
+	if err := os.Remove(filepath.Join(s.ca.dir, "extra.crt")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(s.ca.dir, "example.crt"), []byte("mutated-live-ca\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Restore(""); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	assertDirSnapshotEqual(t, s.ca.dir, want)
+}
+
+func TestLinuxRestore_IgnoresWherePath(t *testing.T) {
+	// TODO: linuxStore.Restore ignores its `where` argument and always
+	// restores from GetLatestBackup(). The CLI -file flag is plumbed from
+	// main.go through cmd.RestoreForPlatform into Store.Restore, but
+	// linuxStore.Restore never reads the argument.
+	s := linuxTestStore(t)
+	want := snapshotDir(t, s.ca.dir)
+
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+
+	if err := os.Remove(filepath.Join(s.ca.dir, "extra.crt")); err != nil {
+		t.Fatal(err)
+	}
+
+	alternate := t.TempDir()
+	if err := os.WriteFile(filepath.Join(alternate, "only-in-alternate.crt"), []byte("ALTERNATE-BACKUP-MARKER\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if alternate == latest {
+		t.Fatal("alternate path unexpectedly equals latest backup")
+	}
+
+	if err := s.Restore(alternate); err != nil {
+		t.Fatalf("Restore(alternate): %v", err)
+	}
+
+	got := snapshotDir(t, s.ca.dir)
+	if _, ok := got["only-in-alternate.crt"]; ok {
+		t.Error("Restore used the `where` path; linuxStore.Restore currently ignores it and restores GetLatestBackup()")
+	}
+	assertDirSnapshotEqual(t, s.ca.dir, want)
+	assertDirSnapshotEqual(t, s.ca.dir, snapshotDir(t, latest))
+}
+
+func TestLinuxRestore_DeletesLiveDirBeforeCopy(t *testing.T) {
+	// TODO: restore should mirror to a temp dir then swap into place.
+	// linuxStore.Restore currently os.RemoveAll(s.ca.dir) before MirrorDir,
+	// so a failure after the delete leaves the live CA directory wiped.
+	s := linuxTestStore(t)
+
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+
+	if err := os.RemoveAll(latest); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(latest, []byte("not-a-directory\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	gotLatest, err := s.GetLatestBackup()
+	if err != nil {
+		t.Fatalf("GetLatestBackup after corrupting backup: %v", err)
+	}
+	if gotLatest != latest {
+		t.Fatalf("GetLatestBackup=%s want %s", gotLatest, latest)
+	}
+
+	err = s.Restore("")
+	if err == nil {
+		t.Fatal("expected Restore to fail after backup was replaced with a file")
+	}
+
+	st, statErr := os.Stat(s.ca.dir)
+	switch {
+	case os.IsNotExist(statErr):
+		// live dir was wiped and not recreated
+	case statErr != nil:
+		t.Fatalf("stat ca.dir: %v", statErr)
+	case st.IsDir():
+		entries, readErr := os.ReadDir(s.ca.dir)
+		if readErr != nil {
+			t.Fatalf("ReadDir ca.dir: %v", readErr)
+		}
+		if len(entries) > 0 {
+			t.Errorf("ca.dir still has %d entries after failed Restore; documenting delete-before-copy, expected wiped/empty", len(entries))
+		}
+	default:
+		t.Errorf("ca.dir exists as a non-directory after failed Restore: %s", s.ca.dir)
+	}
+}

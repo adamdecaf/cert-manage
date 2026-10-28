@@ -15,9 +15,11 @@
 package store
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -65,4 +67,82 @@ func TestStoreNSS_trustedForSSL(t *testing.T) {
 			t.Errorf("attrs (%s), trustedForSSL()=%v should be %v", attrs, res, answer)
 		}
 	}
+}
+
+func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
+	// TODO(#142): Backup joins foundCertdbLocation with its own basename instead of
+	// cert9.db/cert8.db, so the real NSS DB is never backed up.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	cert9 := []byte("cert9.db unique payload for issue 142\n")
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), cert9, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	wrongSrc := filepath.Join(nssdbDir, filepath.Base(nssdbDir))
+	if _, err := os.Stat(wrongSrc); !os.IsNotExist(err) {
+		t.Fatalf("precondition: %s must not exist so Backup hits #142 (stat err=%v)", wrongSrc, err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	err := s.Backup()
+
+	backupRoot := filepath.Join(home, ".cert-manage")
+	if runtime.GOOS == "darwin" {
+		backupRoot = filepath.Join(home, "Library", "cert-manage")
+	}
+	found := findBytesUnder(t, backupRoot, cert9)
+
+	// Current (buggy) behavior: CopyFile(nssdbDir+"/"+basename) fails because
+	// that path does not exist when only cert9.db is present, so Backup errors
+	// and cert9.db is never copied.
+	if err == nil {
+		t.Error("Backup() succeeded; current #142 behavior is an error because the source path is nssdbDir/<basename>, not cert9.db")
+	}
+	if found != "" {
+		t.Errorf("cert9.db content appeared at %s; #142 is that the NSS DB is never backed up", found)
+	}
+
+	// Expected-correct behavior once #142 is fixed:
+	//
+	//	if err != nil {
+	//		t.Fatalf("Backup() should copy cert9.db: %v", err)
+	//	}
+	//	if found == "" {
+	//		t.Fatal("cert9.db content missing from backup")
+	//	}
+}
+
+func findBytesUnder(t *testing.T, root string, payload []byte) string {
+	t.Helper()
+	if _, err := os.Stat(root); os.IsNotExist(err) {
+		return ""
+	}
+	var found string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(b, payload) || bytes.Contains(b, payload) {
+			found = path
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return found
 }
