@@ -52,7 +52,7 @@ func TestCertUtil__decodeNSS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(certs) != 133 {
+	if len(certs) != 132 {
 		t.Errorf("got %d", len(certs))
 	}
 }

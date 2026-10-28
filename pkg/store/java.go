@@ -222,14 +222,14 @@ func (k keytool) addCertificate(where string, alias string) error {
 		return err
 	}
 
-	args := append([]string{
+	args := []string{
 		"-importcert",
 		"-keystore", kpath,
 		"-storepass", defaultKeystorePassword,
 		"-file", where,
 		"-alias", alias,
 		"-noprompt",
-	})
+	}
 	cmd := exec.Command("keytool", args...)
 
 	var stdout bytes.Buffer
