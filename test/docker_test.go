@@ -38,6 +38,10 @@ func TestFormatScriptLine(t *testing.T) {
 	if posixQuote("it's") != `'it'"'"'s'` {
 		t.Fatalf("quote=%q", posixQuote("it's"))
 	}
+
+	if got := dockerTempPrefix("cert-manage:alpine"); got != "cert-manage-alpine" {
+		t.Fatalf("temp prefix=%q", got)
+	}
 }
 
 func TestDocker_basic(t *testing.T) {

@@ -187,13 +187,10 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 		fmt.Printf("%q\n", string(out))
 	}
 	if err != nil {
-		if debug && bytes.Contains(out, []byte("Keyset does not exist")) {
-			// TODO(adam): Issue repair? That might muck with the store(s)
-			return nil, nil
-		}
-		if debug && bytes.Contains(out, []byte("Cannot find object or property.")) {
-			// TODO(adam): uhh..?
-			// CertUtil: -exportPFX command FAILED: 0x80092004 (-2146885628 CRYPT_E_NOT_FOUND)\r\nCertUtil: Cannot find object or property.
+		if skipWindowsExport(string(out), err) {
+			if debug {
+				fmt.Printf("store/windows: skipping cert %s from %s: %s\n", serial, store, string(out))
+			}
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12 err=%q", serial, store, err)
@@ -216,6 +213,25 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
 	}
 	return cert, nil
+}
+
+func skipWindowsExport(out string, err error) bool {
+	if err == nil {
+		return false
+	}
+	s := out + err.Error()
+	for _, n := range []string{
+		"Keyset does not exist",
+		"Cannot find object or property.",
+		"0x8009000b",
+		"NTE_BAD_KEY_STATE",
+		"CRYPT_E_NOT_FOUND",
+	} {
+		if strings.Contains(s, n) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s windowsStore) Remove(wh whitelist.Whitelist) error {

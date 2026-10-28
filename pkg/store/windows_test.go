@@ -18,6 +18,7 @@
 package store
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -55,6 +56,16 @@ Serial Number: 214817429841748bbbcccca`
 	}
 	if !reflect.DeepEqual(serials, ans) {
 		t.Errorf("got %q", serials)
+	}
+}
+
+func TestSkipWindowsExport(t *testing.T) {
+	err := fmt.Errorf("exit status 0x8009000b")
+	if !skipWindowsExport(`error exporting cert "40d7e251fd60952593ea3fa7809cf71b" (from My)`, err) {
+		t.Fatal("expected skip for 0x8009000b")
+	}
+	if skipWindowsExport("", fmt.Errorf("fatal boom")) {
+		t.Fatal("unknown errors must not be skipped")
 	}
 }
 

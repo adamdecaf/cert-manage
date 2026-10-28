@@ -150,8 +150,10 @@ func (d *dockerfile) build() {
 	d.wg.Add(1)
 	defer d.wg.Done()
 
-	// Copy our original image's contents into the dst file
-	dir, err := ioutil.TempDir("", d.tag)
+	// Copy our original image's contents into the dst file.
+	// Image tags contain a colon (cert-manage:alpine); that must not appear
+	// in the host path or `docker run -v src:dst` treats the rest as a mode.
+	dir, err := ioutil.TempDir("", dockerTempPrefix(d.tag))
 	if err != nil {
 		d.err = fmt.Errorf("tempfile create err=%v", err)
 		return
@@ -255,7 +257,7 @@ func (d *dockerfile) run() {
 		args = append(args, "-e", "DEBUG=true")
 	}
 	if d.scriptPath != "" {
-		args = append(args, "-v", d.scriptPath+":/bin/script.sh")
+		args = append(args, bindMount(d.scriptPath, "/bin/script.sh")...)
 	}
 	if bin := linuxBinary(); file.Exists(bin) {
 		abs, err := filepath.Abs(bin)
@@ -267,7 +269,7 @@ func (d *dockerfile) run() {
 			d.err = err
 			return
 		}
-		args = append(args, "-v", abs+":/bin/cert-manage")
+		args = append(args, bindMount(abs, "/bin/cert-manage")...)
 	}
 	args = append(args, "-t", d.tag)
 
@@ -336,4 +338,19 @@ func formatScriptLine(c *Cmd) string {
 
 func posixQuote(s string) string {
 	return "'" + strings.Replace(s, "'", `'"'"'`, -1) + "'"
+}
+
+func dockerTempPrefix(tag string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case ':', '/', '\\':
+			return '-'
+		default:
+			return r
+		}
+	}, tag)
+}
+
+func bindMount(host, dest string) []string {
+	return []string{"--mount", fmt.Sprintf("type=bind,source=%s,target=%s", host, dest)}
 }
