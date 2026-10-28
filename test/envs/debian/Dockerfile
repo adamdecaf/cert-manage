@@ -9,8 +9,6 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/java-home
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-COPY cert-manage /bin/cert-manage
-RUN chmod +x /bin/cert-manage
 COPY globalsign-whitelist.json /whitelist.json
 COPY us-whitelist.yaml /whitelist.yaml
 
@@ -19,6 +17,5 @@ RUN javac /Download.java
 
 COPY localcert.pem /localcert.pem
 
-COPY script.sh /bin/script.sh
-RUN chmod +x /bin/script.sh
-CMD /bin/script.sh
+# cert-manage and script.sh are bind-mounted at run so suite/java share this image.
+CMD ["/bin/script.sh"]

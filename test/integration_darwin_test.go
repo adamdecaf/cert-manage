@@ -66,13 +66,6 @@ func TestIntegration__unknown(t *testing.T) {
 	cmd.FailedT(t)
 }
 
-func TestIntegration__list(t *testing.T) {
-	t.Parallel()
-
-	cmd := CertManage("list", "-count").Trim()
-	cmd.CmpIntF(t, func(i int) bool { return i > 1 })
-}
-
 func TestIntegration__listFromFile(t *testing.T) {
 	t.Parallel()
 

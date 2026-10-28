@@ -22,13 +22,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"testing"
-
-	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 func TestStoreDarwin__SystemCertPool(t *testing.T) {
@@ -94,11 +91,7 @@ func TestStoreDarwin__locations(t *testing.T) {
 		t.Skip("not on darwin based host")
 	}
 
-	paths := []string{
-		"/System/Library/Keychains/SystemRootCertificates.keychain",
-		"/Library/Keychains/System.keychain",
-		filepath.Join(file.HomeDir(), "/Library/Keychains/login.keychain"),
-	}
+	paths := darwinKeychainPaths()
 
 	count := 0
 
@@ -132,6 +125,39 @@ func TestStoreDarwin__locations(t *testing.T) {
 
 	if count == 0 {
 		t.Errorf("Didn't find any certs from all %d paths", len(paths))
+	}
+}
+
+func TestParseDarwinTrustSettings(t *testing.T) {
+	in := `Number of trusted certs = 2
+Cert 0: Example Root
+   Number of trust settings : 0
+Cert 1: Denied CA
+   Number of trust settings : 1
+   Trust Setting 0:
+      Policy OID            : SSL
+      Result Type           : kSecTrustSettingsResultDeny
+`
+	ts := darwinTrustSettings{}
+	parseDarwinTrustSettings(in, &ts)
+	if !ts.isTrusted("Example Root") {
+		t.Fatal("Example Root should be trusted")
+	}
+	if !ts.isDenied("Denied CA") {
+		t.Fatal("Denied CA should be denied")
+	}
+	if ts.isTrusted("Denied CA") {
+		t.Fatal("Denied CA must not be trusted")
+	}
+}
+
+func TestStoreDarwin__List(t *testing.T) {
+	certs, err := platform().List(&ListOptions{Trusted: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) <= 10 {
+		t.Errorf("expected more than 10 trusted platform certs, got %d", len(certs))
 	}
 }
 

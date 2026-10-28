@@ -137,5 +137,6 @@ jobs:
         run: |
           mkdir -p bin
           CGO_ENABLED=0 go build -trimpath -o "bin/cert-manage-linux-$(go env GOARCH)" .
+          chmod +x "bin/cert-manage-linux-$(go env GOARCH)"
       - name: Distro tests
         run: go test -count=1 -timeout 15m ./test/ -run ${{ matrix.run }}

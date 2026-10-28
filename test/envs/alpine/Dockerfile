@@ -9,11 +9,7 @@ RUN javac /Download.java
 
 COPY globalsign-whitelist.json /whitelist.json
 COPY us-whitelist.yaml /whitelist.yaml
-COPY cert-manage /bin/cert-manage
-RUN chmod +x /bin/cert-manage
-
 COPY localcert.pem /localcert.pem
 
-COPY script.sh /bin/script.sh
-RUN chmod +x /bin/script.sh
-CMD /bin/script.sh
+# cert-manage and script.sh are bind-mounted at run so suite/java share this image.
+CMD ["/bin/script.sh"]

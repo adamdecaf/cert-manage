@@ -106,6 +106,21 @@ func TestStoreJava__getKeystorePath(t *testing.T) {
 		t.Errorf("kp2=%s != kpath=%s", kp2, kpath)
 	}
 
+	// JAVA_HOME pointing at a directory without cacerts must not be returned
+	emptyHome, err := ioutil.TempDir("", "cert-manage-java-empty")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(emptyHome)
+	kt3 := keytool{
+		javahome:              emptyHome,
+		javaInstallPaths:      nil,
+		relativeKeystorePaths: []string{"cacerts"},
+	}
+	if _, err := kt3.getKeystorePath(); err == nil {
+		t.Fatal("expected error when JAVA_HOME has no cacerts file")
+	}
+
 	err = os.RemoveAll(dir)
 	if err != nil {
 		t.Error(err)

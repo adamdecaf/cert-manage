@@ -24,7 +24,7 @@ func linuxSuite(t *testing.T, img *dockerfile) {
 		fmt.Println("Linux start")
 	}
 
-	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count); echo "$total" > /tmp/total; test "$total" -gt 10`)
+	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count); echo "$total" > /tmp/total; echo "linux certs=$total"; test "$total" -gt 10`)
 	img.CertManage("backup")
 	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/linux | wc -l | tr -d ' ')" -ge 1`)
 	img.CertManage("whitelist", "-file", "/whitelist.json")
@@ -51,7 +51,7 @@ func javaSuite(t *testing.T, img *dockerfile) {
 		fmt.Println("Java start")
 	}
 
-	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count -app java); echo "$total" > /tmp/jtotal; test "$total" -gt 10`)
+	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count -app java); echo "$total" > /tmp/jtotal; echo "java certs=$total"; test "$total" -gt 10`)
 	img.CertManage("backup", "-app", "java")
 	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/java | wc -l | tr -d ' ')" -ge 1`)
 	img.RunSplit("cd / && java Download")

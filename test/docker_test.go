@@ -18,6 +18,28 @@ import (
 	"testing"
 )
 
+func TestFormatScriptLine(t *testing.T) {
+	got := formatScriptLine(Command("sh", "-c", `total=$(/bin/cert-manage list -count); test "$total" -gt 10`))
+	want := `sh -c 'total=$(/bin/cert-manage list -count); test "$total" -gt 10'`
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+
+	got = formatScriptLine(Command("set", "+e"))
+	if got != "set +e" {
+		t.Fatalf("got %q", got)
+	}
+
+	got = formatScriptLine(Command("cd", "/", "&&", "java", "Download"))
+	if got != "cd / && java Download" {
+		t.Fatalf("got %q", got)
+	}
+
+	if posixQuote("it's") != `'it'"'"'s'` {
+		t.Fatalf("quote=%q", posixQuote("it's"))
+	}
+}
+
 func TestDocker_basic(t *testing.T) {
 	t.Parallel()
 

@@ -26,6 +26,7 @@ var ktool = keytool{
 	javaInstallPaths: []string{
 		"/usr/bin/java",
 		"/etc/alternatives/java",
+		"/usr/lib/jvm/default-jvm",
 	},
 	relativeKeystorePaths: []string{
 		"/lib/security/cacerts",

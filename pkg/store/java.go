@@ -320,15 +320,16 @@ func (k keytool) getKeystorePath() (string, error) {
 			}
 		}
 	}
-	// We never found a path which had a cacerts file
 	if kpath == "" {
 		return "", errors.New("store/java: never found java and/or keystore path")
 	}
 
-	// Verify it's a non-empty file
 	s, err := os.Stat(kpath)
 	if err != nil {
 		return "", err
+	}
+	if s.IsDir() {
+		return "", errors.New("store/java: never found java and/or keystore path")
 	}
 	if s.Size() == 0 {
 		return "", fmt.Errorf("Found keystore at %s, but it's an empty file", kpath)
