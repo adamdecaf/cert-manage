@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# Cancel superseded runs on the same ref so a new push does not wait
+# behind an old matrix.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Compile every GOOS/GOARCH we ship. Add a pair here to cover a new
+  # target without waiting on a hosted runner for that OS.
+  build:
+    name: cross-compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: Cross-compile
+        run: |
+          set -euo pipefail
+          mkdir -p bin
+          targets='
+            linux/amd64
+            linux/arm64
+            darwin/amd64
+            darwin/arm64
+            windows/amd64
+            windows/arm64
+          '
+          for spec in $targets; do
+            export GOOS=${spec%/*} GOARCH=${spec#*/} CGO_ENABLED=0
+            out="bin/cert-manage-${GOOS}-${GOARCH}"
+            if [ "$GOOS" = windows ]; then
+              out="${out}.exe"
+            fi
+            echo "building $out"
+            go build -trimpath -o "$out" .
+          done
+
+  # Native tests. Add a runner OS to expand platform coverage.
+  # CGO=0 matches the shipped static binary. Extra rows cover Darwin
+  # cgo roots (Security.framework) and the race detector.
+  test:
+    name: test (${{ matrix.os }}, cgo=${{ matrix.cgo }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        cgo: ["0"]
+        race: [false]
+        include:
+          - os: macos-latest
+            cgo: "1"
+            race: false
+          - os: ubuntu-latest
+            cgo: "1"
+            race: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: Vet and unit tests
+        env:
+          CGO_ENABLED: ${{ matrix.cgo }}
+        run: |
+          go vet ./...
+          extra=()
+          if [ "${{ matrix.race }}" = "true" ]; then
+            extra+=(-race)
+          fi
+          go test -count=1 -timeout 3m "${extra[@]}" ./pkg/... .
+      - name: Build native binary
+        env:
+          CGO_ENABLED: ${{ matrix.cgo }}
+        run: |
+          mkdir -p bin
+          arch=$(go env GOARCH)
+          case "$(go env GOOS)" in
+            linux)   out="bin/cert-manage-linux-${arch}" ;;
+            darwin)  out="bin/cert-manage-osx-${arch}" ;;
+            windows) out="bin/cert-manage-${arch}.exe" ;;
+          esac
+          go build -trimpath -o "$out" .
+      - name: CLI integration
+        env:
+          CGO_ENABLED: ${{ matrix.cgo }}
+        run: go test -count=1 -timeout 3m ./test/ -skip 'TestAlpine|TestDebian|TestUbuntu|TestDocker'
+
+  # Linux distro coverage via Docker. Add a suite name + Dockerfile under
+  # test/envs/ to expand. Suites run in parallel so a slow image pull does
+  # not block the others.
+  distro:
+    name: distro (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: alpine
+            run: TestAlpine
+          - name: debian
+            run: TestDebian
+          - name: ubuntu
+            run: TestUbuntu
+          - name: docker-smoke
+            run: TestDocker
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: Build linux binary
+        run: |
+          mkdir -p bin
+          CGO_ENABLED=0 go build -trimpath -o "bin/cert-manage-linux-$(go env GOARCH)" .
+      - name: Distro tests
+        run: go test -count=1 -timeout 15m ./test/ -run ${{ matrix.run }}

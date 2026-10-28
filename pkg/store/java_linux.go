@@ -24,6 +24,7 @@ import (
 var ktool = keytool{
 	javahome: os.Getenv("JAVA_HOME"),
 	javaInstallPaths: []string{
+		"/usr/bin/java",
 		"/etc/alternatives/java",
 	},
 	relativeKeystorePaths: []string{

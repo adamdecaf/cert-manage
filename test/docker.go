@@ -116,12 +116,19 @@ func (d *dockerfile) CertManageEQ(args, answer string) {
 	d.CertManage(append(strings.Split(args, " "), d.OutputEquals(answer)...)...)
 }
 
+func linuxBinary() string {
+	return filepath.Join("..", "bin", fmt.Sprintf("cert-manage-linux-%s", runtime.GOARCH))
+}
+
 func (d *dockerfile) SuccessT(t *testing.T) {
 	if !d.enabled() {
 		t.Skip("docker isn't enabled")
 	}
-	if runtime.GOOS == "darwin" && inCI() {
-		t.Fatal("travis-ci supports docker on OSX?? - https://docs.travis-ci.com/user/docker/")
+	if runtime.GOOS != "linux" {
+		t.Skip("docker distro tests run on linux")
+	}
+	if !file.Exists(linuxBinary()) {
+		t.Skip("linux binary not built")
 	}
 
 	d.prep()
@@ -143,19 +150,17 @@ func (d *dockerfile) build() {
 		return
 	}
 
-	// Copy cert-manage and whitelist to the temp directory and assume it's linux
-	copyable := []string{
-		"../bin/cert-manage-linux-amd64",
-		"../testdata/Download.java",
-		"../testdata/globalsign-whitelist.json",
-		"../testdata/us-whitelist.yaml",
-		"../testdata/localcert.pem",
+	copies := []struct{ src, dst string }{
+		{linuxBinary(), "cert-manage"},
+		{"../testdata/Download.java", "Download.java"},
+		{"../testdata/globalsign-whitelist.json", "globalsign-whitelist.json"},
+		{"../testdata/us-whitelist.yaml", "us-whitelist.yaml"},
+		{"../testdata/localcert.pem", "localcert.pem"},
 	}
-	for i := range copyable {
-		name := filepath.Base(copyable[i])
-		err = file.CopyFile(copyable[i], filepath.Join(dir, name))
+	for i := range copies {
+		err = file.CopyFile(copies[i].src, filepath.Join(dir, copies[i].dst))
 		if err != nil {
-			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", name, err)
+			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", copies[i].dst, err)
 			return
 		}
 	}

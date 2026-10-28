@@ -76,17 +76,12 @@ type linuxStore struct {
 }
 
 func platform() Store {
-	var ca cadir
-	// find the cadir, if it exists
-	for _, ca = range cadirs {
-		if ca.empty() {
-			break
+	for _, ca := range cadirs {
+		if !ca.empty() {
+			return linuxStore{ca: ca}
 		}
 	}
-
-	return linuxStore{
-		ca: ca,
-	}
+	return linuxStore{}
 }
 
 func (s linuxStore) Add(certs []*x509.Certificate) error {

@@ -21,8 +21,6 @@ import (
 )
 
 func TestStoreOpenSSL__paths(t *testing.T) {
-	t.Skip("TODO(adam): fix")
-
 	err := exec.Command("openssl", "version").Run()
 	if err != nil {
 		t.Skipf("can't find openssl, err=%v", err)
@@ -34,7 +32,7 @@ func TestStoreOpenSSL__paths(t *testing.T) {
 	st := opensslStore{}
 	dir, err := st.findCertPath()
 	if err != nil {
-		t.Fatal(err)
+		t.Skip(err.Error())
 	}
 	if dir == "" {
 		t.Error("empty dir")

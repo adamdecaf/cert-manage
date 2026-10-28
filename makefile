@@ -1,52 +1,48 @@
 VERSION := $(shell grep -Eo '(\d\.\d\.\d)(-dev)?' main.go)
+GOARCH ?= $(shell go env GOARCH)
 
-.PHONY: build check test
+.PHONY: build check test dist linux osx win
 
-linux: linux_amd64
+linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-linux-$(GOARCH) github.com/adamdecaf/cert-manage
 linux_amd64:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/cert-manage-linux-amd64 github.com/adamdecaf/cert-manage
+	$(MAKE) linux GOARCH=amd64
 
-osx: osx_amd64
+osx:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-osx-$(GOARCH) github.com/adamdecaf/cert-manage
 osx_amd64:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o bin/cert-manage-osx-amd64 github.com/adamdecaf/cert-manage
+	$(MAKE) osx GOARCH=amd64
 
-win: win_64
+win:
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-$(GOARCH).exe github.com/adamdecaf/cert-manage
 win_64:
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o bin/cert-manage-amd64.exe github.com/adamdecaf/cert-manage
+	$(MAKE) win GOARCH=amd64
 
-dist: build linux osx win
+dist: linux osx win
 
 deps:
 	dep ensure -update
 
 .PHONY: check
 check:
-ifeq ($(OS),Windows_NT)
 	go vet ./...
-	go test ./pkg/... .
-else
-	# @wget -O lint-project.sh https://raw.githubusercontent.com/moov-io/infra/master/go/lint-project.sh
-	# @chmod +x ./lint-project.sh
-	# GOLANGCI_ALLOW_PRINT=yes COVER_THRESHOLD=50.0 ./lint-project.sh
-	go vet ./...
-	go test ./pkg/... .
-endif
+	go test -count=1 -timeout 3m $(GOTEST_FLAGS) ./pkg/... .
 
 generate:
 	CGO_ENABLED=0 go run pkg/whitelist/blacklist_gen.go
 
-test: check dist
-	CGO_ENABLED=0 go test ./...
-	INTEGRATION=yes go test ./... -run TestIntegration__ -count 1
+test: check
+	$(MAKE) linux
+	go test -count=1 -timeout 5m ./test/
 
 build: check
-	go build -o cert-manage github.com/adamdecaf/cert-manage
+	go build -trimpath -o cert-manage github.com/adamdecaf/cert-manage
 	@chmod +x cert-manage
 
 mkrel: generate
 	gothub release -u adamdecaf -r cert-manage -t $(VERSION) --name $(VERSION) --pre-release
 
 upload:
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-linux" --file bin/cert-manage-linux-amd64
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-osx" --file bin/cert-manage-osx-amd64
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage.exe" --file bin/cert-manage-amd64.exe
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-linux" --file bin/cert-manage-linux-$(GOARCH)
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-osx" --file bin/cert-manage-osx-$(GOARCH)
+	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage.exe" --file bin/cert-manage-$(GOARCH).exe
