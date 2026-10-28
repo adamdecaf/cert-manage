@@ -249,6 +249,9 @@ func (s linuxStore) Restore(where string) error {
 			os.RemoveAll(tmp)
 			return err
 		}
+		// Log the aside path so a crash between this move and the swap
+		// (or before refresh succeeds) is recoverable by an operator.
+		fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
 	}
 
 	if err := os.Rename(tmp, s.ca.dir); err != nil {
@@ -258,9 +261,29 @@ func (s linuxStore) Restore(where string) error {
 		os.RemoveAll(tmp)
 		return err
 	}
-	os.RemoveAll(aside)
 
-	return s.rebundleCerts()
+	// Keep aside until update-ca-certificates (rebundleCerts) succeeds so
+	// a refresh failure can roll the live directory back.
+	if err := s.rebundleCerts(); err != nil {
+		if liveExists {
+			failed := s.ca.dir + ".restore-failed"
+			os.RemoveAll(failed)
+			if rerr := os.Rename(s.ca.dir, failed); rerr != nil {
+				return fmt.Errorf("%v (previous CA dir still at %s)", err, aside)
+			}
+			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
+				os.Rename(failed, s.ca.dir)
+				return fmt.Errorf("%v (failed to restore previous CA dir from %s: %v)", err, aside, rerr)
+			}
+			os.RemoveAll(failed)
+		}
+		return err
+	}
+
+	if liveExists {
+		os.RemoveAll(aside)
+	}
+	return nil
 }
 
 // Update the certs trust system-wide
