@@ -1,6 +1,6 @@
 module github.com/adamdecaf/cert-manage
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/adamdecaf/extract-nss-root-certs v0.0.0-20180504185435-b4eb4db979cb
