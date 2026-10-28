@@ -23,7 +23,7 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Whitelist is the structure holding various `item` types that match against

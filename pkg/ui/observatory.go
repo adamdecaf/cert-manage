@@ -22,7 +22,7 @@ import (
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
 	"github.com/adamdecaf/cert-manage/pkg/file"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // observatory is a printer for the 'trust_stores_observatory'
