@@ -16,36 +16,22 @@ package store
 
 import (
 	"testing"
-
-	"github.com/adamdecaf/cert-manage/pkg/file"
 )
 
 func TestStoreFirefix__info(t *testing.T) {
-	info := FirefoxStore().GetInfo()
-
-	// OSX
-	if file.Exists("/Applications/Firefox.app") {
-		if info == nil {
-			t.Fatal("nil Info")
-		}
-		if info.Name == "" {
-			t.Error("blank Name")
-		}
-		if info.Version == "" {
-			t.Error("blank Version")
-		}
+	st := FirefoxStore()
+	if _, ok := st.(emptyStore); ok {
+		t.Skip("no firefox profile")
 	}
 
-	// Linux
-	if file.Exists("/usr/bin/firefox") {
-		if info == nil {
-			t.Fatal("nil Info")
-		}
-		if info.Name == "" {
-			t.Error("blank Name")
-		}
-		if info.Version == "" {
-			t.Error("blank Version")
-		}
+	info := st.GetInfo()
+	if info == nil {
+		t.Fatal("nil Info")
+	}
+	if info.Name == "" {
+		t.Error("blank Name")
+	}
+	if info.Version == "" {
+		t.Error("blank Version")
 	}
 }
