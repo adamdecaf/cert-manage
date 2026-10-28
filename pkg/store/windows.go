@@ -110,24 +110,42 @@ func (s windowsStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 }
 
 func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) {
-	serials, err := s.certSerialsFromStore(store)
+	// Trust-store certs have no private key, so certutil -exportPFX cannot
+	// represent them (PKCS#12 parse fails, list returns 0). Dump DER via
+	// PowerShell in one call per store instead of one certutil per cert.
+	tmp, err := ioutil.TempFile("", "cert-manage-win-store")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating temp file, err=%v", err)
 	}
-	var accum []*x509.Certificate
-	for i := range serials {
-		cert, err := s.exportCertFromStore(serials[i], store)
-		if err != nil {
-			if debug {
-				fmt.Printf("store/windows: skipping cert %s from %s: %v\n", serials[i], store, err)
-			}
-			continue
-		}
-		if cert != nil {
-			accum = append(accum, cert)
-		}
+	path := tmp.Name()
+	tmp.Close()
+	defer os.Remove(path)
+
+	psPath := strings.ReplaceAll(path, "'", "''")
+	script := fmt.Sprintf(`
+$ErrorActionPreference = 'SilentlyContinue'
+$sb = New-Object System.Text.StringBuilder
+Get-ChildItem -LiteralPath 'Cert:\LocalMachine\%s' | ForEach-Object {
+  [void]$sb.AppendLine('-----BEGIN CERTIFICATE-----')
+  [void]$sb.AppendLine([Convert]::ToBase64String($_.RawData))
+  [void]$sb.AppendLine('-----END CERTIFICATE-----')
+}
+[IO.File]::WriteAllText('%s', $sb.ToString(), [Text.UTF8Encoding]::new($false))
+`, store, psPath)
+
+	out, err := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("error reading store %s: %v: %s", store, err, strings.TrimSpace(string(out)))
 	}
-	return accum, nil
+
+	bs, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading exported store %s: %v", store, err)
+	}
+	if len(bytes.TrimSpace(bs)) == 0 {
+		return nil, nil
+	}
+	return certutil.ParsePEM(bs)
 }
 
 func (s windowsStore) certSerialsFromStore(store string) ([]string, error) {

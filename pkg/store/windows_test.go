@@ -79,6 +79,16 @@ func TestSkipWindowsExport(t *testing.T) {
 	}
 }
 
+func TestStoreWindows__List(t *testing.T) {
+	certs, err := platform().List(&ListOptions{Trusted: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) <= 10 {
+		t.Errorf("expected more than 10 trusted platform certs, got %d", len(certs))
+	}
+}
+
 func TestStoreWindows__getInfo(t *testing.T) {
 	info := Platform().GetInfo()
 	if info == nil {
