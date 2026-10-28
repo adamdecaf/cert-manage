@@ -1,143 +1,208 @@
 # cert-manage
 
-Every computer connected to the internet today has a series of "certificate stores" contained within it. These stores are crucial to encrypted communication everywhere, but their state often drifts between providers and can many times extend trust further than users expect.
+[![CI](https://github.com/adamdecaf/cert-manage/actions/workflows/ci.yml/badge.svg)](https://github.com/adamdecaf/cert-manage/actions/workflows/ci.yml)
 
-The underlying [Certificate Authority](https://en.wikipedia.org/wiki/Certificate_authority) technology doesn't offer solutions for fine grained management, active countermeasures and misuse prevention for end-user machines. Any system you buy will come loaded with trust of countless CA's, which means that your encrypted connections are at risk of eavesdropping or misrepresentation if any CA creates privacy-destructive or nefarious certificates. Read up on the [background](#background) if you're interested.
+**Your machine trusts hundreds of Certificate Authorities by default. Most of them you have never heard of. One bad CA is enough to break HTTPS for everyone who trusts it.**
 
-Trust with another party needs to be earned, not defaulted. `cert-manage` is a tool to give users easier control of their trusted [x509 Certificate](https://en.wikipedia.org/wiki/X.509) stores on their systems and applications.
+In October 2026, the private keys of eight [eMudhra](https://emudhra.com/en/post/certificate-security-incident) intermediate CAs were compromised. Six of them could issue TLS certificates for any website. [Apple blocked](https://support.apple.com/en-us/149555) those certificates in Safari and system frameworks starting 19 October 2026, and later blocked the emSign ECC Root CA - G3. Command-line tools that still read `/etc/ssl/cert.pem` (git, curl, python3, and others) kept trusting the compromised chains until users removed the roots by hand — and a subsequent macOS update can restore Apple's copy of that file. The pattern is old: DigiNotar, Symantec, WoSign, and many others. The CA system still ships with more trust than most people need, and removing it is still harder than it should be.
+
+`cert-manage` gives you a single CLI to **list**, **backup**, **whitelist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
+
+Trust should be earned, not defaulted.
+
+## 30-second quickstart
+
+```bash
+# 1. See what you currently trust
+cert-manage list
+cert-manage list -count
+cert-manage list -app java
+
+# 2. Always take a backup before changing trust
+cert-manage backup
+cert-manage backup -app java
+
+# 3. Whitelist: keep only the CAs you want (requires a prior backup)
+cert-manage whitelist -file urls.yaml
+cert-manage whitelist -app java -file urls.yaml
+
+# 4. Roll back if something breaks
+cert-manage restore
+cert-manage restore -app java
+```
+
+Whitelist files are YAML or JSON. See [docs/whitelists.md](docs/whitelists.md) for fingerprints, country filters, and generating a whitelist from browser history.
+
+> **Safety first:** Prefer experimenting against temp or container stores. Do not run `restore` against a real system CA directory until the restore fixes land (see [Safety](#safety)). Back up first, every time.
 
 ## Features
 
-`cert-manage` offers a few features currently: List, Whitelisting and Backup/Restore. These are explained as follows:
+| Command | What it does |
+|---------|----------------|
+| [list](docs/basics.md#list) | Show trusted certificates in a platform or app store (audit) |
+| [backup](docs/basics.md#backup-and-restore) / [restore](docs/basics.md#backup-and-restore) | Capture and roll back CA trust |
+| [whitelist](docs/whitelists.md#whitelisting) | Distrust certificates that are not on your allowlist |
+| [add](docs/basics.md#add) | Add certificates to a store |
+| [connect](docs/basics.md#connect) | Probe a remote HTTPS host using a chosen store |
+| [gen-whitelist](docs/whitelists.md#generating-whitelists) | Build a whitelist from browser history or URL lists |
 
-- [Add](docs/basics.md#add)
-  - Add certificates to a store
-- [Connect](docs/basics.md#connect)
-  - Establish a TLS connection with a remote host using a provided certificate store
-- [List](docs/basics.md#list)
-  - Show the certificates installed and trusted by a given certificate store. This is useful for an initial trust audit
-- [Whitelist](docs/whitelists.md#whitelisting)
-  - Remove (or distrust) installed certificates. This will prevent good acting programs (and platforms) from making connections signed by organizations you don't trust.
-- [Backup and Restore](docs/basics.md#backup-and-restore)
-  - Capture and revert the status of CA trust in a platform or application.
-- [Whitelist Generation](docs/whitelists.md#generating-whitelists)
-  - Generate whitelists from browser history or flat files.
+Whitelisting also applies Chromium's certificate blacklist so known-bad CAs are never kept. That behavior cannot be disabled today.
 
-## Install / Usage
+## Platform and application support
 
-Download the [latest release](https://github.com/adamdecaf/cert-manage/releases) or build from source with `go get github.com/adamdecaf/cert-manage`
+Honest status as of late October 2026. Levels match what the code does today.
 
+### Platforms
+
+| Level | Platform | Notes |
+|-------|----------|--------|
+| **Supported** | Linux (Alpine, Debian, Ubuntu) | System CA dir list, add, whitelist, backup, restore (see Safety) |
+| **Partial** | Darwin / macOS | Keychain-backed list/add/whitelist/backup/restore; system roots are SIP-protected; restore `where` support is incomplete |
+| **List-only** | Windows | `list` works (PowerShell export of machine stores); add, backup, whitelist, and restore are not implemented yet |
+
+### Applications
+
+| Level | Application | Notes |
+|-------|-------------|--------|
+| **Supported** | Java (`cacerts`) | Paths differ by distro and JDK vendor; use `-app java`. Windows needs a usable `JAVA_HOME` / cacerts path. |
+| **Partial** | Chrome | Linux uses NSS (`~/.pki/nssdb`); Darwin/Windows wrap the platform store. NSS backup bug [#142](https://github.com/adamdecaf/cert-manage/issues/142). |
+| **Partial** | Firefox | NSS profile `cert8.db` / `cert9.db`. Same NSS backup bug [#142](https://github.com/adamdecaf/cert-manage/issues/142). |
+| **Stub** | OpenSSL | Add / rehash paths exist; list, backup, remove, and restore are no-ops |
+
+**Known issue — NSS backup ([#142](https://github.com/adamdecaf/cert-manage/issues/142)):** NSS backup currently joins the certdb directory with the wrong basename, so the real `cert9.db` / `cert8.db` may never be copied. Do not rely on NSS backups for Chrome or Firefox until that fix ships. Round-trip tests document this without changing production behavior yet.
+
+## Safety
+
+Certificate-store edits can break HTTPS for browsers, package managers, and language runtimes. Treat every change as privileged.
+
+1. **Backup first.** Whitelisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any whitelist.
+2. **Do not restore against real system stores yet.** Linux restore currently deletes the live CA directory before copying the backup back. A failed copy can leave the machine with an empty CA dir. Until the temp-dir-then-swap fix merges, practice restore only on temp or container fixtures — never on `/etc` or `/usr` CA paths on a machine you care about.
+3. **Linux restore ignores `where` / `-file`.** The CLI accepts `-file`, but `linuxStore.Restore` always uses the latest backup under `~/.cert-manage/linux/`.
+4. **NSS backups are incomplete** until [#142](https://github.com/adamdecaf/cert-manage/issues/142) is fixed (see above).
+5. **`-dry-run` is not implemented yet** (see Roadmap). Until then, use `list` and `connect` to inspect impact, and keep a known-good backup.
+
+## Install
+
+Download a binary from the [latest release](https://github.com/adamdecaf/cert-manage/releases) (tagged `0.1.0`; module version is `0.1.1-dev`), or build from source (Go **1.27** required):
+
+```bash
+git clone https://github.com/adamdecaf/cert-manage.git
+cd cert-manage
+make build          # produces ./cert-manage
+# or cross-compile:
+make dist           # linux / osx / windows binaries under bin/
 ```
-# List certificates trusted on your system (or app)
-$ cert-manage list
-$ cert-manage list -app java
-Certificate
-  SHA256 Fingerprint - 3a43e220fe7f3ea9653d1e21742eac2b75c20fd8980305bc502caf8c2d9b41a1
-  SerialNumber: 246153180488710619953605749449532672687
-  Subject: VeriSign, Inc., Class 2 Public Primary Certification Authority - G2
-  Issuer: VeriSign, Inc., Class 2 Public Primary Certification Authority - G2
-  NotBefore - 1998-05-18 00:00:00 +0000 UTC, NotAfter - 2028-08-01 23:59:59 +0000 UTC
-  IsCA - false
-...
-$ cert-manage list -file example.crt
-$ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 
-# Trim down what CA's are trusted on your system
-$ cert-manage whitelist -file urls.yaml # or json
-$ cert-manage whitelist -app chrome -file urls.yaml
+You can also install with the Go toolchain:
 
-# Backup and Restore the current trust
-$ cert-manage backup
-$ cert-manage restore [-file <path>]
+```bash
+go install github.com/adamdecaf/cert-manage@latest
 ```
 
-## Platform / Application Support
+### Usage examples
 
-`cert-manage` abstracts over the differences in Certificate stores for the following platforms:
+```bash
+# Platform store
+cert-manage list
+cert-manage list -format table       # short (default), table, openssl, observatory
+cert-manage list -format openssl
+cert-manage list -ui web             # cli (default) or web
 
-| Level | Platforms(s) |
-|----|----|
-| Full Support | Linux (Alpine, Debian, Ubuntu) |
-| Partial Support | Darwin/OSX, Windows |
+# Apps
+cert-manage list -app java
+cert-manage list -app chrome
+cert-manage list -app firefox
 
-Also, `cert-manage` abstracts over the following application's certificate stores across the supported platforms.
+# From a file or Mozilla certdata URL
+cert-manage list -file example.crt
+cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 
-| Level | Application(s) |
-|-----|-----|
-| Full Support | Java |
-| Partial Support | Chrome, Firefox, OpenSSL |
+# Add
+cert-manage add -file cert.pem
+cert-manage add -file cert.pem -app java
 
-## Supporting Research
+# Whitelist, backup, restore
+cert-manage backup
+cert-manage whitelist -file urls.yaml
+cert-manage restore                 # latest backup
+cert-manage restore -file <path>    # note: Linux currently ignores -file
 
-- [Analysis of the HTTPS Certificate Ecosystem](docs/papers/https-imc13.pdf) (2013)
-   - "We investigate the trust relationships among root authorities, intermediate authorities, and the leaf certificates used by web servers, ultimately identifying and classifying more than **1,800 entities** that are able to issue certificates vouching for the identity of any website."
-   - "Disturbingly, we find that the compromise of the private key used by one particular intermediate certificate would require 26% of HTTPS websites to immediately obtain new certificates."
-- [CAge - Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf)
-   - "We find that simple inference rules can reduce the attack surface by nearly a factor of ten without hindering 99% of CA activity over a 6 month period."
-- [You Won't Be Needing These Any More: On Removing Unused Certicates From Trust Stores](docs/papers/on-removing-unused-certs.pdf)
-   - "We found that of the 426 trusted root certificates, only 66 % were used to sign HTTPS certificates."
+# Generate a whitelist
+cert-manage gen-whitelist -out whitelist.json -from firefox
+cert-manage gen-whitelist -out whitelist.json -from browsers
+cert-manage gen-whitelist -out whitelist.json -file urls.txt
 
-## Background
+# Verify connectivity after a change
+cert-manage connect https://example.com
+cert-manage connect -app java https://example.com
 
-There have been numerous recent exploits in the wild surrounding CA's (Certificate Authorities) that don't understand the power they have on every system which trusts communications signed with their keys. Additionally distributors of certificate stores have started to become aware and demand stricter working requirements from CA's, but the power is not readily available in the users hands for them to make these decisions themselves.
+cert-manage version
+```
 
-Below is a short list of incidents over the past couple of years (2015-2017) from CA's either acting carelessly or maliciously.
+More detail: [docs/basics.md](docs/basics.md), [docs/whitelists.md](docs/whitelists.md).
 
-- Blizzard / EA Origin
-  - [Local CA](https://groups.google.com/forum/#!msg/mozilla.dev.security.policy/pk039T_wPrI/tGnFDFTnCQAJ) (clienttolocalhostonly.com and localblizzard.net)
-    Blizzard and EA were running an HTTPS webserver on 127.0.0.1 (where the domains resolve) with a valid certificate. This implies that there's a private key bundled with the software which is considered a "key compromise" and requires revocation of the certificate.
-    This issue is not itself bad, but allows an attacker to mitm the dns for either domain and be presented with a valid connection to end users.
-- Comodo
-  - Invalid domains
-    Comodo issued certs for invalid domains. In specific, `www.sb` which should not have been generated. It has since [been revoked](https://crt.sh/?id=34242572).
-  - OCR to validate documents
-    OCR is a process in which algorithms try to find and understand human/computer writing in digital documents. This process is far from perfect and should only be used as a means of creating faster processes prior to human validation steps. It was found that [OCR algorithms could lead to bogus (and fraudulent)](https://bugzilla.mozilla.org/show_bug.cgi?id=1311713) certificates being generated.
-- [CNNIC](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/)
-- DigiCert
-  - [Certificate with invalid dnsName issued from Baltimore intermediate](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/5bpr9yBgaYo)
-- [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
-- DYMO
-  - [Installs a Root CA Certificate](https://github.com/njh/dymo-root-ca-security-risk)
-- GlobalSign
-  - [Accidental cross-signing intermediate certificate](https://downloads.globalsign.com/acton/fs/blocks/showLandingPage/a/2674/p/p-008f/t/page/fm/0)
-- GoDaddy
-  - [Improper Domain Validation](https://groups.google.com/forum/?hl=en#!msg/mozilla.dev.security.policy/Htujoyq-pO8/uRBcS2TmBQAJ)
-- Government Root Certification Authority
-  - [Does the US government operate a publicly trusted certificate authority?](https://https.cio.gov/certificates/#does-the-us-government-operate-a-publicly-trusted-certificate-authority?)
-- Guang Dong Certificate Authority
-  - [root inclusion request](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/kB2JrygK7Vk)
-- IdenTrust
-  - [Certificates issued with HTTPS OCSP responder URL](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/jSHuE-Oc7rY)
-- Let's Encrypt
-  - [CAA Checks](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/SrAhO4ye4G8)
-  - [DNSSEC](https://groups.google.com/d/msg/mozilla.dev.security.policy/r9QM8tNqxx0/ZmnWwTXoAQAJ)
-  - [Debian Weak Key](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/WL_-9pVhZf8)
-- [PROCERT](https://wiki.mozilla.org/CA:PROCERT_Issues)
-- Savitech USB audio drivers
-  - [Installs a Root CA Certificate](https://www.kb.cert.org/vuls/id/446847)
-- StartCom
-  - [StartEncrypt](https://www.computest.nl/blog/startencrypt-considered-harmful-today/)
-  - [StartCom & Qihoo Incidents](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/TbDYE69YP8E)
-  - [Re-inclusion request into Mozilla](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/hNOJJrN6WfE)
-- [Symantec](https://wiki.mozilla.org/CA:Symantec_Issues)
-  - "I think there are [279 non-constrained TLS-capable issuing CAs that are not reported](https://bugzilla.mozilla.org/show_bug.cgi?id=1417771)."
-  - [Known active and legacy root certificates](https://chromium.googlesource.com/chromium/src/+/master/net/data/ssl/symantec/README.md)
-- [Trustico CEO emailing DigiCert 23k Private Keys](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/wxX4Yv0E3Mk)
-- TunRootCA2
-  - [Inclusion Request](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/wCZsVq7AtUY)
-- [WoSign and WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
-- [Visa](https://groups.google.com/d/msg/mozilla.dev.security.policy/NNV3zvX43vE/rae9kNkWAgAJ)
+## Building and testing
 
+Go **1.27** is required (`go.mod`).
 
-## Developing / Contributing
+```bash
+make build          # vet + unit tests + binary
+make test           # full suite (uses Docker when available)
+MOCKED=true make test   # skip Docker-backed tests
+```
 
-I'm always looking for new contributors and anything from help with docs, bugfixes or new certificate store additions is gladly appreciated. If you're interested in contributing then pull down the source code and submit some PR's or join `##cert-manage` on the freenode irc network.
+Backup/restore tests use **temp directories only** and refuse paths under `/etc` or `/usr`. Do not point destructive tests at a real system CA directory.
 
-You can build the sources with `make build`. Run tests with `make test`. Currently we require Go 1.27.
+Cross-platform binaries: `make linux`, `make osx`, `make win`, or `make dist`. CI cross-compiles `linux`/`darwin`/`windows` (`amd64`/`arm64`), runs unit tests on Ubuntu/macOS/Windows runners, and runs Alpine/Debian/Ubuntu Docker distro suites.
 
-Note: Many tests will run if docker is enabled/setup. To disable this run commands with `MOCKED=true` (e.g. `MOCKED=true make test`)
+## Contributing
+
+Help with docs, bugfixes, tests, and new or deeper store support is welcome. One focused PR at a time works best.
+
+1. Fork and clone the repo.
+2. Use Go 1.27; run `make build` and `make test` (or `MOCKED=true make test`) before opening a PR.
+3. Prefer temp / container stores in tests — never point destructive tests at a real system CA directory.
 
 This project follows the [Google Code of Conduct](https://opensource.google.com/conduct/).
+
+## Roadmap
+
+Daily plan (2026). Dates are goals, not promises. App tests (Java, browsers) should run across multiple platforms — store paths differ.
+
+| When | Focus | Tracking |
+|------|--------|----------|
+| **Oct 29** | Java backup/restore on the Linux distro matrix | [#230](https://github.com/adamdecaf/cert-manage/issues/230) |
+| **Oct 30** | Safe Linux restore (copy to a temp dir, then swap) | [#231](https://github.com/adamdecaf/cert-manage/issues/231) |
+| **Oct 31** | Restore honors `where` / `-file`; NSS backup path fix | [#231](https://github.com/adamdecaf/cert-manage/issues/231) |
+| **Nov 1** | `-dry-run` for destructive commands | [#232](https://github.com/adamdecaf/cert-manage/issues/232) |
+| **Nov 2** | Java on Mac | [#230](https://github.com/adamdecaf/cert-manage/issues/230) |
+| **Nov 3** | More Linux distros (Rocky, Fedora, Arch) | [#233](https://github.com/adamdecaf/cert-manage/issues/233) |
+| **Nov 4** | Firefox test suite | [#236](https://github.com/adamdecaf/cert-manage/issues/236) |
+| **Nov 5** | Chrome test suite | [#236](https://github.com/adamdecaf/cert-manage/issues/236) |
+| **Nov 6** | Raise store / cmd coverage | [#234](https://github.com/adamdecaf/cert-manage/issues/234) |
+| **Nov 7** | Windows beyond list-only | [#235](https://github.com/adamdecaf/cert-manage/issues/235) |
+| **Nov 8** | **0.2.0** release | [#237](https://github.com/adamdecaf/cert-manage/issues/237) |
+| **Nov 9** | Adoption push | [#237](https://github.com/adamdecaf/cert-manage/issues/237) |
+
+## Why this matters (research)
+
+- [Analysis of the HTTPS Certificate Ecosystem](docs/papers/https-imc13.pdf) (2013) — more than **1,800 entities** able to issue certificates for any website; compromise of one intermediate would force ~26% of HTTPS sites to re-issue.
+- [CAge — Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf) — simple inference rules cut attack surface nearly tenfold without blocking most CA activity.
+- [You Won't Be Needing These Any More: On Removing Unused Certificates From Trust Stores](docs/papers/on-removing-unused-certs.pdf) — only about two-thirds of trusted roots were observed signing HTTPS certificates.
+
+## Background: CA incidents
+
+Incidents keep showing that "trusted by default" is not the same as "trustworthy." Beyond [eMudhra / Apple (October 2026)](https://support.apple.com/en-us/149555), a non-exhaustive historical sample:
+
+- [DigiNotar](https://en.wikipedia.org/wiki/DigiNotar)
+- [CNNIC](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/)
+- [Symantec issues](https://wiki.mozilla.org/CA:Symantec_Issues)
+- [WoSign / WoTrus](https://wiki.mozilla.org/CA:WoSign_Issues)
+- [Trustico CEO emailing DigiCert ~23k private keys](https://groups.google.com/forum/#!topic/mozilla.dev.security.policy/wxX4Yv0E3Mk)
+- StartCom ([StartEncrypt](https://www.computest.nl/blog/startencrypt-considered-harmful-today/)), GlobalSign cross-signing mistakes, vendor-installed roots (e.g. [DYMO](https://github.com/njh/dymo-root-ca-security-risk), [Savitech](https://www.kb.cert.org/vuls/id/446847))
+- See Mozilla's [CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard) and [dev-security-policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
+
+Vendors and browsers react after the fact. `cert-manage` is for putting that control on your own machine before the next incident.
 
 ## Related projects
 
@@ -147,17 +212,23 @@ This project follows the [Google Code of Conduct](https://opensource.google.com/
 - [kirei/catt](https://github.com/kirei/catt)
 - [mkcert.org](https://mkcert.org/)
 - [mozilla/tls-observatory](https://github.com/mozilla/tls-observatory)
-- [msylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
+- [MSylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
 - [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory)
 - [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
 - [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen)
 - [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
 - [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx)
 
-## Related Articles and Documentation
+## Related reading
 
 - [SSL and the Future of Authenticity](https://moxie.org/blog/ssl-and-the-future-of-authenticity/)
 - [Mozilla Certificate Policy](https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/policy/)
 - [Mozilla CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard)
 - [mozilla.dev.security.policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
 - [TLS Working Group](https://datatracker.ietf.org/wg/tls/charter/)
+- Apple: [About the compromised eMudhra intermediate CAs](https://support.apple.com/en-us/149555)
+- eMudhra: [Statement on certificate security incident](https://emudhra.com/en/post/certificate-security-incident)
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
