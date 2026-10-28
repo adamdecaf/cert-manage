@@ -144,8 +144,15 @@ func (s nssStore) Backup() error {
 		return errors.New("No NSS cert db paths found")
 	}
 
-	// Copy file into backup location
-	src := filepath.Join(s.foundCertdbLocation, filepath.Base(s.foundCertdbLocation))
+	// Prefer cert9.db (modern NSS / Firefox), fall back to cert8.db.
+	src := filepath.Join(s.foundCertdbLocation, "cert9.db")
+	if !file.Exists(src) {
+		src = filepath.Join(s.foundCertdbLocation, "cert8.db")
+	}
+	if !file.Exists(src) {
+		return fmt.Errorf("No cert9.db or cert8.db found under %s", s.foundCertdbLocation)
+	}
+
 	dst := filepath.Join(dir, fmt.Sprintf("cert.db-%d", time.Now().Unix()))
 	return file.CopyFile(src, dst)
 }

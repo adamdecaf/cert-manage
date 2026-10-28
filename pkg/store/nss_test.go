@@ -69,9 +69,9 @@ func TestStoreNSS_trustedForSSL(t *testing.T) {
 	}
 }
 
-func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
-	// TODO(#142): Backup joins foundCertdbLocation with its own basename instead of
-	// cert9.db/cert8.db, so the real NSS DB is never backed up.
+func TestStoreNSS_BackupCopiesCert9DB(t *testing.T) {
+	// Regression for #142: Backup must copy cert9.db (or cert8.db), not
+	// filepath.Join(nssdbDir, filepath.Base(nssdbDir)).
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -85,38 +85,69 @@ func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The old buggy source path must still not exist (guards against regressing
+	// to joining the directory with its own basename).
 	wrongSrc := filepath.Join(nssdbDir, filepath.Base(nssdbDir))
 	if _, err := os.Stat(wrongSrc); !os.IsNotExist(err) {
-		t.Fatalf("precondition: %s must not exist so Backup hits #142 (stat err=%v)", wrongSrc, err)
+		t.Fatalf("precondition: %s must not exist (stat err=%v)", wrongSrc, err)
 	}
 
 	s := NssStore("firefox-test", "0", nssdbDir)
-	err := s.Backup()
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup() should copy cert9.db: %v", err)
+	}
 
 	backupRoot := filepath.Join(home, ".cert-manage")
 	if runtime.GOOS == "darwin" {
 		backupRoot = filepath.Join(home, "Library", "cert-manage")
 	}
 	found := findBytesUnder(t, backupRoot, cert9)
-
-	// Current (buggy) behavior: CopyFile(nssdbDir+"/"+basename) fails because
-	// that path does not exist when only cert9.db is present, so Backup errors
-	// and cert9.db is never copied.
-	if err == nil {
-		t.Error("Backup() succeeded; current #142 behavior is an error because the source path is nssdbDir/<basename>, not cert9.db")
-	}
-	if found != "" {
-		t.Errorf("cert9.db content appeared at %s; #142 is that the NSS DB is never backed up", found)
+	if found == "" {
+		t.Fatal("cert9.db content missing from backup")
 	}
 
-	// Expected-correct behavior once #142 is fixed:
-	//
-	//	if err != nil {
-	//		t.Fatalf("Backup() should copy cert9.db: %v", err)
-	//	}
-	//	if found == "" {
-	//		t.Fatal("cert9.db content missing from backup")
-	//	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+	got, err := os.ReadFile(latest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, cert9) {
+		t.Fatalf("latest backup bytes mismatch: got %q want %q", got, cert9)
+	}
+}
+
+func TestStoreNSS_BackupFallsBackToCert8DB(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	cert8 := []byte("cert8.db unique payload\n")
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert8.db"), cert8, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup() should copy cert8.db when cert9.db is absent: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+	got, err := os.ReadFile(latest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, cert8) {
+		t.Fatalf("latest backup bytes mismatch: got %q want %q", got, cert8)
+	}
 }
 
 func findBytesUnder(t *testing.T, root string, payload []byte) string {
