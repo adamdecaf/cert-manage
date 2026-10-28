@@ -226,19 +226,40 @@ func (s linuxStore) Restore(where string) error {
 		fmt.Printf("store/linux: restoring from backup dir %s\n", dir)
 	}
 
-	// Remove the current dir
-	if file.Exists(s.ca.dir) {
-		err := os.RemoveAll(s.ca.dir)
-		if err != nil && !os.IsNotExist(err) {
+	// Mirror into a sibling temp dir, then swap into place. A failed copy
+	// must leave the live CA directory untouched.
+	tmp := s.ca.dir + ".restore-tmp"
+	if err := os.RemoveAll(tmp); err != nil {
+		return err
+	}
+	err = file.MirrorDir(dir, tmp)
+	if err != nil {
+		os.RemoveAll(tmp)
+		return err
+	}
+
+	aside := s.ca.dir + ".restore-old"
+	liveExists := file.Exists(s.ca.dir)
+	if liveExists {
+		if err := os.RemoveAll(aside); err != nil {
+			os.RemoveAll(tmp)
+			return err
+		}
+		if err := os.Rename(s.ca.dir, aside); err != nil {
+			os.RemoveAll(tmp)
 			return err
 		}
 	}
 
-	// Restore
-	err = file.MirrorDir(dir, s.ca.dir)
-	if err != nil {
+	if err := os.Rename(tmp, s.ca.dir); err != nil {
+		if liveExists {
+			os.Rename(aside, s.ca.dir)
+		}
+		os.RemoveAll(tmp)
 		return err
 	}
+	os.RemoveAll(aside)
+
 	return s.rebundleCerts()
 }
 

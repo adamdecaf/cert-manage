@@ -237,11 +237,9 @@ func TestLinuxRestore_IgnoresWherePath(t *testing.T) {
 	assertDirSnapshotEqual(t, s.ca.dir, snapshotDir(t, latest))
 }
 
-func TestLinuxRestore_DeletesLiveDirBeforeCopy(t *testing.T) {
-	// TODO: restore should mirror to a temp dir then swap into place.
-	// linuxStore.Restore currently os.RemoveAll(s.ca.dir) before MirrorDir,
-	// so a failure after the delete leaves the live CA directory wiped.
+func TestLinuxRestore_FailedRestoreLeavesLiveDirIntact(t *testing.T) {
 	s := linuxTestStore(t)
+	want := snapshotDir(t, s.ca.dir)
 
 	if err := s.Backup(); err != nil {
 		t.Fatalf("Backup: %v", err)
@@ -269,22 +267,5 @@ func TestLinuxRestore_DeletesLiveDirBeforeCopy(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected Restore to fail after backup was replaced with a file")
 	}
-
-	st, statErr := os.Stat(s.ca.dir)
-	switch {
-	case os.IsNotExist(statErr):
-		// live dir was wiped and not recreated
-	case statErr != nil:
-		t.Fatalf("stat ca.dir: %v", statErr)
-	case st.IsDir():
-		entries, readErr := os.ReadDir(s.ca.dir)
-		if readErr != nil {
-			t.Fatalf("ReadDir ca.dir: %v", readErr)
-		}
-		if len(entries) > 0 {
-			t.Errorf("ca.dir still has %d entries after failed Restore; documenting delete-before-copy, expected wiped/empty", len(entries))
-		}
-	default:
-		t.Errorf("ca.dir exists as a non-directory after failed Restore: %s", s.ca.dir)
-	}
+	assertDirSnapshotEqual(t, s.ca.dir, want)
 }
