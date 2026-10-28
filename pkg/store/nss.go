@@ -45,6 +45,11 @@ var (
 	// Run `crtutil -A -H` for the full list
 	trustAttrsProhibited = "p,p,p"
 	trustAttrsTrusted    = "CT,C,C"
+
+	// NSS shared DB (cert9) profile files that must be backed up/restored together.
+	nssCert9ProfileFiles = []string{"cert9.db", "key4.db", "pkcs11.txt"}
+	// Legacy NSS (cert8) profile files.
+	nssCert8ProfileFiles = []string{"cert8.db", "key3.db", "secmod.db"}
 )
 
 type nssStore struct {
@@ -144,17 +149,44 @@ func (s nssStore) Backup() error {
 		return errors.New("No NSS cert db paths found")
 	}
 
-	// Prefer cert9.db (modern NSS / Firefox), fall back to cert8.db.
-	src := filepath.Join(s.foundCertdbLocation, "cert9.db")
-	if !file.Exists(src) {
-		src = filepath.Join(s.foundCertdbLocation, "cert8.db")
-	}
-	if !file.Exists(src) {
-		return fmt.Errorf("No cert9.db or cert8.db found under %s", s.foundCertdbLocation)
+	names, err := nssProfileFilesToBackup(s.foundCertdbLocation)
+	if err != nil {
+		return err
 	}
 
-	dst := filepath.Join(dir, fmt.Sprintf("cert.db-%d", time.Now().Unix()))
-	return file.CopyFile(src, dst)
+	// Backup into a timestamped directory so the profile set stays together.
+	dstDir := filepath.Join(dir, fmt.Sprintf("%d", time.Now().Unix()))
+	if err := os.MkdirAll(dstDir, backupDirPerms); err != nil {
+		return err
+	}
+
+	copied := 0
+	for _, name := range names {
+		src := filepath.Join(s.foundCertdbLocation, name)
+		if !file.Exists(src) {
+			continue
+		}
+		if err := file.CopyFile(src, filepath.Join(dstDir, name)); err != nil {
+			return err
+		}
+		copied++
+	}
+	if copied == 0 {
+		return fmt.Errorf("No NSS profile files found under %s", s.foundCertdbLocation)
+	}
+	return nil
+}
+
+// nssProfileFilesToBackup picks the cert9 or cert8 file set based on which
+// cert DB exists in the profile. Callers copy whichever members of the set exist.
+func nssProfileFilesToBackup(profileDir string) ([]string, error) {
+	if file.Exists(filepath.Join(profileDir, "cert9.db")) {
+		return nssCert9ProfileFiles, nil
+	}
+	if file.Exists(filepath.Join(profileDir, "cert8.db")) {
+		return nssCert8ProfileFiles, nil
+	}
+	return nil, fmt.Errorf("No cert9.db or cert8.db found under %s", profileDir)
 }
 
 func (s nssStore) GetLatestBackup() (string, error) {
@@ -232,16 +264,32 @@ func (s nssStore) Restore(where string) error {
 		return err
 	}
 
-	// Find filename from src (latest backup)
-	fname := "cert9.db"
-	if _, err := os.Stat(filepath.Join(src, "cert8.db")); !os.IsNotExist(err) {
-		fname = "cert8.db"
-	}
-
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
-	// Restore the latest backup file
+	// Directory backups (current): restore the matching profile set.
+	if st, err := os.Stat(src); err == nil && st.IsDir() {
+		names := nssCert9ProfileFiles
+		if file.Exists(filepath.Join(src, "cert8.db")) && !file.Exists(filepath.Join(src, "cert9.db")) {
+			names = nssCert8ProfileFiles
+		}
+		for _, name := range names {
+			from := filepath.Join(src, name)
+			if !file.Exists(from) {
+				continue
+			}
+			if err := file.CopyFile(from, filepath.Join(s.foundCertdbLocation, name)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Legacy single-file backups: restore to cert9.db (or cert8.db if named so).
+	fname := "cert9.db"
+	if strings.Contains(filepath.Base(src), "cert8") {
+		fname = "cert8.db"
+	}
 	return file.CopyFile(src, filepath.Join(s.foundCertdbLocation, fname))
 }
 
