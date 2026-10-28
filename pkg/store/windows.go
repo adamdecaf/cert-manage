@@ -20,6 +20,7 @@ package store
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -145,7 +146,33 @@ Get-ChildItem -LiteralPath 'Cert:\LocalMachine\%s' | ForEach-Object {
 	if len(bytes.TrimSpace(bs)) == 0 {
 		return nil, nil
 	}
-	return certutil.ParsePEM(bs)
+	return parseWindowsPEM(bs), nil
+}
+
+// parseWindowsPEM extracts certificates from a PEM blob and skips entries Go
+// cannot parse (legacy negative serials, etc.) so one bad root cannot empty
+// the whole store.
+func parseWindowsPEM(blob []byte) []*x509.Certificate {
+	var certs []*x509.Certificate
+	for {
+		var block *pem.Block
+		block, blob = pem.Decode(blob)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			continue
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			if debug {
+				fmt.Printf("store/windows: skipping unparsable cert: %v\n", err)
+			}
+			continue
+		}
+		certs = append(certs, cert)
+	}
+	return certs
 }
 
 func (s windowsStore) certSerialsFromStore(store string) ([]string, error) {

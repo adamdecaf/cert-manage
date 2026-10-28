@@ -79,6 +79,14 @@ func TestSkipWindowsExport(t *testing.T) {
 	}
 }
 
+func TestParseWindowsPEM_skipsBad(t *testing.T) {
+	// A truncated CERTIFICATE block should not fail the rest of the blob.
+	blob := []byte("-----BEGIN CERTIFICATE-----\nQQ==\n-----END CERTIFICATE-----\n")
+	if certs := parseWindowsPEM(blob); len(certs) != 0 {
+		t.Fatalf("got %d certs from garbage PEM", len(certs))
+	}
+}
+
 func TestStoreWindows__List(t *testing.T) {
 	certs, err := platform().List(&ListOptions{Trusted: true})
 	if err != nil {
