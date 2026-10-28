@@ -220,21 +220,31 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s nssStore) Restore(where string) error {
-	src, err := s.GetLatestBackup()
-	if err != nil {
-		return err
+	src := where
+	var err error
+	if src == "" {
+		src, err = s.GetLatestBackup()
+		if err != nil {
+			return err
+		}
 	}
 
-	// Find filename from src (latest backup)
+	// Destination filename inside the NSS db dir. File backups (cert.db-<ts>)
+	// restore to cert9.db unless the source path itself is a cert8.db file or
+	// a directory that contains cert8.db.
 	fname := "cert9.db"
-	if _, err := os.Stat(filepath.Join(src, "cert8.db")); !os.IsNotExist(err) {
+	if st, serr := os.Stat(src); serr == nil && st.IsDir() {
+		if _, err := os.Stat(filepath.Join(src, "cert8.db")); !os.IsNotExist(err) {
+			fname = "cert8.db"
+		}
+		src = filepath.Join(src, fname)
+	} else if strings.Contains(filepath.Base(src), "cert8") {
 		fname = "cert8.db"
 	}
 
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
-	// Restore the latest backup file
 	return file.CopyFile(src, filepath.Join(s.foundCertdbLocation, fname))
 }
 

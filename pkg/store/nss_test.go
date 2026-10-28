@@ -119,6 +119,38 @@ func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
 	//	}
 }
 
+func TestStoreNSS_RestoreHonorsWherePath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	alternate := filepath.Join(t.TempDir(), "alternate-cert.db")
+	alt := []byte("ALTERNATE-NSS-BACKUP\n")
+	if err := os.WriteFile(alternate, alt, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(alternate); err != nil {
+		t.Fatalf("Restore(where): %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(nssdbDir, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, alt) {
+		t.Fatalf("Restore did not honor where; got %q want %q", got, alt)
+	}
+}
+
 func findBytesUnder(t *testing.T, root string, payload []byte) string {
 	t.Helper()
 	if _, err := os.Stat(root); os.IsNotExist(err) {
