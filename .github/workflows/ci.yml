@@ -41,6 +41,7 @@ jobs:
               - 'makefile'
               - 'Makefile'
               - 'testdata/**'
+              - 'test/envs/**'
               - '.golangci.yml'
               - '.github/workflows/**'
               - 'scripts/**'
@@ -49,7 +50,7 @@ jobs:
   lint:
     name: lint
     needs: changes
-    if: needs.changes.outputs.go == 'true'
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -67,7 +68,7 @@ jobs:
   build:
     name: cross-compile
     needs: changes
-    if: needs.changes.outputs.go == 'true'
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -105,7 +106,7 @@ jobs:
   test:
     name: test (${{ matrix.os }}, cgo=${{ matrix.cgo }})
     needs: changes
-    if: needs.changes.outputs.go == 'true'
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -171,7 +172,7 @@ jobs:
   distro:
     name: distro (${{ matrix.name }})
     needs: changes
-    if: needs.changes.outputs.go == 'true'
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
