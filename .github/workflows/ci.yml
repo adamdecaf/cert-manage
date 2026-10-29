@@ -13,11 +13,43 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  # Detect whether this change needs the Go jobs. Docs-only PRs skip
+  # lint/build/test/distro so they still report the required check names
+  # as skipped (treated as passing). Workflow and Go-source edits keep
+  # the full matrix.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@f3360c560367c9daf72b88c0e6164162034c5721 # v4.0.3 + picomatch CVE fix
+        id: filter
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'makefile'
+              - 'Makefile'
+              - 'testdata/**'
+              - '.golangci.yml'
+              - '.github/workflows/**'
+              - 'scripts/**'
+
   # Static analysis. golangci-lint version is pinned in the makefile.
   lint:
     name: lint
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,6 +66,8 @@ jobs:
   # target without waiting on a hosted runner for that OS.
   build:
     name: cross-compile
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -70,6 +104,8 @@ jobs:
   # cgo roots (Security.framework) and the race detector.
   test:
     name: test (${{ matrix.os }}, cgo=${{ matrix.cgo }})
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -134,6 +170,8 @@ jobs:
   # not block the others.
   distro:
     name: distro (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
