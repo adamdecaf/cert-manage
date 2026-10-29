@@ -19,7 +19,6 @@ import (
 	"os"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
