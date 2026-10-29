@@ -218,9 +218,13 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s linuxStore) Restore(where string) error {
-	dir, err := s.GetLatestBackup()
-	if err != nil {
-		return err
+	dir := where
+	var err error
+	if dir == "" {
+		dir, err = s.GetLatestBackup()
+		if err != nil {
+			return err
+		}
 	}
 	if debug {
 		fmt.Printf("store/linux: restoring from backup dir %s\n", dir)

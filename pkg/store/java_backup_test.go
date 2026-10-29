@@ -341,11 +341,8 @@ func TestJavaBackupRestoreRoundTrip(t *testing.T) {
 	}
 }
 
-func TestJavaRestore_IgnoresWherePath(t *testing.T) {
-	// TODO: javaStore.Restore ignores its `where` argument and always
-	// restores from GetLatestBackup(). The CLI -file flag is plumbed from
-	// main.go through cmd.RestoreForApp into Store.Restore, but
-	// javaStore.Restore never reads the argument.
+func TestJavaRestore_HonorsWherePath(t *testing.T) {
+	// Restore(where) must copy the provided file (CLI -file), not only GetLatestBackup().
 	layouts := activeJavaLayouts()
 	if len(layouts) == 0 {
 		t.Skip("no java home layouts configured")
@@ -356,11 +353,6 @@ func TestJavaRestore_IgnoresWherePath(t *testing.T) {
 		layout := layout
 		t.Run(layout.name, func(t *testing.T) {
 			s, kpath := javaBackupTestEnvFor(t, layout, cacertsBytes)
-
-			original, err := os.ReadFile(kpath)
-			if err != nil {
-				t.Fatal(err)
-			}
 
 			if err := s.Backup(); err != nil {
 				t.Fatalf("Backup: %v", err)
@@ -391,18 +383,8 @@ func TestJavaRestore_IgnoresWherePath(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if bytes.Equal(got, altBytes) {
-				t.Error("Restore used the `where` path; javaStore.Restore currently ignores it and restores GetLatestBackup()")
-			}
-			if !bytes.Equal(got, original) {
-				t.Errorf("live cacerts does not match original snapshot after Restore(where)")
-			}
-			latestBytes, err := os.ReadFile(latest)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(got, latestBytes) {
-				t.Errorf("live cacerts does not match GetLatestBackup() contents")
+			if !bytes.Equal(got, altBytes) {
+				t.Fatalf("Restore did not use `where`; got %q want alternate marker", got)
 			}
 		})
 	}

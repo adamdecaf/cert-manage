@@ -278,3 +278,80 @@ func TestStoreNSS_BackupRestoreCert8ProfileRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestStoreNSS_RestoreHonorsWhereFolder(t *testing.T) {
+	// Restore(where) with a directory must copy the full profile set from that folder.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "key4.db"), []byte("live-key4\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	alternate := t.TempDir()
+	want := map[string][]byte{
+		"cert9.db":   []byte("alt-cert9\n"),
+		"key4.db":    []byte("alt-key4\n"),
+		"pkcs11.txt": []byte("alt-pkcs11\n"),
+	}
+	for name, body := range want {
+		if err := os.WriteFile(filepath.Join(alternate, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(alternate); err != nil {
+		t.Fatalf("Restore(where folder): %v", err)
+	}
+	for name, body := range want {
+		got, err := os.ReadFile(filepath.Join(nssdbDir, name))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !bytes.Equal(got, body) {
+			t.Fatalf("%s: got %q want %q", name, got, body)
+		}
+	}
+}
+
+func TestStoreNSS_RestoreHonorsWhereSingleFile(t *testing.T) {
+	// Legacy single-file -file path still restores to cert9.db.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	alternate := filepath.Join(t.TempDir(), "alternate-cert.db")
+	alt := []byte("ALTERNATE-NSS-BACKUP\n")
+	if err := os.WriteFile(alternate, alt, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(alternate); err != nil {
+		t.Fatalf("Restore(where file): %v", err)
+	}
+	got, err := os.ReadFile(filepath.Join(nssdbDir, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, alt) {
+		t.Fatalf("Restore did not honor where file; got %q want %q", got, alt)
+	}
+}

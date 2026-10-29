@@ -183,9 +183,13 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s javaStore) Restore(where string) error {
-	src, err := s.GetLatestBackup()
-	if err != nil {
-		return err
+	src := where
+	var err error
+	if src == "" {
+		src, err = s.GetLatestBackup()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Get destination path

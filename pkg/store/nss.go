@@ -259,15 +259,19 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 }
 
 func (s nssStore) Restore(where string) error {
-	src, err := s.GetLatestBackup()
-	if err != nil {
-		return err
+	src := where
+	var err error
+	if src == "" {
+		src, err = s.GetLatestBackup()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
-	// Directory backups (current): restore the matching profile set.
+	// Directory backups / -file folders: restore the matching profile set.
 	if st, err := os.Stat(src); err == nil && st.IsDir() {
 		names := nssCert9ProfileFiles
 		if file.Exists(filepath.Join(src, "cert8.db")) && !file.Exists(filepath.Join(src, "cert9.db")) {

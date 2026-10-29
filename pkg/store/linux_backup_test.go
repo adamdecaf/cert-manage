@@ -198,13 +198,9 @@ func TestBackupRestoreRoundTrip(t *testing.T) {
 	assertDirSnapshotEqual(t, s.ca.dir, want)
 }
 
-func TestLinuxRestore_IgnoresWherePath(t *testing.T) {
-	// TODO: linuxStore.Restore ignores its `where` argument and always
-	// restores from GetLatestBackup(). The CLI -file flag is plumbed from
-	// main.go through cmd.RestoreForPlatform into Store.Restore, but
-	// linuxStore.Restore never reads the argument.
+func TestLinuxRestore_HonorsWherePath(t *testing.T) {
+	// Restore(where) must use the provided path (CLI -file), not only GetLatestBackup().
 	s := linuxTestStore(t)
-	want := snapshotDir(t, s.ca.dir)
 
 	if err := s.Backup(); err != nil {
 		t.Fatalf("Backup: %v", err)
@@ -231,11 +227,24 @@ func TestLinuxRestore_IgnoresWherePath(t *testing.T) {
 	}
 
 	got := snapshotDir(t, s.ca.dir)
-	if _, ok := got["only-in-alternate.crt"]; ok {
-		t.Error("Restore used the `where` path; linuxStore.Restore currently ignores it and restores GetLatestBackup()")
+	if _, ok := got["only-in-alternate.crt"]; !ok {
+		t.Fatal("Restore did not use the `where` path; expected only-in-alternate.crt in ca.dir")
 	}
-	assertDirSnapshotEqual(t, s.ca.dir, want)
-	assertDirSnapshotEqual(t, s.ca.dir, snapshotDir(t, latest))
+	if _, ok := got["extra.crt"]; ok {
+		t.Error("ca.dir still has extra.crt; Restore(where) should have replaced live with the alternate tree")
+	}
+	if bytes.Equal(mustRead(t, filepath.Join(s.ca.dir, "only-in-alternate.crt")), mustRead(t, filepath.Join(latest, "example.crt"))) {
+		t.Error("unexpected content match against latest backup")
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
 }
 
 func TestLinuxRestore_FailedRestoreLeavesLiveDirIntact(t *testing.T) {
