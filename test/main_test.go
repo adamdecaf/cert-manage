@@ -131,8 +131,6 @@ func run(t *testing.T, args ...string) (string, error) {
 }
 
 func TestCertManage_aliasNotice(t *testing.T) {
-	t.Parallel()
-
 	src := CertManage().command
 	if src == "" {
 		t.Fatal("no trustprune binary path for this platform")
@@ -146,11 +144,17 @@ func TestCertManage_aliasNotice(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		alias += ".exe"
 	}
+	// Write via a temp path then rename so the final path is never open for
+	// writing at exec time (avoids Linux ETXTBSY).
+	tmp := alias + ".tmp"
 	data, err := os.ReadFile(src)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(alias, data, 0755); err != nil {
+	if err := os.WriteFile(tmp, data, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(tmp, alias); err != nil {
 		t.Fatal(err)
 	}
 
