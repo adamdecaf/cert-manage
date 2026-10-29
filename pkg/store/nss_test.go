@@ -16,9 +16,11 @@ package store
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -668,4 +670,25 @@ func nssPathExists(t *testing.T, path string) bool {
 	}
 	t.Fatalf("stat %s: %v", path, err)
 	return false
+}
+
+func TestStoreNSS_RestoreCleanupErrorMessage(t *testing.T) {
+	err := nssRestoreCleanupError(nil)
+	if err != nil {
+		t.Fatalf("empty cleanup: %v", err)
+	}
+	err = nssRestoreCleanupError([]error{errors.New("tmp busy"), errors.New("aside busy")})
+	if err == nil {
+		t.Fatal("expected cleanup error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "NSS restore applied") {
+		t.Fatalf("missing applied marker: %q", msg)
+	}
+	if !strings.Contains(msg, "cleanup failed") {
+		t.Fatalf("missing cleanup marker: %q", msg)
+	}
+	if !strings.Contains(msg, "tmp busy") || !strings.Contains(msg, "aside busy") {
+		t.Fatalf("missing joined causes: %q", msg)
+	}
 }

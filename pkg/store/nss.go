@@ -477,7 +477,16 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 	if err := os.RemoveAll(aside); err != nil {
 		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore recovery directory %s: %w", aside, err))
 	}
-	return errors.Join(cleanupErrs...)
+	return nssRestoreCleanupError(cleanupErrs)
+}
+
+// nssRestoreCleanupError wraps post-swap cleanup failures so callers can tell
+// the restore itself already landed (unlike a mid-swap rollback error).
+func nssRestoreCleanupError(cleanupErrs []error) error {
+	if len(cleanupErrs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("NSS restore applied, but cleanup failed: %w", errors.Join(cleanupErrs...))
 }
 
 // certdbItem represents an x509 Certificate with the NSS trust attributes
