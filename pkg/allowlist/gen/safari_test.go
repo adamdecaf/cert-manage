@@ -21,7 +21,7 @@ import (
 	"github.com/go-sqlite/sqlite3"
 )
 
-func TestWhitelistGen__findSafariPlacesDB(t *testing.T) {
+func TestAllowlistGen__findSafariPlacesDB(t *testing.T) {
 	if !file.Exists("/Applications/Safari.app") {
 		t.Skip("safari not installed")
 	}
@@ -34,7 +34,7 @@ func TestWhitelistGen__findSafariPlacesDB(t *testing.T) {
 	}
 }
 
-func TestWhitelistGen__getSafariUrls(t *testing.T) {
+func TestAllowlistGen__getSafariUrls(t *testing.T) {
 	cases := []struct {
 		count int
 		path  string

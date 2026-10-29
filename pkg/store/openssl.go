@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 var (
@@ -107,7 +107,7 @@ func (s opensslStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	return nil, nil
 }
 
-func (s opensslStore) Remove(wh whitelist.Whitelist) error {
+func (s opensslStore) Remove(al allowlist.Allowlist) error {
 	if DryRun() {
 		reportDryRun("remove certificates from", "openssl", "")
 		return nil

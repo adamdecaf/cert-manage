@@ -27,9 +27,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 // Docs:
@@ -296,7 +296,7 @@ func skipWindowsExport(out string, err error) bool {
 	return false
 }
 
-func (s windowsStore) Remove(wh whitelist.Whitelist) error {
+func (s windowsStore) Remove(al allowlist.Allowlist) error {
 	if DryRun() {
 		reportDryRun("remove certificates from", "windows", "")
 		return nil

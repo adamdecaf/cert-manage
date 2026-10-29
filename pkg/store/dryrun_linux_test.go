@@ -26,8 +26,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 func enableDryRunCapture(t *testing.T) *bytes.Buffer {
@@ -133,9 +133,9 @@ func TestLinuxDryRun_RemoveLeavesStoreUnchanged(t *testing.T) {
 	}
 	fp := certutil.GetHexSHA256Fingerprint(*certs[0])
 
-	// Empty whitelist matches nothing, so example.crt would be removed.
+	// Empty allowlist matches nothing, so example.crt would be removed.
 	buf := enableDryRunCapture(t)
-	if err := s.Remove(whitelist.Whitelist{}); err != nil {
+	if err := s.Remove(allowlist.Allowlist{}); err != nil {
 		t.Fatalf("Remove dry-run: %v", err)
 	}
 	if hashDir(t, s.ca.dir) != before {

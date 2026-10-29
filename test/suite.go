@@ -27,11 +27,11 @@ func linuxSuite(t *testing.T, img *dockerfile) {
 	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count); echo "$total" > /tmp/total; echo "linux certs=$total"; test "$total" -gt 10`)
 	img.CertManage("backup")
 	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/linux | wc -l | tr -d ' ')" -ge 1`)
-	img.CertManage("whitelist", "-file", "/whitelist.json")
+	img.CertManage("allowlist", "-file", "/allowlist.json")
 	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count); test "$after" -lt "$(cat /tmp/total)"`)
 	// Probe TLS only. Do not use -f/-I: GitHub Actions IPs get HTTP 429 from
 	// large sites, which curl -f treats as failure even when TLS succeeded.
-	img.Run("sh", "-c", `set +e; curl -sS -o /dev/null --max-time 20 https://example.com/; code=$?; set -e; echo "whitelist_curl=$code"; test "$code" -ne 0`)
+	img.Run("sh", "-c", `set +e; curl -sS -o /dev/null --max-time 20 https://example.com/; code=$?; set -e; echo "allowlist_curl=$code"; test "$code" -ne 0`)
 	img.CertManage("restore")
 	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count)" -eq "$(cat /tmp/total)"`)
 	img.Run("sh", "-c", `curl -sS -o /dev/null --max-time 20 https://example.com/`)
@@ -52,7 +52,8 @@ func javaSuite(t *testing.T, img *dockerfile) {
 	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count -app java); echo "$total" > /tmp/jtotal; echo "java certs=$total"; test "$total" -gt 10`)
 	javaKeystoreByteRoundTrip(img)
 	img.RunSplit("cd / && java Download")
-	img.CertManage("whitelist", "-app", "java", "-file", "/whitelist.yaml")
+	// Exercise the hidden whitelist alias against the Java store.
+	img.CertManage("whitelist", "-app", "java", "-file", "/allowlist.yaml")
 	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count -app java); test "$after" -lt "$(cat /tmp/jtotal)"`)
 	img.CertManage("restore", "-app", "java")
 	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count -app java)" -eq "$(cat /tmp/jtotal)"`)

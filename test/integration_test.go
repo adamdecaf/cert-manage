@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/cmd"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 func TestIntegration__list(t *testing.T) {
@@ -30,28 +30,28 @@ func TestIntegration__list(t *testing.T) {
 	cmd.CmpIntF(t, func(i int) bool { return i > 10 })
 }
 
-// high-level test of entire "gen-whitelist" code path
-func TestIntegraton__genWhitelist(t *testing.T) {
+// high-level test of entire "gen-allowlist" code path
+func TestIntegraton__genAllowlist(t *testing.T) {
 	t.Parallel()
 
-	dir, err := os.MkdirTemp("", "gen-whitelist")
+	dir, err := os.MkdirTemp("", "gen-allowlist")
 	if err != nil {
 		t.Fatal(err)
 	}
-	output := filepath.Join(dir, "whitelist.json")
+	output := filepath.Join(dir, "allowlist.json")
 
-	// generate whitelist
-	err = cmd.GenerateWhitelist(output, "", filepath.Join("..", "testdata", "file-with-urls"))
+	// generate allowlist
+	err = cmd.GenerateAllowlist(output, "", filepath.Join("..", "testdata", "file-with-urls"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// read whitelist, loosely verify
-	wh, err := whitelist.FromFile(output)
+	// read allowlist, loosely verify
+	al, err := allowlist.FromFile(output)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(wh.Fingerprints) < 1 {
-		t.Errorf("got %q", wh.Fingerprints)
+	if len(al.Fingerprints) < 1 {
+		t.Errorf("got %q", al.Fingerprints)
 	}
 }

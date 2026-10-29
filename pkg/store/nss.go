@@ -27,9 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 var (
@@ -249,7 +249,7 @@ func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
 	return kept, nil
 }
 
-func (s nssStore) Remove(wh whitelist.Whitelist) error {
+func (s nssStore) Remove(al allowlist.Allowlist) error {
 	if s.foundCertdbLocation == "" {
 		return errors.New("unable to find NSS db directory")
 	}
@@ -262,7 +262,7 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 	if DryRun() {
 		var details []string
 		for i := range items {
-			if wh.MatchesAll(items[i].certs) {
+			if al.MatchesAll(items[i].certs) {
 				continue
 			}
 			for j := range items[i].certs {
@@ -275,11 +275,11 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 
 	// Remove trust from each cert if needed.
 	for i := range items {
-		if wh.MatchesAll(items[i].certs) {
+		if al.MatchesAll(items[i].certs) {
 			continue
 		}
 
-		// whitelist didn't match, blacklist cert
+		// allowlist didn't match, blocklist cert
 		defer s.notifyToRestart()
 		err = cutil.modifyTrustAttributes(s.foundCertdbLocation, items[i].nick, trustAttrsProhibited)
 		if err != nil {

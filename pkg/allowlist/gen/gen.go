@@ -234,7 +234,7 @@ func FindCAs(urls []*url.URL, sysRoots *x509.CertPool) ([]*CA, error) {
 				ca, exists := authorities.find(root)
 				ca.addDNSName(u.Host)
 				if debug && !exists {
-					fmt.Printf("whitelist/gen: added %s root (%s)\n", u.Host, ca.Fingerprint[:16])
+					fmt.Printf("allowlist/gen: added %s root (%s)\n", u.Host, ca.Fingerprint[:16])
 				}
 			}
 
@@ -273,12 +273,12 @@ func getChain(u *url.URL, roots *x509.CertPool) chain {
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	if debug {
-		fmt.Printf("whitelist/gen: getChain: getting chain for addr=%q\n", addr)
+		fmt.Printf("allowlist/gen: getChain: getting chain for addr=%q\n", addr)
 	}
 	conn, err := tls.DialWithDialer(dialer, "tcp", addr, cfg)
 	if err != nil {
 		if debug {
-			fmt.Printf("whitelist/gen: getChain: error establishing tls conn with %q err=%v\n", addr, err)
+			fmt.Printf("allowlist/gen: getChain: error establishing tls conn with %q err=%v\n", addr, err)
 		}
 		return nil
 	}

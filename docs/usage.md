@@ -5,7 +5,7 @@ title: Usage
 
 # Usage
 
-Global flags work with the subcommands that accept them. Add `-dry-run` to `add`, `backup`, `restore`, or `whitelist` to print the planned changes (files, certificates by subject and SHA-256, refresh commands) without writing to any store.
+Global flags work with the subcommands that accept them. Add `-dry-run` to `add`, `backup`, `restore`, or `allowlist` to print the planned changes (files, certificates by subject and SHA-256, refresh commands) without writing to any store.
 
 Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
 
@@ -56,7 +56,7 @@ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/securi
 
 ## backup
 
-Capture the current trust store so you can restore later. Whitelisting refuses to run without a prior backup for that store.
+Capture the current trust store so you can restore later. Allowlisting refuses to run without a prior backup for that store.
 
 ```bash
 cert-manage backup
@@ -91,21 +91,21 @@ cert-manage restore -app java -dry-run
 | `-file <path>` | Explicit backup path (directory or file, depending on the store) |
 | `-dry-run` | Print the plan without writing |
 
-## whitelist
+## allowlist
 
-Distrust certificates that are **not** on the allowlist. Requires `-file` and a prior backup. Always applies Chromium's certificate blacklist so known-bad CAs are never kept (cannot be disabled).
+Distrust certificates that are **not** on the allowlist. Requires `-file` and a prior backup. Always applies Chromium's certificate blocklist so known-bad CAs are never kept (cannot be disabled). The older `whitelist` name remains as a hidden alias.
 
-Whitelist files are YAML or JSON with optional `fingerprints` (SHA-256) and `countries` (ISO 3166-1 alpha-2).
+Allowlist files are YAML or JSON with optional `fingerprints` (SHA-256) and `countries` (ISO 3166-1 alpha-2).
 
 ```bash
-cert-manage whitelist -file whitelist.yaml
-cert-manage whitelist -file whitelist.json -app java
-cert-manage whitelist -file whitelist.yaml -dry-run
+cert-manage allowlist -file allowlist.yaml
+cert-manage allowlist -file allowlist.json -app java
+cert-manage allowlist -file allowlist.yaml -dry-run
 ```
 
 | Flag | Meaning |
 |------|---------|
-| `-file <path>` | **Required.** Path to the whitelist |
+| `-file <path>` | **Required.** Path to the allowlist |
 | `-app <name>` | Apply against an application store |
 | `-dry-run` | Print the plan without writing |
 
@@ -119,20 +119,20 @@ countries:
   - "JP"
 ```
 
-## gen-whitelist
+## gen-allowlist
 
-Build a whitelist from browser history and/or a URL list file.
+Build an allowlist from browser history and/or a URL list file. The older `gen-whitelist` name remains as a hidden alias.
 
 ```bash
-cert-manage gen-whitelist -out whitelist.json -from firefox
-cert-manage gen-whitelist -out whitelist.json -from browsers
-cert-manage gen-whitelist -out whitelist.json -from chrome,firefox
-cert-manage gen-whitelist -out whitelist.json -file urls.txt
+cert-manage gen-allowlist -out allowlist.json -from firefox
+cert-manage gen-allowlist -out allowlist.json -from browsers
+cert-manage gen-allowlist -out allowlist.json -from chrome,firefox
+cert-manage gen-allowlist -out allowlist.json -file urls.txt
 ```
 
 | Flag | Meaning |
 |------|---------|
-| `-out <path>` | **Required.** Where to write the whitelist |
+| `-out <path>` | **Required.** Where to write the allowlist |
 | `-from <types>` | Comma-separated sources: `browser` / `browsers`, `chrome`, `firefox`, `safari`, `file` |
 | `-file <path>` | Newline- or comma-delimited URLs (plain text or gzip CSV-style “top N” lists) |
 
@@ -153,7 +153,7 @@ cert-manage add -file cert.pem -app java
 
 ## connect
 
-Attempt an HTTPS connection using the platform store or an app store. Useful after whitelist or restore.
+Attempt an HTTPS connection using the platform store or an app store. Useful after allowlist or restore.
 
 ```bash
 cert-manage connect https://example.com

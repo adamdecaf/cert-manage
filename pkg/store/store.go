@@ -23,8 +23,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 var (
@@ -77,7 +77,7 @@ type Store interface {
 	// the store such that the certificate is no longer trusted.
 	// This is done when possible to limit the actual deletions to
 	// preserve restore capabilities
-	Remove(whitelist.Whitelist) error
+	Remove(allowlist.Allowlist) error
 
 	// Backup will attempt to save a backup of the certificate store
 	// on the local system

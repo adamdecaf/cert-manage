@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 )
 
 // emptyStore represents a Store which has no implementation
@@ -48,7 +48,7 @@ func (s emptyStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	s.printNotce()
 	return nil, nil
 }
-func (s emptyStore) Remove(whitelist.Whitelist) error {
+func (s emptyStore) Remove(allowlist.Allowlist) error {
 	if DryRun() {
 		reportDryRun("remove certificates from", "empty", "")
 		return nil

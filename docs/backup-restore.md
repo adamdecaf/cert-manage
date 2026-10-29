@@ -9,7 +9,7 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 
 ## Best practices
 
-1. **Backup first.** Whitelisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any whitelist.
+1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any allowlist.
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
 3. **Verify after changes** with `cert-manage list` and `cert-manage connect https://…`.
 4. **Keep a known-good backup** until you confirm the machine still reaches the sites and tools you need.

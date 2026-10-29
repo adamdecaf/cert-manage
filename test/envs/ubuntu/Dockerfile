@@ -9,8 +9,8 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/java-home
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-COPY globalsign-whitelist.json /whitelist.json
-COPY us-whitelist.yaml /whitelist.yaml
+COPY globalsign-whitelist.json /allowlist.json
+COPY us-whitelist.yaml /allowlist.yaml
 
 COPY Download.java /Download.java
 RUN javac /Download.java

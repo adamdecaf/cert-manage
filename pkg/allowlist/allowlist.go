@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package whitelist
+package allowlist
 
 import (
-	"fmt"
-	"os"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
@@ -26,9 +26,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Whitelist is the structure holding various `item` types that match against
+// Allowlist is the structure holding various `item` types that match against
 // x509 certificates
-type Whitelist struct {
+type Allowlist struct {
 	// SHA256 fingerprints
 	Fingerprints []string `json:"Fingerprints,omitempty" yaml:"fingerprints,omitempty"`
 
@@ -38,8 +38,8 @@ type Whitelist struct {
 }
 
 // Matches checks a given x509 certificate against the criteria and
-// returns if it's matched by an item in the whitelist
-func (w Whitelist) Matches(inc *x509.Certificate) bool {
+// returns if it's matched by an item in the allowlist
+func (a Allowlist) Matches(inc *x509.Certificate) bool {
 	if inc == nil {
 		return false
 	}
@@ -47,15 +47,15 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	fp := certutil.GetHexSHA256Fingerprint(*inc)
 
 	// is the certificate explicitly distrusted?
-	for i := range blacklistedFingerprints {
-		if blacklistedFingerprints[i] == fp {
+	for i := range blocklistedFingerprints {
+		if blocklistedFingerprints[i] == fp {
 			return false
 		}
 	}
 
-	// check if our whitelist's fingerprints include this certificate
-	for i := range w.Fingerprints {
-		if w.Fingerprints[i] == fp {
+	// check if our allowlist's fingerprints include this certificate
+	for i := range a.Fingerprints {
+		if a.Fingerprints[i] == fp {
 			return true
 		}
 	}
@@ -63,10 +63,10 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	// check Country in Subject (ASCII ISO codes only; EqualFold
 	// would otherwise treat Uſ as matching US)
 	for i := range inc.Subject.Country {
-		for j := range w.Countries {
+		for j := range a.Countries {
 			if isASCIICountryCode(inc.Subject.Country[i]) &&
-				isASCIICountryCode(w.Countries[j]) &&
-				strings.EqualFold(inc.Subject.Country[i], w.Countries[j]) {
+				isASCIICountryCode(a.Countries[j]) &&
+				strings.EqualFold(inc.Subject.Country[i], a.Countries[j]) {
 				return true
 			}
 		}
@@ -75,28 +75,28 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	return false
 }
 
-// MatchesAll checks if a given list of certificates all match against a whitelist
-func (w Whitelist) MatchesAll(cs []*x509.Certificate) bool {
+// MatchesAll checks if a given list of certificates all match against an allowlist
+func (a Allowlist) MatchesAll(cs []*x509.Certificate) bool {
 	for i := range cs {
-		if !w.Matches(cs[i]) {
+		if !a.Matches(cs[i]) {
 			return false
 		}
 	}
 	return true
 }
 
-// FromCertificates returns a Whitelist with only the fingerprints of the passed
+// FromCertificates returns an Allowlist with only the fingerprints of the passed
 // certificates included.
-func FromCertificates(certs []*x509.Certificate) Whitelist {
-	wh := Whitelist{}
+func FromCertificates(certs []*x509.Certificate) Allowlist {
+	al := Allowlist{}
 	for i := range certs {
 		if certs[i] == nil {
 			continue
 		}
 		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
-		wh.Fingerprints = append(wh.Fingerprints, fp)
+		al.Fingerprints = append(al.Fingerprints, fp)
 	}
-	return wh
+	return al
 }
 
 func isASCIICountryCode(s string) bool {
@@ -112,29 +112,29 @@ func isASCIICountryCode(s string) bool {
 	return true
 }
 
-// FromFile reads a whitelist file and parses it into items
-func FromFile(path string) (Whitelist, error) {
-	wh := Whitelist{}
+// FromFile reads an allowlist file and parses it into items
+func FromFile(path string) (Allowlist, error) {
+	al := Allowlist{}
 	b, err := os.ReadFile(path)
 	if err != nil {
-		return wh, err
+		return al, err
 	}
 
 	// try reading as json
-	if err = json.Unmarshal(b, &wh); err == nil {
-		return wh, nil
+	if err = json.Unmarshal(b, &al); err == nil {
+		return al, nil
 	}
 
 	// try reading as yaml
-	if err = yaml.Unmarshal(b, &wh); err == nil {
-		return wh, nil
+	if err = yaml.Unmarshal(b, &al); err == nil {
+		return al, nil
 	}
-	return wh, fmt.Errorf("unable to read whitelist: %w", err)
+	return al, fmt.Errorf("unable to read allowlist: %w", err)
 }
 
-// ToFile take a Whitelist, encodes it in yaml and writes the result
-func (w Whitelist) ToFile(path string) error {
-	out, err := yaml.Marshal(&w)
+// ToFile take an Allowlist, encodes it in yaml and writes the result
+func (a Allowlist) ToFile(path string) error {
+	out, err := yaml.Marshal(&a)
 	if err != nil {
 		return err
 	}

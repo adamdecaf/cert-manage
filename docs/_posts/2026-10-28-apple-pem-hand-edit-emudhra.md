@@ -35,15 +35,15 @@ cert-manage apps
 cert-manage apps -format json
 ```
 
-Preview before writing. `-dry-run` works on `add`, `backup`, `restore`, and `whitelist`:
+Preview before writing. `-dry-run` works on `add`, `backup`, `restore`, and `allowlist`:
 
 ```bash
 cert-manage backup -dry-run
-cert-manage whitelist -file whitelist.yaml -dry-run
+cert-manage allowlist -file allowlist.yaml -dry-run
 cert-manage restore -dry-run
 ```
 
-Take a real backup first. Whitelisting refuses to run without one for that store:
+Take a real backup first. Allowlisting refuses to run without one for that store:
 
 ```bash
 cert-manage backup
@@ -51,11 +51,11 @@ cert-manage backup -app java
 cert-manage backup -app firefox
 ```
 
-Remove trust for CAs that are not on your allowlist (Chromium's certificate blacklist is always applied as well):
+Remove trust for CAs that are not on your allowlist (Chromium's certificate blocklist is always applied as well):
 
 ```bash
-cert-manage whitelist -file whitelist.yaml
-cert-manage whitelist -file whitelist.yaml -app java
+cert-manage allowlist -file allowlist.yaml
+cert-manage allowlist -file allowlist.yaml -app java
 ```
 
 Roll back if HTTPS breaks for a tool you need:
@@ -67,7 +67,7 @@ cert-manage list
 cert-manage connect https://example.com
 ```
 
-On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and whitelist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Stores that support backups write timestamped entries under `~/.cert-manage/` or `~/Library/cert-manage/` that you can restore from.
+On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and allowlist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Stores that support backups write timestamped entries under `~/.cert-manage/` or `~/Library/cert-manage/` that you can restore from.
 
 Apple's PEM recipe is an honest interim for a real hole in macOS CLI trust. It also shows what "just edit the bundle" costs: silent reverts, brittle scripts, and no plan you can review before you write. Prefer a tool that dry-runs, backs up, restores, and applies the same policy on every store you actually use. That is safer than hand-editing a PEM under pressure—not a guarantee that nothing will break.
 

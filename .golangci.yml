@@ -22,7 +22,7 @@ linters:
       - path: pkg/certutil/read\.go
         linters: [gosec]
         text: "G304:"
-      - path: pkg/whitelist/
+      - path: pkg/allowlist/
         linters: [gosec]
         text: "G304:"
       - path: (^|/)test/

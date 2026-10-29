@@ -7,8 +7,8 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 COPY Download.java /Download.java
 RUN javac /Download.java
 
-COPY globalsign-whitelist.json /whitelist.json
-COPY us-whitelist.yaml /whitelist.yaml
+COPY globalsign-whitelist.json /allowlist.json
+COPY us-whitelist.yaml /allowlist.yaml
 COPY localcert.pem /localcert.pem
 
 # cert-manage and script.sh are bind-mounted at run so suite/java share this image.
