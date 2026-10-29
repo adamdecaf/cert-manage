@@ -15,6 +15,7 @@
 package whitelist
 
 import (
+	"fmt"
 	"os"
 	"crypto/x509"
 	"encoding/json"
@@ -60,10 +61,13 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 		}
 	}
 
-	// check Country in Subject
+	// check Country in Subject (ASCII ISO codes only; EqualFold
+	// would otherwise treat Uſ as matching US)
 	for i := range inc.Subject.Country {
 		for j := range w.Countries {
-			if strings.EqualFold(inc.Subject.Country[i], w.Countries[j]) {
+			if isASCIICountryCode(inc.Subject.Country[i]) &&
+				isASCIICountryCode(w.Countries[j]) &&
+				strings.EqualFold(inc.Subject.Country[i], w.Countries[j]) {
 				return true
 			}
 		}
@@ -96,6 +100,19 @@ func FromCertificates(certs []*x509.Certificate) Whitelist {
 	return wh
 }
 
+func isASCIICountryCode(s string) bool {
+	if len(s) != 2 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if (c < 'A' || c > 'Z') && (c < 'a' || c > 'z') {
+			return false
+		}
+	}
+	return true
+}
+
 // FromFile reads a whitelist file and parses it into items
 func FromFile(path string) (Whitelist, error) {
 	wh := Whitelist{}
@@ -113,7 +130,7 @@ func FromFile(path string) (Whitelist, error) {
 	if err = yaml.Unmarshal(b, &wh); err == nil {
 		return wh, nil
 	}
-	return wh, errors.New("unable to read whitelist")
+	return wh, fmt.Errorf("unable to read whitelist: %w", err)
 }
 
 // ToFile take a Whitelist, encodes it in yaml and writes the result
