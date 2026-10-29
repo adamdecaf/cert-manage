@@ -50,8 +50,7 @@ func javaSuite(t *testing.T, img *dockerfile) {
 	}
 
 	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count -app java); echo "$total" > /tmp/jtotal; echo "java certs=$total"; test "$total" -gt 10`)
-	img.CertManage("backup", "-app", "java")
-	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/java | wc -l | tr -d ' ')" -ge 1`)
+	javaKeystoreByteRoundTrip(img)
 	img.RunSplit("cd / && java Download")
 	img.CertManage("whitelist", "-app", "java", "-file", "/whitelist.yaml")
 	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count -app java); test "$after" -lt "$(cat /tmp/jtotal)"`)
@@ -65,6 +64,20 @@ func javaSuite(t *testing.T, img *dockerfile) {
 	if debug {
 		fmt.Println("Java end")
 	}
+}
+
+// javaKeystoreByteRoundTrip copies, mutates, and restores the container Java
+// cacerts file. Layouts match pkg/store/java_linux.go ($JAVA_HOME/lib/security/cacerts
+// then alpine's $JAVA_HOME/jre/lib/security/cacerts). Only the container store
+// is touched; this helper is invoked from docker distro tests, never the host.
+func javaKeystoreByteRoundTrip(img *dockerfile) {
+	img.Run("sh", "-c", `test -n "$JAVA_HOME"; if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/lib/security/cacerts"; elif [ -f "$JAVA_HOME/jre/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/jre/lib/security/cacerts"; else echo "java cacerts not found under JAVA_HOME=$JAVA_HOME (tried lib/security/cacerts and jre/lib/security/cacerts)" >&2; exit 1; fi; echo "$cacerts" > /tmp/jcacerts; echo "java cacerts=$cacerts"; test -s "$cacerts"; cp "$cacerts" /tmp/java-cacerts.orig; test -s /tmp/java-cacerts.orig`)
+	img.CertManage("backup", "-app", "java")
+	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/java | wc -l | tr -d ' ')" -ge 1; bck=$(ls -1 ~/.cert-manage/java | sort | tail -1); test -n "$bck"; test -f ~/.cert-manage/java/"$bck"; cmp /tmp/java-cacerts.orig ~/.cert-manage/java/"$bck"`)
+	img.Run("sh", "-c", `printf %s MUTATED-JAVA-CACERTS > "$(cat /tmp/jcacerts)"; o=$(cksum < /tmp/java-cacerts.orig); n=$(cksum < "$(cat /tmp/jcacerts)"); echo "java cacerts orig=$o mutated=$n"; test "$o" != "$n"`)
+	img.CertManage("restore", "-app", "java")
+	img.Run("sh", "-c", `cmp /tmp/java-cacerts.orig "$(cat /tmp/jcacerts)"`)
+	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count -app java)" -eq "$(cat /tmp/jtotal)"`)
 }
 
 func firefoxSuite(t *testing.T, img *dockerfile, total, after string) {
