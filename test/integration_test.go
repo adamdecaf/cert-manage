@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/cmd"
-	"github.com/adamdecaf/cert-manage/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/cmd"
+	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 func TestIntegration__list(t *testing.T) {

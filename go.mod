@@ -1,4 +1,4 @@
-module github.com/adamdecaf/cert-manage
+module github.com/adamdecaf/trustprune
 
 go 1.27.0
 

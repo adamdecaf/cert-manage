@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/ui"
+	"github.com/adamdecaf/trustprune/pkg/ui"
 )
 
 func TestCmdList__file(t *testing.T) {

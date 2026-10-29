@@ -14,7 +14,7 @@
 
 package gen
 
-// From https://github.com/adamdecaf/cert-manage/issues/108
+// From https://github.com/adamdecaf/trustprune/issues/108
 // We should be able to scrape browser history (e.g. urls) from Microsoft Edge,
 // however that's a bit more complicated as the files are seemingly always locked
 // to other readers.

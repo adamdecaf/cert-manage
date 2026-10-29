@@ -19,7 +19,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/adamdecaf/cert-manage/pkg/ui/server"
+	"github.com/adamdecaf/trustprune/pkg/ui/server"
 )
 
 func Open() error {

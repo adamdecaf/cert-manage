@@ -17,7 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/adamdecaf/cert-manage/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/store"
 )
 
 func RestoreForApp(app, path string) error {

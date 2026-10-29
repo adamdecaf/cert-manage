@@ -40,8 +40,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/httputil"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/httputil"
 )
 
 var (

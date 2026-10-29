@@ -47,6 +47,6 @@ cert-manage restore -app java
 
 ## Source
 
-- [GitHub repository](https://github.com/adamdecaf/cert-manage)
-- [Releases](https://github.com/adamdecaf/cert-manage/releases)
-- License: [Apache 2.0](https://github.com/adamdecaf/cert-manage/blob/master/LICENSE)
+- [GitHub repository](https://github.com/adamdecaf/trustprune)
+- [Releases](https://github.com/adamdecaf/trustprune/releases)
+- License: [Apache 2.0](https://github.com/adamdecaf/trustprune/blob/master/LICENSE)

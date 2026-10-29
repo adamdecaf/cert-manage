@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 )
 
 // Status describes whether a named certificate store was found on this

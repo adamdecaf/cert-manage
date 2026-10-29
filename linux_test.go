@@ -26,7 +26,7 @@ import (
 	"sync"
 	"testing"
 
-	docker "github.com/adamdecaf/cert-manage/test"
+	docker "github.com/adamdecaf/trustprune/test"
 )
 
 var (
@@ -86,7 +86,7 @@ func runTest(t *testing.T, tag string, stable bool) {
 		t.Fatal("empty workdir")
 	}
 	image := fmt.Sprintf("golang:%s", tag)
-	workdir := "/go/src/github.com/adamdecaf/cert-manage"
+	workdir := "/go/src/github.com/adamdecaf/trustprune"
 	args := []string{
 		"run", "--rm",
 		"-v", fmt.Sprintf("%s:%s", dir, workdir),

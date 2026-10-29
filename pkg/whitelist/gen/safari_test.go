@@ -17,7 +17,7 @@ package gen
 import (
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 	"github.com/go-sqlite/sqlite3"
 )
 

@@ -9,7 +9,7 @@ Module version on `master` is `0.1.1-dev`. Tagged releases start at `0.1.0`. Bui
 
 ## Release binaries
 
-Download a pre-built binary from the [latest release](https://github.com/adamdecaf/cert-manage/releases).
+Download a pre-built binary from the [latest release](https://github.com/adamdecaf/trustprune/releases).
 
 Cross-compile locally with Make (outputs under `bin/`):
 
@@ -23,14 +23,14 @@ make dist     # all three
 ## go install
 
 ```bash
-go install github.com/adamdecaf/cert-manage@latest
+go install github.com/adamdecaf/trustprune@latest
 ```
 
 ## Build from source
 
 ```bash
-git clone https://github.com/adamdecaf/cert-manage.git
-cd cert-manage
+git clone https://github.com/adamdecaf/trustprune.git
+cd trustprune
 make build          # vet + unit tests + ./cert-manage
 ```
 

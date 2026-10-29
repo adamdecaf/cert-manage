@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 	"github.com/go-sqlite/sqlite3"
 )
 
@@ -43,7 +43,7 @@ func getSafariUrls(db *sqlite3.DbFile) ([]*url.URL, error) {
 		u, _ := rec.Values[1].(string)
 		return &record{
 			URL: u,
-			// TODO(adam): https://github.com/adamdecaf/cert-manage/issues/188
+			// TODO(adam): https://github.com/adamdecaf/trustprune/issues/188
 			VisistedAt: time.Now(),
 		}
 	}

@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 	"github.com/go-sqlite/sqlite3"
 )
 
