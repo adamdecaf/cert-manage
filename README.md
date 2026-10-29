@@ -45,7 +45,7 @@ Whitelist files are YAML or JSON. See [docs/whitelists.md](docs/whitelists.md) f
 | [add](docs/basics.md#add) | Add certificates to a store |
 | [connect](docs/basics.md#connect) | Probe a remote HTTPS host using a chosen store |
 | [gen-whitelist](docs/whitelists.md#generating-whitelists) | Build a whitelist from browser history or URL lists |
-| [apps](docs/usage.md#apps) | List the apps detected on this machine |
+| [apps](docs/usage.md#apps) | List supported app and platform stores with detection status and paths |
 | [version](docs/usage.md#version) | Print the version |
 
 Whitelisting also applies Chromium's certificate blacklist so known-bad CAs are never kept. That behavior cannot be disabled today.
