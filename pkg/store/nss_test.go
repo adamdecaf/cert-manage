@@ -16,11 +16,9 @@ package store
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -673,23 +671,62 @@ func nssPathExists(t *testing.T, path string) bool {
 	return false
 }
 
-func TestStoreNSS_RestoreCleanupErrorMessage(t *testing.T) {
-	err := nssRestoreCleanupError(nil)
+func TestStoreNSS_AsideCleanupFailureWarns(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses directory mode 0555; aside cleanup cannot be blocked by permissions")
+	}
+	// After a successful restore, a leftover *.restore-old is a warning, not an error.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	parent := t.TempDir()
+	nssdbDir := filepath.Join(parent, "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	backup := t.TempDir()
+	if err := os.WriteFile(filepath.Join(backup, "cert9.db"), []byte("bak\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	aside := nssdbDir + ".restore-old"
+	testNSSAfterSuccessfulSwap = func(dst, tmp, asidePath string) {
+		if err := os.Chmod(parent, 0555); err != nil {
+			t.Fatalf("chmod parent: %v", err)
+		}
+	}
+	t.Cleanup(func() {
+		testNSSAfterSuccessfulSwap = nil
+		_ = os.Chmod(parent, 0755)
+	})
+
+	r, w, err := os.Pipe()
 	if err != nil {
-		t.Fatalf("empty cleanup: %v", err)
+		t.Fatal(err)
 	}
-	err = nssRestoreCleanupError([]error{errors.New("tmp busy"), errors.New("aside busy")})
-	if err == nil {
-		t.Fatal("expected cleanup error")
+	oldOut := os.Stdout
+	os.Stdout = w
+	s := NssStore("firefox-test", "0", nssdbDir)
+	err = s.Restore(backup)
+	_ = w.Close()
+	os.Stdout = oldOut
+	if err != nil {
+		t.Fatalf("Restore should succeed despite aside cleanup failure: %v", err)
 	}
-	msg := err.Error()
-	if !strings.Contains(msg, "NSS restore applied") {
-		t.Fatalf("missing applied marker: %q", msg)
+	out, readErr := io.ReadAll(r)
+	_ = r.Close()
+	if readErr != nil {
+		t.Fatal(readErr)
 	}
-	if !strings.Contains(msg, "cleanup failed") {
-		t.Fatalf("missing cleanup marker: %q", msg)
+	if !bytes.Contains(out, []byte("warning")) || !bytes.Contains(out, []byte(aside)) {
+		t.Fatalf("expected warning naming kept aside %s, got %q", aside, out)
 	}
-	if !strings.Contains(msg, "tmp busy") || !strings.Contains(msg, "aside busy") {
-		t.Fatalf("missing joined causes: %q", msg)
+	if !nssPathExists(t, aside) {
+		t.Errorf("aside should remain when cleanup fails: %s", aside)
 	}
 }

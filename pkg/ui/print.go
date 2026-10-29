@@ -122,7 +122,7 @@ func (p opensslPrinter) printCertificate(w io.Writer, cert []*x509.Certificate) 
 // printCertsOpenSSL shells out to openssl (if available) to print out each certificate
 func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	if p.tmp == nil {
-		tmp, err := os.CreateTemp("", "cert-mange-print-cert")
+		tmp, err := os.CreateTemp("", "cert-manage-print-cert")
 		if err != nil {
 			fmt.Println(err)
 			return

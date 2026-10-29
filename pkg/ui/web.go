@@ -32,7 +32,7 @@ const (
 <!doctype html>
 <html>
   <head>
-    <title>cert-mange {{.Operation}}</title>
+    <title>cert-manage {{.Operation}}</title>
   <style>
   div.cert-wrapper {
     padding: 5px;
