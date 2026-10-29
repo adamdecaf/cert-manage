@@ -107,10 +107,10 @@ fingerprints:
 
 ##### CSV files
 
-There are several services which offer "Top N Domains" lists. Most popular is the [Alexa top sites](https://www.alexa.com/topsites), which offers the list in a csv file. `cert-manage` can generate an allowlist from such a file. The file may also be compressed with gzip.
+There are several services which offer "Top N Domains" lists. One widely used option is the [Tranco list](https://tranco-list.eu/), which offers the list as a CSV file. `cert-manage` can generate an allowlist from such a file. The file may also be compressed with gzip.
 
 ```
-$ cert-manage gen-allowlist -out wh.yaml -file alexa1mil.gz
+$ cert-manage gen-allowlist -out wh.yaml -file tranco-top-1m.csv.gz
 CA                             Fingerprint      Count Example DNSNames
 DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
 Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com
