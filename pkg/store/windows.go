@@ -248,7 +248,7 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 			}
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error exporting cert %q (from %w) to PKCS #12 err=%q", serial, store, err)
+		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12: %w", serial, store, err)
 	}
 
 	bs, err := os.ReadFile(tmp.Name())
@@ -263,7 +263,7 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 			}
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %w, err=%q", serial, store, err)
+		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s: %w", serial, store, err)
 	}
 	return cert, nil
 }
