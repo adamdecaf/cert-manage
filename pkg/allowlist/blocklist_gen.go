@@ -26,7 +26,6 @@
 package main
 
 import (
-	"os"
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
@@ -35,18 +34,20 @@ import (
 	"go/format"
 	"io"
 	"log"
+	"net/http"
+	"os"
 	"os/user"
+	"path"
 	"runtime"
 	"strings"
 	"time"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
-	"github.com/adamdecaf/trustprune/pkg/httputil"
 )
 
 var (
 	// Chrome maintains a .tar.gz file we can download of their blocklisted certificates and keys.
-	chromeBlocklistTarball = "https://chromium.googlesource.com/chromium/src/+archive/master/net/data/ssl/blacklist.tar.gz"
+	chromeBlocklistTarball = "https://chromium.googlesource.com/chromium/src/+archive/main/net/data/ssl/blocklist.tar.gz"
 
 	outputFilename = "pkg/allowlist/blocklist.go"
 )
@@ -74,10 +75,10 @@ func main() {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Fingerprints are derived from Chromium's net/data/ssl/blacklist data,
+// Fingerprints are derived from Chromium's net/data/ssl/blocklist data,
 // Copyright The Chromium Authors, used under a BSD-style license. See NOTICE.
 // Generated on %s by %s, any modifications will be overwritten
-package whitelist
+package allowlist
 `, when, who.Username)
 
 	// get certs from tarball
@@ -120,25 +121,32 @@ func getChromeCerts(u string) ([]*cert, error) {
 	}
 	req.Close = true
 
-	resp, err := httputil.New().Do(req)
-	defer func() {
-		if resp != nil && resp.Body != nil {
-			err := resp.Body.Close()
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}()
+	client := &http.Client{Timeout: 2 * time.Minute}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			if cerr := resp.Body.Close(); cerr != nil {
+				log.Println(cerr)
+			}
+		}
+	}()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("getChromeCerts: unexpected status %s for %s", resp.Status, u)
+	}
 
-	var r io.Reader = resp.Body
-	// Decompress gzipped tarball and then read files
-	if resp.Header.Get("Content-Type") == "application/x-gzip" {
-		r, err = gzip.NewReader(r) // wrap gzip around tar reader
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("getChromeCerts: reading body: %w", err)
+	}
+
+	var r io.Reader = bytes.NewReader(body)
+	if len(body) >= 2 && body[0] == 0x1f && body[1] == 0x8b {
+		r, err = gzip.NewReader(bytes.NewReader(body))
 		if err != nil {
-			log.Fatalf("error reading gzip'd content, err=%v", err)
+			return nil, fmt.Errorf("error reading gzip'd content, err=%w", err)
 		}
 	}
 
@@ -151,29 +159,43 @@ func getChromeCerts(u string) ([]*cert, error) {
 			if err == io.EOF {
 				break // done with archive
 			}
-			log.Fatalf("error reading tar header, err=%v", err)
+			return nil, fmt.Errorf("error reading tar header, err=%w", err)
 		}
 
 		if header.Size > 0 && header.Typeflag == tar.TypeReg { // regular file
-			// collect certificates from files
-			if strings.HasSuffix(header.Name, ".pem") {
-				bs, _ := io.ReadAll(tfile)
-				cs, err := certutil.ParsePEM(bs)
-				for i := range cs {
-					certs = append(certs, &cert{
-						fingerprint: certutil.GetHexSHA256Fingerprint(*cs[i]),
-						desc:        cs[i].Subject.String(),
-					})
-				}
+			base := path.Base(header.Name)
+			if !strings.HasSuffix(strings.ToLower(base), ".pem") {
+				continue
+			}
+			bs, _ := io.ReadAll(tfile)
+			cs, parseErr := certutil.ParsePEM(bs)
+			for i := range cs {
+				certs = append(certs, &cert{
+					fingerprint: certutil.GetHexSHA256Fingerprint(*cs[i]),
+					desc:        cs[i].Subject.String(),
+				})
+			}
 
-				if len(cs) == 0 { // append whatever we can
-					certs = append(certs, &cert{
-						fingerprint: header.Name[:sha256.BlockSize],
-						desc:        err.Error(), // add whatever error we can, at least it's something
-					})
+			if len(cs) == 0 { // append whatever we can
+				stem := strings.TrimSuffix(base, path.Ext(base))
+				fp := stem
+				if len(fp) > sha256.BlockSize {
+					fp = fp[:sha256.BlockSize]
 				}
+				desc := base
+				if parseErr != nil {
+					desc = parseErr.Error()
+				}
+				certs = append(certs, &cert{
+					fingerprint: fp,
+					desc:        desc,
+				})
 			}
 		}
+	}
+
+	if len(certs) == 0 {
+		return nil, fmt.Errorf("getChromeCerts: no certificates found in %s", u)
 	}
 
 	return certs, nil

@@ -245,6 +245,14 @@ func TestAllowlist_blocklistedFingerprintsLoad(t *testing.T) {
 	if len(blocklistedFingerprints) == 0 {
 		t.Fatal("blocklistedFingerprints is empty")
 	}
+	// Qaznet Trust Network fingerprint from Chromium's current blocklist.
+	const refreshed = "00309c736dd661da6f1eb24173aa849944c168a43a15bffd192eecfdb6f8dbd2"
+	for i := range blocklistedFingerprints {
+		if blocklistedFingerprints[i] == refreshed {
+			return
+		}
+	}
+	t.Fatalf("refreshed Chromium fingerprint %q is missing", refreshed)
 }
 
 func TestAllowlist_blocklistRejectsMatch(t *testing.T) {
