@@ -23,7 +23,6 @@ import (
 )
 
 func TestLocateChromeNSS(t *testing.T) {
-	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("unix-style .pki/nssdb layout")
 	}
@@ -52,7 +51,6 @@ func TestLocateChromeNSS(t *testing.T) {
 }
 
 func TestLocateFirefoxProfile(t *testing.T) {
-	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("unix-style firefox profile layout")
 	}
@@ -91,7 +89,6 @@ func TestLocateFirefoxProfile(t *testing.T) {
 }
 
 func TestDetectStatusesShape(t *testing.T) {
-	t.Parallel()
 
 	statuses := DetectStatuses()
 	apps := GetApps()
@@ -110,7 +107,6 @@ func TestDetectStatusesShape(t *testing.T) {
 }
 
 func TestDetectJavaWithTempKeystore(t *testing.T) {
-	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("unix java home layout")
 	}
@@ -145,7 +141,6 @@ func TestDetectJavaWithTempKeystore(t *testing.T) {
 }
 
 func TestDetectOpenSSLWithTempPath(t *testing.T) {
-	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.Skip("openssl store unsupported on windows")
 	}
