@@ -98,6 +98,8 @@ You can also install with the Go toolchain:
 go install github.com/adamdecaf/trustprune@latest
 ```
 
+That installs a binary named `trustprune` (Go uses the last path element). Until the binary rename in #251, prefer `make build` above if you want the `cert-manage` command name.
+
 ### Usage examples
 
 ```bash

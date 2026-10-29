@@ -26,6 +26,8 @@ make dist     # all three
 go install github.com/adamdecaf/trustprune@latest
 ```
 
+That installs a binary named `trustprune` (Go uses the last path element). Until the binary rename in #251, prefer [Build from source](#build-from-source) below if you want the `cert-manage` command name.
+
 ## Build from source
 
 ```bash
