@@ -258,10 +258,11 @@ APPS
 			}
 			return cmd.ConnectWithAppStore(u, *flagApp)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage connect [-app <name>] <url>
+		help: fmt.Sprintf(`Usage: cert-manage connect [-app <name>] (-url <url> | <url>)
 
-Attempt an HTTP connect to <url> with the given certificate store. If -app is provided then
-the certificates for that application are loaded and used for the connection.
+Attempt an HTTP connect to a URL with the given certificate store. Pass the URL as
+-url <url> or as a positional argument. If -app is provided then the certificates for
+that application are loaded and used for the connection.
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
@@ -277,13 +278,14 @@ APPS
 		help: fmt.Sprintf(`Usage: trustprune gen-allowlist -out <where> [-file <file>] [-from <type>]
 
   Generate an allowlist and write it to the filesystem. (At wherever -out points to.)
+  The -out extension chooses the format: .json writes JSON; .yaml or .yml writes YAML.
 
   Also, you can pass -file to read newline-delimited https URLs, or a Tranco-style
   rank,domain CSV (https:// is prefixed onto each domain). Gzip files are accepted.
     trustprune gen-allowlist -file <path> -out allowlist.yaml
 
   Generate an allowlist from browser history
-    trustprune gen-allowlist -from firefox -out allowlist.yaml
+    trustprune gen-allowlist -from firefox -out allowlist.json
 
   Generate an allowlist from all browsers on a computer
     trustprune gen-allowlist -from browsers -out allowlist.yaml
@@ -443,11 +445,26 @@ func getVersion() string {
 }
 
 func parseConnectUrl(fs *flag.FlagSet) (*url.URL, error) {
-	if fs.NArg() != 1 {
+	raw := ""
+	if flagURL != nil {
+		raw = strings.TrimSpace(*flagURL)
+	}
+
+	switch fs.NArg() {
+	case 0:
+		// URL may come from -url only.
+	case 1:
+		pos := strings.TrimSpace(fs.Arg(0))
+		if raw != "" && pos != "" {
+			return nil, errors.New("provide either -url or a positional URL, not both")
+		}
+		if pos != "" {
+			raw = pos
+		}
+	default:
 		return nil, fmt.Errorf("unknown arguments: %s", strings.Join(fs.Args(), ", "))
 	}
 
-	raw := fs.Arg(0)
 	if raw == "" {
 		return nil, errors.New("no url specified")
 	}

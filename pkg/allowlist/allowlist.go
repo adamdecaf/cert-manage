@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
@@ -132,9 +133,23 @@ func FromFile(path string) (Allowlist, error) {
 	return al, fmt.Errorf("unable to read allowlist: %w", err)
 }
 
-// ToFile take an Allowlist, encodes it in yaml and writes the result
+// ToFile encodes an Allowlist and writes it to path. The format follows the
+// file extension: .json writes JSON; .yaml and .yml write YAML. Other
+// extensions default to YAML for compatibility with existing callers.
 func (a Allowlist) ToFile(path string) error {
-	out, err := yaml.Marshal(&a)
+	var (
+		out []byte
+		err error
+	)
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".json":
+		out, err = json.MarshalIndent(a, "", "  ")
+		if err == nil {
+			out = append(out, '\n')
+		}
+	default:
+		out, err = yaml.Marshal(&a)
+	}
 	if err != nil {
 		return err
 	}

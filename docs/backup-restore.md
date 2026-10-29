@@ -66,7 +66,7 @@ NSS backups for Chrome (Linux) and Firefox copy whichever members of the profile
 2. Moves each existing live file aside under `<profile>.restore-old/`. It always uses that fixed path, so an operator can find it even after a crash; restore prints the path only when a failure leaves `<profile>.restore-old/` in place.
 3. Renames each staged file into the live profile.
 4. On any staging or swap failure, rolls live files back from the aside directory and removes the temp dirs.
-5. On success, removes the temp and aside directories. An aside-directory cleanup failure alone does not fail the restore (a warning names `<profile>.restore-old/` and notes contents may be incomplete); if temporary-directory cleanup also fails, restore returns that error.
+5. On success, removes the temp and aside directories. If either cleanup fails, restore still succeeds and prints a warning naming the kept path (remaining contents may be incomplete), matching Linux restore behavior for `.restore-old`.
 
 A failed stage leaves the live profile files untouched. Restore from a **legacy single file** uses the same stage-then-swap path onto `cert9.db` (or `cert8.db` if the backup basename contains `cert8`). Explicit `-file` / `where` is honored.
 

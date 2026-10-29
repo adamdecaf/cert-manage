@@ -466,25 +466,19 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		}
 	}
 
-	var cleanupErrs []error
-	if err := os.RemoveAll(tmp); err != nil {
-		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
+	// Restore already applied; leftover temp/aside paths are warnings only
+	// (same idea as linuxStore.Restore after a successful swap).
+	if err := nssRemoveAll(tmp); err != nil {
+		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", tmp, err)
 	}
-	if err := os.RemoveAll(aside); err != nil {
-		// Aside cleanup failure alone does not fail the restore (tmp cleanup still can).
+	if err := nssRemoveAll(aside); err != nil {
 		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
 	}
-	return nssRestoreCleanupError(cleanupErrs)
+	return nil
 }
 
-// nssRestoreCleanupError wraps post-swap cleanup failures so callers can tell
-// the restore itself already landed (unlike a mid-swap rollback error).
-func nssRestoreCleanupError(cleanupErrs []error) error {
-	if len(cleanupErrs) == 0 {
-		return nil
-	}
-	return fmt.Errorf("NSS restore applied, but cleanup failed: %w", errors.Join(cleanupErrs...))
-}
+// nssRemoveAll is os.RemoveAll; tests swap it to simulate cleanup failures.
+var nssRemoveAll = os.RemoveAll
 
 // certdbItem represents an x509 Certificate with the NSS trust attributes
 type certdbItem struct {
