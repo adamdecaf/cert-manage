@@ -42,13 +42,17 @@ type CA struct {
 	// pre-computed sha256 fingerprint
 	Fingerprint string
 
-	// dnsNames represents known fqdns (or wildcards) which this
+	mu sync.Mutex // protects DNSNames
+	// DNSNames represents known fqdns (or wildcards) which this
 	// CA has created a certificate for
 	DNSNames []string
 }
 
 // signs checks if a given
 func (c *CA) signs(dnsName string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	dnsName = strings.ToLower(dnsName)
 	for i := range c.DNSNames {
 		if c.DNSNames[i] == dnsName {
@@ -65,6 +69,9 @@ func (c *CA) signs(dnsName string) bool {
 	return false
 }
 func (c *CA) addDNSName(dnsName string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	// lowercase incoming dnsNames
 	dnsName = strings.ToLower(dnsName)
 
@@ -88,24 +95,24 @@ type CAs struct {
 //
 // Never returns a nil CA value
 func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
-	c.RLock()
+	// Hold the write lock for the whole find-or-create path. Releasing a
+	// read lock before taking the write lock lets two workers both miss
+	// and both append.
+	c.Lock()
+	defer c.Unlock()
+
 	incfp := certutil.GetHexSHA256Fingerprint(*inc)
 	for i := range c.items {
 		if c.items[i].Fingerprint == incfp {
-			c.RUnlock()
 			return c.items[i], true
 		}
 	}
-	c.RUnlock()
 
-	// Create a new CA and add
-	c.Lock()
 	ca = &CA{
 		Certificate: inc,
-		Fingerprint: certutil.GetHexSHA256Fingerprint(*inc),
+		Fingerprint: incfp,
 	}
 	c.items = append(c.items, ca)
-	c.Unlock()
 	return ca, false
 }
 
@@ -117,8 +124,9 @@ func (c *CAs) find(inc *x509.Certificate) (ca *CA, exists bool) {
 // 2018-01-21: I'm not sure how frequent that situation is, but I can see
 // this happening when dnsNames change their CA.
 func (c *CAs) findSigners(dnsName string) []*CA {
-	c.RLock()
-	defer c.RUnlock()
+	// Write lock: we may record dnsName on a matching CA via addDNSName.
+	c.Lock()
+	defer c.Unlock()
 
 	var out []*CA
 	for i := range c.items {
