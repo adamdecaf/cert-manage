@@ -77,7 +77,7 @@ func main() {
 // Fingerprints are derived from Chromium's net/data/ssl/blacklist data,
 // Copyright The Chromium Authors, used under a BSD-style license. See NOTICE.
 // Generated on %s by %s, any modifications will be overwritten
-package whitelist
+package allowlist
 `, when, who.Username)
 
 	// get certs from tarball
