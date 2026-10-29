@@ -346,8 +346,8 @@ func (s linuxStore) Restore(where string) error {
 
 	if liveExists {
 		if err := os.RemoveAll(aside); err != nil {
-			// Restore already applied; keep going and warn about the leftover.
-			fmt.Printf("store/linux: warning: previous CA directory kept at %s after restore\n", aside)
+			// Restore already applied; warn about leftover path (contents may be partial).
+			fmt.Printf("store/linux: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
 		}
 	}
 	return nil

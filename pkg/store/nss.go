@@ -470,8 +470,8 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
 	}
 	if err := os.RemoveAll(aside); err != nil {
-		// Restore already applied; warn about the leftover aside and keep success.
-		fmt.Printf("store/nss: warning: previous profile files kept at %s after restore\n", aside)
+		// Aside cleanup failure alone does not fail the restore (tmp cleanup still can).
+		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
 	}
 	return nssRestoreCleanupError(cleanupErrs)
 }
