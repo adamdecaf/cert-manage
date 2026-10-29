@@ -2,7 +2,7 @@ trustprune
 Copyright 2018 Adam Shannon
 
 This product includes certificate fingerprints derived from the Chromium
-project (net/data/ssl/blacklist), distributed under the following license:
+project (net/data/ssl/blocklist), distributed under the following license:
 
 Copyright 2015 The Chromium Authors
 
