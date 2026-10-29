@@ -10,15 +10,34 @@ linters:
     warn-unused: true
     rules:
       # CLI takes user-supplied store/cert paths by design; paths are validated by each store.
-      - linters: [gosec]
+      - path: pkg/cmd/
+        linters: [gosec]
+        text: "G304:"
+      - path: pkg/store/
+        linters: [gosec]
+        text: "G304:"
+      - path: pkg/file/
+        linters: [gosec]
+        text: "G304:"
+      - path: pkg/certutil/read\.go
+        linters: [gosec]
+        text: "G304:"
+      - path: pkg/whitelist/
+        linters: [gosec]
+        text: "G304:"
+      - path: (^|/)test/
+        linters: [gosec]
         text: "G304:"
       # SHA-1 fingerprints identify certificates for display/matching; not used for trust decisions.
-      - linters: [gosec]
+      - path: pkg/certutil/x509\.go
+        linters: [gosec]
         text: "G505:"
-      - linters: [gosec]
+      - path: pkg/certutil/x509\.go
+        linters: [gosec]
         text: "G401:"
       # Ephemeral local UI port selection; not a cryptographic use of math/rand.
-      - linters: [gosec]
+      - path: pkg/ui/server/server\.go
+        linters: [gosec]
         text: "G404:"
       # gosec does not model the RLock-protected loop index; the slice access is in-range.
       - path: pkg/certutil/pool\.go

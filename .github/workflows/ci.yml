@@ -71,7 +71,7 @@ jobs:
   test:
     name: test (${{ matrix.os }}, cgo=${{ matrix.cgo }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +120,14 @@ jobs:
       - name: CLI integration
         env:
           CGO_ENABLED: ${{ matrix.cgo }}
-        run: go test -count=1 -timeout 3m ./test/ -skip 'TestAlpine|TestDebian|TestUbuntu|TestDocker'
+        run: |
+          extra=()
+          timeout=3m
+          if [ "${{ matrix.race }}" = "true" ]; then
+            extra+=(-race)
+            timeout=5m
+          fi
+          go test -count=1 -timeout "$timeout" "${extra[@]}" ./test/ -skip 'TestAlpine|TestDebian|TestUbuntu|TestDocker'
 
   # Linux distro coverage via Docker. Add a suite name + Dockerfile under
   # test/envs/ to expand. Suites run in parallel so a slow image pull does
