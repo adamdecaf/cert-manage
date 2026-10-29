@@ -16,7 +16,6 @@ package ui
 
 import (
 	"crypto/x509"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -76,7 +75,7 @@ func writeObservatoryReport(meta Meta, certs []*x509.Certificate, cfg *Config) e
 		return err
 	}
 	if cfg.Outfile != "" {
-		return ioutil.WriteFile(cfg.Outfile, bs, file.TempFilePermissions)
+		return os.WriteFile(cfg.Outfile, bs, file.TempFilePermissions)
 	}
 	// write yaml to stdout
 	_, err = os.Stdout.Write(bs)

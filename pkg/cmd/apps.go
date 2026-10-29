@@ -61,7 +61,7 @@ func printAppsTerse(w io.Writer, statuses []store.Status) error {
 			}
 		}
 		if _, err := fmt.Fprintf(w, "%-*s  %-*s  %s\n", maxName, s.Name, stateWidth, state, path); err != nil {
-			return fmt.Errorf("writing apps output failed: %v; retry or use -format json", err)
+			return fmt.Errorf("writing apps output failed: %w; retry or use -format json", err)
 		}
 	}
 	return nil
@@ -71,7 +71,7 @@ func printAppsJSON(w io.Writer, statuses []store.Status) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(statuses); err != nil {
-		return fmt.Errorf("encoding apps as JSON failed: %v; try the default terse output instead", err)
+		return fmt.Errorf("encoding apps as JSON failed: %w; try the default terse output instead", err)
 	}
 	return nil
 }

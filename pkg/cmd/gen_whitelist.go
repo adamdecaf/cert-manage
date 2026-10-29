@@ -105,7 +105,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	if len(accum) == 0 {
-		return errors.New("No urls found to generate whitelist from")
+		return errors.New("no urls found to generate whitelist from")
 	}
 
 	// Generate whitelist and write to file
@@ -115,7 +115,7 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	if len(authorities) == 0 {
-		return fmt.Errorf("Unable to find any CA's from %d urls retrieved", len(accum))
+		return fmt.Errorf("unable to find any CA's from %d urls retrieved", len(accum))
 	}
 
 	// prep summary
@@ -142,7 +142,7 @@ func GenerateWhitelist(output string, from, file string) error {
 		fmt.Fprintln(w, row)
 	}
 	if err := w.Flush(); err != nil {
-		return fmt.Errorf("problem flushing output: %v", err)
+		return fmt.Errorf("problem flushing output: %w", err)
 	}
 
 	wh := whitelist.FromCertificates(acc.GetCertificates())

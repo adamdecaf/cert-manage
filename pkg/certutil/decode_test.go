@@ -15,14 +15,14 @@
 package certutil
 
 import (
+	"io"
 	"compress/gzip"
-	"io/ioutil"
 	"os"
 	"testing"
 )
 
 func TestCertUtil__decodePEM(t *testing.T) {
-	bs, err := ioutil.ReadFile("../../testdata/example.crt")
+	bs, err := os.ReadFile("../../testdata/example.crt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestCertUtil__decodeNSS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bs, err := ioutil.ReadAll(r)
+	bs, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -35,11 +35,9 @@ var (
 			DialContext: (&net.Dialer{
 				Timeout:   30 * time.Second,
 				KeepAlive: 30 * time.Second,
-				DualStack: true,
 			}).DialContext,
 			TLSClientConfig: &tls.Config{
 				MinVersion: tls.VersionTLS12,
-				MaxVersion: tls.VersionTLS12,
 			},
 			TLSHandshakeTimeout:   1 * time.Minute,
 			IdleConnTimeout:       1 * time.Minute,

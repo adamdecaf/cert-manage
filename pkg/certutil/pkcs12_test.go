@@ -15,15 +15,15 @@
 package certutil
 
 import (
+	"os"
 	"fmt"
-	"io/ioutil"
 	"testing"
 )
 
 func TestCertutil__decodePKCS12(t *testing.T) {
 	t.Skip("broken upstream See https://github.com/golang/go/issues/23499")
 
-	bs, err := ioutil.ReadFile("../../testdata/cert.pfx")
+	bs, err := os.ReadFile("../../testdata/cert.pfx")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -91,7 +91,7 @@ func write(w io.Writer, tpl string, data interface{}) error {
 	t := template.Must(template.New("contents").Parse(tpl))
 	err := t.Execute(w, data)
 	if err != nil {
-		io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
+		_, _ = io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
 		return err
 	}
 	return nil
@@ -102,7 +102,7 @@ func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		p, ok := getPrinter(cfg.Format)
 		if !ok {
-			io.WriteString(w, fmt.Sprintf("Unknown format %s", cfg.Format))
+			_, _ = io.WriteString(w, fmt.Sprintf("Unknown format %s", cfg.Format))
 			return
 		}
 		defer p.close()
@@ -129,19 +129,19 @@ func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 			w1 := bufio.NewWriter(&buf)
 
 			p.write(w1, certs[i:i+1])
-			w1.Flush()
+			_ = w1.Flush()
 
 			contents[i] = cert{
 				Subject: certutil.StringifyPKIXName(certs[i].Subject),
 				Raw:     buf.String(),
 			}
 		}
-		write(w, list, struct {
+		_ = write(w, list, struct {
 			Certificates []cert
 		}{
 			Certificates: contents,
 		})
-		write(w, footer, nil)
+		_ = write(w, footer, nil)
 	})
 
 	return launch()

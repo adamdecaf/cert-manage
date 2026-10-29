@@ -17,7 +17,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -34,7 +33,7 @@ var (
 // ListCertsFromFile finds certificates at the given filepath
 // and lists them according to the ui/format options.
 func ListCertsFromFile(where string, cfg *ui.Config) error {
-	bs, err := ioutil.ReadFile(where)
+	bs, err := os.ReadFile(where)
 	if err != nil {
 		return err
 	}
@@ -51,7 +50,7 @@ func ListCertsFromFile(where string, cfg *ui.Config) error {
 func ListCertsFromURL(where string, cfg *ui.Config) (err error) {
 	req, err := http.NewRequest("GET", where, nil)
 	if err != nil {
-		return fmt.Errorf("unable to create request for %s: %v", where, err)
+		return fmt.Errorf("unable to create request for %s: %w", where, err)
 	}
 	req.Close = true
 
@@ -68,7 +67,7 @@ func ListCertsFromURL(where string, cfg *ui.Config) (err error) {
 
 	// read out certs
 	r := io.LimitReader(resp.Body, maxDownloadSize)
-	bs, err := ioutil.ReadAll(r)
+	bs, err := io.ReadAll(r)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

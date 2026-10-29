@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -153,9 +152,9 @@ func (d *dockerfile) build() {
 	// Copy our original image's contents into the dst file.
 	// Image tags contain a colon (cert-manage:alpine); that must not appear
 	// in the host path or `docker run -v src:dst` treats the rest as a mode.
-	dir, err := ioutil.TempDir("", dockerTempPrefix(d.tag))
+	dir, err := os.MkdirTemp("", dockerTempPrefix(d.tag))
 	if err != nil {
-		d.err = fmt.Errorf("tempfile create err=%v", err)
+		d.err = fmt.Errorf("tempfile create err=%w", err)
 		return
 	}
 
@@ -168,37 +167,37 @@ func (d *dockerfile) build() {
 	for i := range copies {
 		err = file.CopyFile(copies[i].src, filepath.Join(dir, copies[i].dst))
 		if err != nil {
-			d.err = fmt.Errorf("error copying %s to tmp dir, err=%v", copies[i].dst, err)
+			d.err = fmt.Errorf("error copying %s to tmp dir, err=%w", copies[i].dst, err)
 			return
 		}
 	}
 
 	dst, err := os.Create(filepath.Join(dir, "Dockerfile"))
 	if err != nil {
-		d.err = fmt.Errorf("tmp Dockerfile create err=%v", err)
+		d.err = fmt.Errorf("tmp Dockerfile create err=%w", err)
 		return
 	}
 
 	src, err := os.Open(d.base)
 	if err != nil {
-		d.err = fmt.Errorf("tmpfile open err=%v", err)
+		d.err = fmt.Errorf("tmpfile open err=%w", err)
 		return
 	}
 	if _, err := io.Copy(dst, src); err != nil {
-		d.err = fmt.Errorf("src->dst copy err=%v", err)
+		d.err = fmt.Errorf("src->dst copy err=%w", err)
 		return
 	}
 	if err := src.Close(); err != nil {
-		d.err = fmt.Errorf("src close err=%v", err)
+		d.err = fmt.Errorf("src close err=%w", err)
 		return
 	}
 	// Force all writes into our Dockerfile
 	if err := dst.Sync(); err != nil {
-		d.err = fmt.Errorf("dst fsync err=%v", err)
+		d.err = fmt.Errorf("dst fsync err=%w", err)
 		return
 	}
 	if err := dst.Close(); err != nil {
-		d.err = fmt.Errorf("dst close err=%v", err)
+		d.err = fmt.Errorf("dst close err=%w", err)
 		return
 	}
 
@@ -218,7 +217,7 @@ set -e` + "\n") // force newline
 	for i := range d.commands {
 		line := formatScriptLine(d.commands[i]) + "\n"
 		if _, err := script.WriteString(line); err != nil {
-			d.err = fmt.Errorf("command=%q err=%v", line, err)
+			d.err = fmt.Errorf("command=%q err=%w", line, err)
 			return
 		}
 	}
@@ -275,7 +274,7 @@ func (d *dockerfile) run() {
 
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
-		d.err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
+		d.err = fmt.Errorf("error: err=%w\nOutput: %s", err, string(out))
 	}
 	if debug {
 		fmt.Println(string(out))
@@ -315,7 +314,7 @@ func ensureDockerImage(tag, contextDir string) error {
 	}
 	out, err := exec.Command("docker", "build", "-t", tag, contextDir).CombinedOutput()
 	if err != nil {
-		err = fmt.Errorf("ERROR: err=%v\nOutput: %s", err, string(out))
+		err = fmt.Errorf("error: err=%w\nOutput: %s", err, string(out))
 	}
 	dockerImages[tag] = err
 	return err
@@ -337,7 +336,7 @@ func formatScriptLine(c *Cmd) string {
 }
 
 func posixQuote(s string) string {
-	return "'" + strings.Replace(s, "'", `'"'"'`, -1) + "'"
+	return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
 }
 
 func dockerTempPrefix(tag string) string {

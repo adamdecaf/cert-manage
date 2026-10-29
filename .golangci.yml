@@ -1,0 +1,78 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - gosec
+    - errorlint
+    - misspell
+  exclusions:
+    warn-unused: true
+    rules:
+      # CLI takes user-supplied store/cert paths by design; paths are validated by each store.
+      - linters: [gosec]
+        text: "G304:"
+      # SHA-1 fingerprints identify certificates for display/matching; not used for trust decisions.
+      - linters: [gosec]
+        text: "G505:"
+      - linters: [gosec]
+        text: "G401:"
+      # Ephemeral local UI port selection; not a cryptographic use of math/rand.
+      - linters: [gosec]
+        text: "G404:"
+      # gosec does not model the RLock-protected loop index; the slice access is in-range.
+      - path: pkg/certutil/pool\.go
+        linters: [gosec]
+        text: "G602:"
+      # Test and fixture helpers create world-readable files/dirs to mirror real store layouts.
+      - path: _test\.go
+        linters: [gosec]
+        text: "G306:"
+      - path: _test\.go
+        linters: [gosec]
+        text: "G301:"
+      - path: _test\.go
+        linters: [gosec]
+        text: "G302:"
+      # Integration/docker helpers and platform tools launch controlled commands with fixed argv.
+      - path: _test\.go
+        linters: [gosec]
+        text: "G204:"
+      - path: (^|/)test/
+        linters: [gosec]
+        text: "G204:"
+      - path: pkg/store/
+        linters: [gosec]
+        text: "G204:"
+      - path: pkg/file/file_unix\.go
+        linters: [gosec]
+        text: "G204:"
+      - path: pkg/ui/
+        linters: [gosec]
+        text: "G204:"
+      # Backup/restore tests walk temp dirs; path is rooted under t.TempDir().
+      - path: _test\.go
+        linters: [gosec]
+        text: "G703:"
+      - path: _test\.go
+        linters: [gosec]
+        text: "G122:"
+      # Test archive is a fixed fixture, not untrusted input.
+      - path: pkg/cmd/list_test\.go
+        linters: [gosec]
+        text: "G110:"
+      # Docker helper scripts must be executable inside the container.
+      - path: (^|/)test/
+        linters: [gosec]
+        text: "G302:"
+      # Status printers write to stdout/stderr; a short write is not actionable mid-report.
+      - linters: [errcheck]
+        text: "Error return value of `fmt.Fprint"
+      # Test cleanup of temp paths; failure leaves residue but does not affect assertions.
+      - path: _test\.go
+        linters: [errcheck]
+        text: "Error return value of `os.Remove"
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

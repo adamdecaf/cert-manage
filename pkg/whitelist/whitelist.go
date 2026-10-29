@@ -15,10 +15,10 @@
 package whitelist
 
 import (
+	"os"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"strings"
 
 	"github.com/adamdecaf/cert-manage/pkg/certutil"
@@ -63,7 +63,7 @@ func (w Whitelist) Matches(inc *x509.Certificate) bool {
 	// check Country in Subject
 	for i := range inc.Subject.Country {
 		for j := range w.Countries {
-			if strings.ToLower(inc.Subject.Country[i]) == strings.ToLower(w.Countries[j]) {
+			if strings.EqualFold(inc.Subject.Country[i], w.Countries[j]) {
 				return true
 			}
 		}
@@ -99,7 +99,7 @@ func FromCertificates(certs []*x509.Certificate) Whitelist {
 // FromFile reads a whitelist file and parses it into items
 func FromFile(path string) (Whitelist, error) {
 	wh := Whitelist{}
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return wh, err
 	}
@@ -113,7 +113,7 @@ func FromFile(path string) (Whitelist, error) {
 	if err = yaml.Unmarshal(b, &wh); err == nil {
 		return wh, nil
 	}
-	return wh, errors.New("Unable to read whitelist")
+	return wh, errors.New("unable to read whitelist")
 }
 
 // ToFile take a Whitelist, encodes it in yaml and writes the result
@@ -122,5 +122,5 @@ func (w Whitelist) ToFile(path string) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, out, file.TempFilePermissions)
+	return os.WriteFile(path, out, file.TempFilePermissions)
 }

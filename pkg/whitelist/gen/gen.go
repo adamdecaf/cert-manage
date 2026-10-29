@@ -274,7 +274,7 @@ func getChain(u *url.URL, roots *x509.CertPool) chain {
 		}
 		return nil
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	return conn.ConnectionState().PeerCertificates
 }

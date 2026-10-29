@@ -15,9 +15,9 @@
 package certutil
 
 import (
+	"io"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/adamdecaf/cert-manage/pkg/file"
@@ -37,17 +37,17 @@ func FromFile(path string) ([]*x509.Certificate, error) {
 		}
 	}()
 	if err != nil {
-		return nil, fmt.Errorf("error opening file, err=%v", err)
+		return nil, fmt.Errorf("error opening file, err=%w", err)
 	}
 
-	body, err := ioutil.ReadAll(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("error reading file, err=%v", err)
+		return nil, fmt.Errorf("error reading file, err=%w", err)
 	}
 
 	certificates, err := ParsePEM(body)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing certs, err=%v", err)
+		return nil, fmt.Errorf("error parsing certs, err=%w", err)
 	}
 	return certificates, nil
 }

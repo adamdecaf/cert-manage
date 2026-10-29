@@ -15,7 +15,7 @@
 package test
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -34,7 +34,7 @@ func TestIntegration__list(t *testing.T) {
 func TestIntegraton__genWhitelist(t *testing.T) {
 	t.Parallel()
 
-	dir, err := ioutil.TempDir("", "gen-whitelist")
+	dir, err := os.MkdirTemp("", "gen-whitelist")
 	if err != nil {
 		t.Fatal(err)
 	}
