@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 VERSION := $(shell grep -Eo '(\d\.\d\.\d)(-dev)?' main.go)
 GOARCH ?= $(shell go env GOARCH)
 
@@ -34,7 +35,7 @@ lint: $(GOLANGCI_LINT_BIN)
 
 $(GOLANGCI_LINT_BIN):
 	@mkdir -p $(dir $@)
-	@set -euo pipefail; \
+	@set -eu; \
 	os=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
 	arch=$$(uname -m); \
 	case "$$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; *) echo "unsupported arch: $$arch" >&2; exit 1 ;; esac; \
