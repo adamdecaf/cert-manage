@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
@@ -69,9 +68,8 @@ func TestStoreNSS_trustedForSSL(t *testing.T) {
 	}
 }
 
-func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
-	// TODO(#142): Backup joins foundCertdbLocation with its own basename instead of
-	// cert9.db/cert8.db, so the real NSS DB is never backed up.
+func TestStoreNSS_BackupCert9ProfileSet(t *testing.T) {
+	// cert9 layout: cert9.db + key4.db + pkcs11.txt (copy whichever exist).
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -80,46 +78,253 @@ func TestStoreNSS_BackupWrongPathMissingCert9DB(t *testing.T) {
 	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	cert9 := []byte("cert9.db unique payload for issue 142\n")
-	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), cert9, 0644); err != nil {
-		t.Fatal(err)
+	files := map[string][]byte{
+		"cert9.db":      []byte("cert9-payload\n"),
+		"key4.db":       []byte("key4-payload\n"),
+		"pkcs11.txt":    []byte("pkcs11-payload\n"),
+		"unrelated.txt": []byte("should-not-be-backed-up\n"),
 	}
-
-	wrongSrc := filepath.Join(nssdbDir, filepath.Base(nssdbDir))
-	if _, err := os.Stat(wrongSrc); !os.IsNotExist(err) {
-		t.Fatalf("precondition: %s must not exist so Backup hits #142 (stat err=%v)", wrongSrc, err)
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	s := NssStore("firefox-test", "0", nssdbDir)
-	err := s.Backup()
-
-	backupRoot := filepath.Join(home, ".cert-manage")
-	if runtime.GOOS == "darwin" {
-		backupRoot = filepath.Join(home, "Library", "cert-manage")
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
 	}
-	found := findBytesUnder(t, backupRoot, cert9)
-
-	// Current (buggy) behavior: CopyFile(nssdbDir+"/"+basename) fails because
-	// that path does not exist when only cert9.db is present, so Backup errors
-	// and cert9.db is never copied.
-	if err == nil {
-		t.Error("Backup() succeeded; current #142 behavior is an error because the source path is nssdbDir/<basename>, not cert9.db")
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
 	}
-	if found != "" {
-		t.Errorf("cert9.db content appeared at %s; #142 is that the NSS DB is never backed up", found)
+	st, err := os.Stat(latest)
+	if err != nil || !st.IsDir() {
+		t.Fatalf("latest backup should be a directory, got %s err=%v", latest, err)
 	}
-
-	// Expected-correct behavior once #142 is fixed:
-	//
-	//	if err != nil {
-	//		t.Fatalf("Backup() should copy cert9.db: %v", err)
-	//	}
-	//	if found == "" {
-	//		t.Fatal("cert9.db content missing from backup")
-	//	}
+	for _, name := range []string{"cert9.db", "key4.db", "pkcs11.txt"} {
+		got, err := os.ReadFile(filepath.Join(latest, name))
+		if err != nil {
+			t.Fatalf("missing %s in backup: %v", name, err)
+		}
+		if !bytes.Equal(got, files[name]) {
+			t.Fatalf("%s content mismatch", name)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(latest, "unrelated.txt")); !os.IsNotExist(err) {
+		t.Fatal("unrelated.txt should not be in the backup set")
+	}
 }
 
-func TestStoreNSS_RestoreHonorsWherePath(t *testing.T) {
+func TestStoreNSS_BackupCert8ProfileSet(t *testing.T) {
+	// Legacy cert8 layout: cert8.db + key3.db + secmod.db.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string][]byte{
+		"cert8.db":  []byte("cert8-payload\n"),
+		"key3.db":   []byte("key3-payload\n"),
+		"secmod.db": []byte("secmod-payload\n"),
+	}
+	for name, body := range files {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil || latest == "" {
+		t.Fatalf("GetLatestBackup: path=%q err=%v", latest, err)
+	}
+	for _, name := range []string{"cert8.db", "key3.db", "secmod.db"} {
+		got, err := os.ReadFile(filepath.Join(latest, name))
+		if err != nil {
+			t.Fatalf("missing %s in backup: %v", name, err)
+		}
+		if !bytes.Equal(got, files[name]) {
+			t.Fatalf("%s content mismatch", name)
+		}
+	}
+}
+
+func TestStoreNSS_BackupCert9PartialSet(t *testing.T) {
+	// Copy whichever members of the set exist (cert9.db required to select the set).
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("cert9-only\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "key4.db"), []byte("key4-only\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// pkcs11.txt intentionally absent
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	latest, err := s.GetLatestBackup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(latest, "cert9.db")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(latest, "key4.db")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(latest, "pkcs11.txt")); !os.IsNotExist(err) {
+		t.Fatal("pkcs11.txt should be absent from backup when missing in profile")
+	}
+}
+
+func TestStoreNSS_BackupRestoreCert9ProfileRoundTrip(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	original := map[string][]byte{
+		"cert9.db":   []byte("cert9-rt\n"),
+		"key4.db":    []byte("key4-rt\n"),
+		"pkcs11.txt": []byte("pkcs11-rt\n"),
+	}
+	for name, body := range original {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	for name := range original {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), []byte("mutated-"+name+"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.Restore(""); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	for name, want := range original {
+		got, err := os.ReadFile(filepath.Join(nssdbDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("%s after restore: got %q want %q", name, got, want)
+		}
+	}
+}
+
+func TestStoreNSS_BackupRestoreCert8ProfileRoundTrip(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	original := map[string][]byte{
+		"cert8.db":  []byte("cert8-rt\n"),
+		"key3.db":   []byte("key3-rt\n"),
+		"secmod.db": []byte("secmod-rt\n"),
+	}
+	for name, body := range original {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	for name := range original {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), []byte("mutated-"+name+"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.Restore(""); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	for name, want := range original {
+		got, err := os.ReadFile(filepath.Join(nssdbDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("%s after restore: got %q want %q", name, got, want)
+		}
+	}
+}
+
+func TestStoreNSS_RestoreHonorsWhereFolder(t *testing.T) {
+	// Restore(where) with a directory must copy the full profile set from that folder.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "key4.db"), []byte("live-key4\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	alternate := t.TempDir()
+	want := map[string][]byte{
+		"cert9.db":   []byte("alt-cert9\n"),
+		"key4.db":    []byte("alt-key4\n"),
+		"pkcs11.txt": []byte("alt-pkcs11\n"),
+	}
+	for name, body := range want {
+		if err := os.WriteFile(filepath.Join(alternate, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(alternate); err != nil {
+		t.Fatalf("Restore(where folder): %v", err)
+	}
+	for name, body := range want {
+		got, err := os.ReadFile(filepath.Join(nssdbDir, name))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !bytes.Equal(got, body) {
+			t.Fatalf("%s: got %q want %q", name, got, body)
+		}
+	}
+}
+
+func TestStoreNSS_RestoreHonorsWhereSingleFile(t *testing.T) {
+	// Legacy single-file -file path still restores to cert9.db.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -140,41 +345,13 @@ func TestStoreNSS_RestoreHonorsWherePath(t *testing.T) {
 
 	s := NssStore("firefox-test", "0", nssdbDir)
 	if err := s.Restore(alternate); err != nil {
-		t.Fatalf("Restore(where): %v", err)
+		t.Fatalf("Restore(where file): %v", err)
 	}
 	got, err := os.ReadFile(filepath.Join(nssdbDir, "cert9.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(got, alt) {
-		t.Fatalf("Restore did not honor where; got %q want %q", got, alt)
+		t.Fatalf("Restore did not honor where file; got %q want %q", got, alt)
 	}
-}
-
-func findBytesUnder(t *testing.T, root string, payload []byte) string {
-	t.Helper()
-	if _, err := os.Stat(root); os.IsNotExist(err) {
-		return ""
-	}
-	var found string
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if bytes.Equal(b, payload) || bytes.Contains(b, payload) {
-			found = path
-		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	return found
 }
