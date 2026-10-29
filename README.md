@@ -76,7 +76,7 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 
 1. **Backup first.** Whitelisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any whitelist.
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
-3. **`-dry-run` is not implemented yet**. Until then, use `list` and `connect` to inspect impact, and keep a known-good backup.
+3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `whitelist` accept `-dry-run` to print the plan without writing to any store.
 
 Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA directory intact, and `-file` / `where` is honored on Linux, Java, and NSS. NSS backups copy `cert9.db` / `cert8.db` and related profile files. Darwin restore still always uses the latest backup (`where` unused). Full detail: [Backup and restore](https://adamdecaf.github.io/cert-manage/backup-restore).
 

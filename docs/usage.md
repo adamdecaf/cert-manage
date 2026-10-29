@@ -5,7 +5,7 @@ title: Usage
 
 # Usage
 
-Global flags work with the subcommands that accept them. There is **no `-dry-run` flag** on `master` yet (planned). Until it exists, inspect with `list` and `connect`, and keep a known-good backup.
+Global flags work with the subcommands that accept them. Add `-dry-run` to `add`, `backup`, `restore`, or `whitelist` to print the planned changes (files, certificates by subject and SHA-256, refresh commands) without writing to any store.
 
 Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
 
@@ -44,6 +44,7 @@ cert-manage backup -app firefox
 | Flag | Meaning |
 |------|---------|
 | `-app <name>` | Back up that application's store instead of the platform |
+| `-dry-run` | Print what would be backed up; creates nothing |
 
 See [Backup and restore](backup-restore.md) for where files land.
 
@@ -57,12 +58,14 @@ cert-manage restore -file /path/to/backup
 cert-manage restore -app java
 cert-manage restore -app java -file /path/to/cacerts.bck
 cert-manage restore -app chrome
+cert-manage restore -app java -dry-run
 ```
 
 | Flag | Meaning |
 |------|---------|
 | `-app <name>` | Restore that application's store |
 | `-file <path>` | Explicit backup path (directory or file, depending on the store) |
+| `-dry-run` | Print the plan without writing |
 
 ## whitelist
 
@@ -73,12 +76,14 @@ Whitelist files are YAML or JSON with optional `fingerprints` (SHA-256) and `cou
 ```bash
 cert-manage whitelist -file whitelist.yaml
 cert-manage whitelist -file whitelist.json -app java
+cert-manage whitelist -file whitelist.yaml -dry-run
 ```
 
 | Flag | Meaning |
 |------|---------|
 | `-file <path>` | **Required.** Path to the whitelist |
 | `-app <name>` | Apply against an application store |
+| `-dry-run` | Print the plan without writing |
 
 Example YAML:
 
@@ -120,6 +125,7 @@ cert-manage add -file cert.pem -app java
 |------|---------|
 | `-file <path>` | **Required.** Certificate file to import |
 | `-app <name>` | Target an application store |
+| `-dry-run` | Print the plan without writing |
 
 ## connect
 
@@ -152,9 +158,5 @@ Environment variables (not CLI flags):
 |----------|--------|
 | `DEBUG=1` | Debug logging (`GODEBUG=x509roots=1` also enables Go root debugging) |
 | `TRACE=<path>` | Write a binary execution trace to `<path>` |
-
-## Coming soon
-
-- **`-dry-run`** — not implemented on `master`. Planned so destructive commands can show what would change without writing.
 
 [← Home](index.md)

@@ -14,7 +14,7 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 3. **Verify after changes** with `cert-manage list` and `cert-manage connect https://…`.
 4. **Keep a known-good backup** until you confirm the machine still reaches the sites and tools you need.
 
-There is no `-dry-run` on `master` yet.
+Add `-dry-run` to `backup` or `restore` to see exactly which files would be written or copied, without touching the store.
 
 ## Where backups are stored
 
