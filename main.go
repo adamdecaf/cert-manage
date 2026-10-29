@@ -95,7 +95,7 @@ FLAGS
   -app <name>      The name of an application which to perform the given command on.
   -dry-run         Preview add/backup/restore/whitelist changes without writing to stores
   -file <path>     Local file path
-  -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
+  -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, browsers, chrome, firefox, safari, file)
   -help            Show this help dialog
   -ui <type>       Method of adjusting certificates to be removed/untrusted. (default: %s, options: %s)
   -url <where>     Remote URL to download and use in a command
@@ -105,8 +105,8 @@ OUTPUT
   -format <format> Change the output format for a given command (default: %s, options: %s)
 
 DEBUGGING
-  Alongside command line flags are two environmental varialbes read by cert-manage:
-  - DEBUG=1        Enabled debug logging, GODEBUG=x509roots=1 also works and enabled Go's debugging
+  Alongside command line flags are two environment variables read by cert-manage:
+  - DEBUG=1        Enables debug logging, GODEBUG=x509roots=1 also works and enables Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			getVersion(),
