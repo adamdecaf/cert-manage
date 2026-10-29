@@ -41,7 +41,7 @@ func getSqliteHistoryUrls(db *sqlite3.DbFile, name, table string, getter urlGett
 
 		raw := getter(rec)
 		if raw == nil && debug {
-			fmt.Printf("whitelist/gen: (%s) unknown (or ignored) rec.Values[1], %v\n", name, rec.Values[1])
+			fmt.Printf("allowlist/gen: (%s) unknown (or ignored) rec.Values[1], %v\n", name, rec.Values[1])
 		}
 
 		if raw.VisistedAt.IsZero() || raw.VisistedAt.Before(oldestTime) {
@@ -55,7 +55,7 @@ func getSqliteHistoryUrls(db *sqlite3.DbFile, name, table string, getter urlGett
 			acc = append(acc, parsed)
 		}
 		if err != nil && debug {
-			fmt.Printf("whitelist/gen: (%s) error parsing %q, err=%v\n", name, parsed, err)
+			fmt.Printf("allowlist/gen: (%s) error parsing %q, err=%v\n", name, parsed, err)
 		}
 
 		return nil

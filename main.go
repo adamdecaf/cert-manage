@@ -49,10 +49,10 @@ var (
 	// -ui is used for choosing a different ui
 	flagUI = fs.String("ui", ui.DefaultUI(), "")
 
-	// -from is used by 'gen-whitelist' to specify url sources
+	// -from is used by 'gen-allowlist' to specify url sources
 	flagFrom = fs.String("from", "", "")
 
-	// -out is used by 'gen-whitelist' to specify output file location
+	// -out is used by 'gen-allowlist' to specify output file location
 	flagOutFile = fs.String("out", "", "")
 
 	// Output
@@ -72,13 +72,15 @@ func init() {
 SUB-COMMANDS
   add           Add certificate(s) to a store
 
+  allowlist     Remove trust from certificates which do not match the allowlist in <path>
+
   apps          List supported apps and whether each store was found
 
   backup        Take a backup of the specified certificate store
 
   connect       Attempt to load a remote URL with the platform (or app) store
 
-  gen-whitelist Create a whitelist from various sources
+  gen-allowlist Create an allowlist from various sources
 
   list          List the currently installed and trusted certificates
 
@@ -86,14 +88,12 @@ SUB-COMMANDS
 
   version       Show the version of cert-manage
 
-  whitelist     Remove trust from certificates which do not match the whitelist in <path>
-
 APPS
   Supported apps: %s
 
 FLAGS
   -app <name>      The name of an application which to perform the given command on.
-  -dry-run         Preview add/backup/restore/whitelist changes without writing to stores
+  -dry-run         Preview add/backup/restore/allowlist changes without writing to stores
   -file <path>     Local file path
   -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, browsers, chrome, firefox, safari, file)
   -help            Show this help dialog
@@ -263,30 +263,32 @@ the certificates for that application are loaded and used for the connection.
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
-	commands["gen-whitelist"] = &command{
+	genAllowlistCmd := &command{
 		fn: func() error {
 			if *flagOutFile == "" || (*flagFrom == "" && *flagFile == "") {
 				callForHelp = true
 				return nil
 			}
-			return cmd.GenerateWhitelist(*flagOutFile, *flagFrom, *flagFile)
+			return cmd.GenerateAllowlist(*flagOutFile, *flagFrom, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage gen-whitelist -out <where> [-file <file>] [-from <type>]
+		help: fmt.Sprintf(`Usage: cert-manage gen-allowlist -out <where> [-file <file>] [-from <type>]
 
-  Generate a whitelist and write it to the filesystem. (At wherever -out points to.)
+  Generate an allowlist and write it to the filesystem. (At wherever -out points to.)
 
   Also, you can pass -file to read a newline delimited file of URL's.
-    cert-manage gen-whitelist -file <path> -out whitelist.json
+    cert-manage gen-allowlist -file <path> -out allowlist.yaml
 
-  Generate a whitelist from browser history
-    cert-manage gen-whitelist -from firefox -out whitelist.json
+  Generate an allowlist from browser history
+    cert-manage gen-allowlist -from firefox -out allowlist.yaml
 
-  Generate a whitelist from all browsers on a computer
-    cert-manage gen-whitelist -from browsers -out whitelist.json
+  Generate an allowlist from all browsers on a computer
+    cert-manage gen-allowlist -from browsers -out allowlist.yaml
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
+	commands["gen-allowlist"] = genAllowlistCmd
+	commands["gen-whitelist"] = genAllowlistCmd // hidden alias
 	commands["list"] = &command{
 		fn: func() error {
 			if *flagFile != "" {
@@ -355,32 +357,34 @@ APPS
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
-	commands["whitelist"] = &command{
+	allowlistCmd := &command{
 		fn: func() error {
 			if *flagFile == "" {
 				callForHelp = true
 				return nil
 			}
-			return cmd.WhitelistForPlatform(*flagFile)
+			return cmd.AllowlistForPlatform(*flagFile)
 		},
 		appfn: func(a string) error {
 			if *flagFile == "" {
 				callForHelp = true
 				return nil
 			}
-			return cmd.WhitelistForApp(a, *flagFile)
+			return cmd.AllowlistForApp(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage whitelist [-app <name>] -file <path> [-dry-run]
+		help: fmt.Sprintf(`Usage: cert-manage allowlist [-app <name>] -file <path> [-dry-run]
 
   Remove untrusted certificates from a store for the platform
-    cert-manage whitelist -file whitelist.json
+    cert-manage allowlist -file allowlist.json
 
   Remove untrusted certificates in an app
-    cert-manage whitelist -file whitelist.json -app java
+    cert-manage allowlist -file allowlist.json -app java
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
+	commands["allowlist"] = allowlistCmd
+	commands["whitelist"] = allowlistCmd // hidden alias
 	commands["version"] = &command{
 		fn: func() error {
 			fmt.Printf("%s\n", getVersion())

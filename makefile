@@ -48,8 +48,9 @@ $(GOLANGCI_LINT_BIN):
 	chmod +x "$@"; \
 	rm -rf "$$tmp"
 
+.PHONY: generate
 generate:
-	CGO_ENABLED=0 go run pkg/whitelist/blacklist_gen.go
+	CGO_ENABLED=0 go run pkg/allowlist/blocklist_gen.go
 
 test: check
 	$(MAKE) linux

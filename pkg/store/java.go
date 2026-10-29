@@ -28,9 +28,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 var (
@@ -142,7 +142,7 @@ func (s javaStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	return ktool.getCertificates()
 }
 
-func (s javaStore) Remove(wh whitelist.Whitelist) error {
+func (s javaStore) Remove(al allowlist.Allowlist) error {
 	kpath, err := ktool.getKeystorePath()
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 			}
 			for j := range certs {
 				if shortCerts[i].matches(certs[j]) {
-					if !wh.Matches(certs[j]) {
+					if !al.Matches(certs[j]) {
 						details = append(details, fmt.Sprintf("remove %s (alias %s)", formatCertLine(certs[j]), shortCerts[i].alias))
 					}
 					break
@@ -191,8 +191,8 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		for j := range certs {
 			// Match the "short cert" to it's full x509.Certificate
 			if shortCerts[i].matches(certs[j]) {
-				// then remove if it's not whitelisted
-				if !wh.Matches(certs[j]) {
+				// then remove if it's not allowlisted
+				if !al.Matches(certs[j]) {
 					err = ktool.deleteCertificate(kpath, shortCerts[i].alias)
 					if err != nil {
 						return err

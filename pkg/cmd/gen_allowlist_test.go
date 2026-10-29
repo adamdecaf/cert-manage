@@ -23,7 +23,7 @@ import (
 	"testing"
 )
 
-func TestGenWhitelist_getChoices(t *testing.T) {
+func TestGenAllowlist_getChoices(t *testing.T) {
 	t.Parallel()
 
 	// left off '-from file'
@@ -51,7 +51,7 @@ func TestGenWhitelist_getChoices(t *testing.T) {
 	}
 }
 
-func TestGenWhitelist_accumulateUrls(t *testing.T) {
+func TestGenAllowlist_accumulateUrls(t *testing.T) {
 	t.Parallel()
 
 	uacc := make(chan []*url.URL)

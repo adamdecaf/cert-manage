@@ -10,7 +10,7 @@ $ cert-manage add -file cert.pem -app java
 
 ## Connect
 
-The `connect` command allows you to verify connectivity with a remote host using the certificates from a given store. This allows you to quickly verify if applying a whitelist (or restoring) worked.
+The `connect` command allows you to verify connectivity with a remote host using the certificates from a given store. This allows you to quickly verify if applying an allowlist (or restoring) worked.
 
 ```
 $ ./cert-manage connect https://google.com

@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	// used to serialize _add and whitelist/restore tests
-	// _add goes first, followed by whitelist/restore test,
+	// used to serialize _add and allowlist/restore tests
+	// _add goes first, followed by allowlist/restore test,
 	// but this serializes access
 	darwinKeychainWG = sync.WaitGroup{}
 )
@@ -156,7 +156,7 @@ func setupKeychain(t *testing.T) {
 
 // Don't run this test byitself, there's a .Wait()
 // instead call `go test ... -run TestIntegration__`
-func TestIntegration__WhitelistAndRemove(t *testing.T) {
+func TestIntegration__AllowlistAndRemove(t *testing.T) {
 	t.Parallel()
 
 	// wait until _add test finishes, so we don't clobber the keychain
@@ -188,8 +188,8 @@ func TestIntegration__WhitelistAndRemove(t *testing.T) {
 	cmd := CertManage("backup").Trim()
 	cmd.EqualT(t, "Backup completed successfully")
 
-	// whitelist
-	cmd = CertManage("whitelist", "-file", "../testdata/us-whitelist.yaml")
+	// allowlist
+	cmd = CertManage("allowlist", "-file", "../testdata/us-whitelist.yaml")
 	cmd.SuccessT(t)
 
 	// verify cert count

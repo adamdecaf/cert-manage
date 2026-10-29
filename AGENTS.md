@@ -12,7 +12,7 @@ Guidance for anyone, human or automated, contributing to cert-manage.
 ## Safety rules
 
 - Certificates removed from a trust store can be hard to get back. Tests only use temp directories or containers, never a real system, Java, or browser store.
-- Restore and whitelist changes must keep the existing safety: back up first, stage in a temp dir, swap, and roll back on failure.
+- Restore and allowlist changes must keep the existing safety: back up first, stage in a temp dir, swap, and roll back on failure.
 - New destructive behavior must support `-dry-run`.
 
 ## Pull requests

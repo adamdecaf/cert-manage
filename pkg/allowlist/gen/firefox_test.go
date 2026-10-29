@@ -21,31 +21,31 @@ import (
 	"github.com/go-sqlite/sqlite3"
 )
 
-func TestWhitelistGen__findChromeHistoryDB(t *testing.T) {
-	if !file.Exists(`/Applications/Google Chrome.app`) && !file.Exists("/usr/bin/google-chrome") && !file.Exists("/usr/bin/chromium-browser") {
-		t.Skip("chrome not installed")
+func TestAllowlistGen__findFirefoxPlacesDB(t *testing.T) {
+	if !file.Exists("/Applications/Firefox.app") {
+		return
 	}
-	db, err := findChromeHistoryDB()
+	db, err := findFirefoxPlacesDB()
 	if err != nil {
 		t.Skip(err.Error())
 	}
 	if db == nil {
-		t.Skip("chrome installed, but no History db")
+		t.Skip("firefox installed, but no places.sqlite")
 	}
 }
 
-func TestWhitelistGen__getChromeUrls(t *testing.T) {
+func TestAllowlistGen__getFirefoxUrls(t *testing.T) {
 	cases := []struct {
 		count int
 		path  string
 	}{
 		{
 			count: 3,
-			path:  "../../../testdata/chrome-history.sqlite",
+			path:  "../../../testdata/firefox-history.sqlite",
 		},
 		{
-			count: 8,
-			path:  "../../../testdata/chrome-history-win.sqlite",
+			count: 3,
+			path:  "../../../testdata/firefox-history-win.sqlite",
 		},
 	}
 	for i := range cases {
@@ -53,7 +53,7 @@ func TestWhitelistGen__getChromeUrls(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s - err=%v", cases[i].path, err)
 		}
-		urls, err := getChromeUrls(db)
+		urls, err := getFirefoxUrls(db)
 		if err != nil {
 			t.Fatalf("store %s, err=%v", cases[i].path, err)
 		}

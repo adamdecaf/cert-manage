@@ -1,3 +1,3 @@
 title: cert-manage
-description: List, backup, whitelist, and restore CA trust stores
+description: List, backup, allowlist, and restore CA trust stores
 theme: jekyll-theme-minimal

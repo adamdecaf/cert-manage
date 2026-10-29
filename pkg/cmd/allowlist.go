@@ -18,18 +18,16 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/store"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
-func WhitelistForApp(app, whpath string) error {
-	// load whitelist
-	wh, err := whitelist.FromFile(whpath)
+func AllowlistForApp(app, path string) error {
+	al, err := allowlist.FromFile(path)
 	if err != nil {
 		return err
 	}
 
-	// diff
 	s, err := store.ForApp(app)
 	if err != nil {
 		return err
@@ -44,8 +42,7 @@ func WhitelistForApp(app, whpath string) error {
 		return fmt.Errorf("no backup for %s found", app)
 	}
 
-	// perform whitelist
-	err = s.Remove(wh)
+	err = s.Remove(al)
 	if err != nil {
 		return err
 	}
@@ -53,19 +50,17 @@ func WhitelistForApp(app, whpath string) error {
 	if store.DryRun() {
 		fmt.Println("dry-run: no changes made")
 	} else {
-		fmt.Println("Whitelist completed successfully")
+		fmt.Println("Allowlist completed successfully")
 	}
 	return nil
 }
 
-func WhitelistForPlatform(whpath string) error {
-	// load whitelist
-	wh, err := whitelist.FromFile(whpath)
+func AllowlistForPlatform(path string) error {
+	al, err := allowlist.FromFile(path)
 	if err != nil {
 		return err
 	}
 
-	// diff
 	s := store.Platform()
 
 	// check for backup
@@ -77,8 +72,7 @@ func WhitelistForPlatform(whpath string) error {
 		return fmt.Errorf("no %s backup found", runtime.GOOS)
 	}
 
-	// perform whitelist
-	err = s.Remove(wh)
+	err = s.Remove(al)
 	if err != nil {
 		return err
 	}
@@ -86,7 +80,7 @@ func WhitelistForPlatform(whpath string) error {
 	if store.DryRun() {
 		fmt.Println("dry-run: no changes made")
 	} else {
-		fmt.Println("Whitelist completed successfully")
+		fmt.Println("Allowlist completed successfully")
 	}
 	return nil
 }

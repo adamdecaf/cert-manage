@@ -6,7 +6,7 @@
 
 In October 2026, the private keys of eight [eMudhra](https://emudhra.com/en/post/certificate-security-incident) intermediate CAs were compromised. Six of them could issue TLS certificates for any website. [Apple blocked](https://support.apple.com/en-us/149555) those certificates in Safari and system frameworks starting 19 October 2026, and later blocked the emSign ECC Root CA - G3. Command-line tools that still read `/etc/ssl/cert.pem` (git, curl, python3, and others) kept trusting the compromised chains until users removed the roots by hand — and a subsequent macOS update can restore Apple's copy of that file. The pattern is old: DigiNotar, Symantec, WoSign, and many others. The CA system still ships with more trust than most people need, and removing it is still harder than it should be.
 
-`cert-manage` gives you a single CLI to **list**, **backup**, **whitelist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
+`cert-manage` gives you a single CLI to **list**, **backup**, **allowlist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
 
 Trust should be earned, not defaulted.
 
@@ -22,16 +22,16 @@ cert-manage list -app java
 cert-manage backup
 cert-manage backup -app java
 
-# 3. Whitelist: keep only the CAs you want (requires a prior backup)
-cert-manage whitelist -file urls.yaml
-cert-manage whitelist -app java -file urls.yaml
+# 3. Allowlist: keep only the CAs you want (requires a prior backup)
+cert-manage allowlist -file urls.yaml
+cert-manage allowlist -app java -file urls.yaml
 
 # 4. Roll back if something breaks
 cert-manage restore
 cert-manage restore -app java
 ```
 
-Whitelist files are YAML or JSON. See [docs/whitelists.md](docs/whitelists.md) for fingerprints, country filters, and generating a whitelist from browser history.
+Allowlist files are YAML or JSON. See [docs/allowlists.md](docs/allowlists.md) for fingerprints, country filters, and generating an allowlist from browser history.
 
 > **Safety first:** Prefer experimenting against temp or container stores when learning. Back up first, every time. See [Safety](#safety) and the [docs site](https://trustprune.com/).
 
@@ -41,14 +41,14 @@ Whitelist files are YAML or JSON. See [docs/whitelists.md](docs/whitelists.md) f
 |---------|----------------|
 | [list](docs/basics.md#list) | Show trusted certificates in a platform or app store (audit) |
 | [backup](docs/basics.md#backup-and-restore) / [restore](docs/basics.md#backup-and-restore) | Capture and roll back CA trust |
-| [whitelist](docs/whitelists.md#whitelisting) | Distrust certificates that are not on your allowlist |
+| [allowlist](docs/allowlists.md#allowlisting) | Distrust certificates that are not on your allowlist |
 | [add](docs/basics.md#add) | Add certificates to a store |
 | [connect](docs/basics.md#connect) | Probe a remote HTTPS host using a chosen store |
-| [gen-whitelist](docs/whitelists.md#generating-whitelists) | Build a whitelist from browser history or URL lists |
+| [gen-allowlist](docs/allowlists.md#generating-allowlists) | Build an allowlist from browser history or URL lists |
 | [apps](docs/usage.md#apps) | List supported app and platform stores with detection status and paths |
 | [version](docs/usage.md#version) | Print the version |
 
-Whitelisting also applies Chromium's certificate blacklist so known-bad CAs are never kept. That behavior cannot be disabled today.
+Allowlisting also applies Chromium's 2018-05-29 certificate blocklist, so certificates in that bundled list are never kept. That behavior cannot be disabled today.
 
 ## Platform and application support
 
@@ -58,9 +58,9 @@ Honest status as of late October 2026. Levels match what the code does today.
 
 | Level | Platform | Notes |
 |-------|----------|--------|
-| **Supported** | Linux (Alpine, Debian, Ubuntu, Fedora/RHEL `/etc/pki/ca-trust`) | System CA dir list, add, whitelist, backup, restore (see Safety) |
-| **Partial** | Darwin / macOS | Keychain-backed list/add/whitelist/backup/restore; system roots are SIP-protected; restore `where` support is incomplete |
-| **List-only** | Windows | `list` works (PowerShell export of machine stores); add, backup, whitelist, and restore are not implemented yet |
+| **Supported** | Linux (Alpine, Debian, Ubuntu, Fedora/RHEL `/etc/pki/ca-trust`) | System CA dir list, add, allowlist, backup, restore (see Safety) |
+| **Partial** | Darwin / macOS | Keychain-backed list/add/allowlist/backup/restore; system roots are SIP-protected; restore `where` support is incomplete |
+| **List-only** | Windows | `list` works (PowerShell export of machine stores); add, backup, allowlist, and restore are not implemented yet |
 
 ### Applications
 
@@ -76,9 +76,9 @@ Honest status as of late October 2026. Levels match what the code does today.
 
 Certificate-store edits can break HTTPS for browsers, package managers, and language runtimes. Treat every change as privileged.
 
-1. **Backup first.** Whitelisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any whitelist.
+1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any allowlist.
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
-3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `whitelist` accept `-dry-run` to print the plan without writing to any store.
+3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `allowlist` accept `-dry-run` to print the plan without writing to any store.
 
 Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA directory intact, and `-file` / `where` is honored on Linux, Java, and NSS. NSS backups copy `cert9.db` / `cert8.db` and related profile files. Darwin restore still always uses the latest backup (`where` unused). Full detail: [Backup and restore](https://trustprune.com/backup-restore).
 
@@ -124,16 +124,16 @@ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/securi
 cert-manage add -file cert.pem
 cert-manage add -file cert.pem -app java
 
-# Whitelist, backup, restore
+# Allowlist, backup, restore
 cert-manage backup
-cert-manage whitelist -file urls.yaml
+cert-manage allowlist -file urls.yaml
 cert-manage restore                 # latest backup
 cert-manage restore -file <path>    # explicit backup path
 
-# Generate a whitelist
-cert-manage gen-whitelist -out whitelist.json -from firefox
-cert-manage gen-whitelist -out whitelist.json -from browsers
-cert-manage gen-whitelist -out whitelist.json -file urls.txt
+# Generate an allowlist
+cert-manage gen-allowlist -out allowlist.yaml -from firefox
+cert-manage gen-allowlist -out allowlist.yaml -from browsers
+cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
 
 # Verify connectivity after a change
 cert-manage connect https://example.com
@@ -142,7 +142,7 @@ cert-manage connect -app java https://example.com
 cert-manage version
 ```
 
-More detail: [docs/basics.md](docs/basics.md), [docs/whitelists.md](docs/whitelists.md).
+More detail: [docs/basics.md](docs/basics.md), [docs/allowlists.md](docs/allowlists.md).
 
 ## Building and testing
 
@@ -176,7 +176,7 @@ Research keeps showing that default trust stores are larger than most users need
 - [CAge — Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf) — simple inference rules cut attack surface nearly tenfold without blocking most CA activity.
 - [You Won't Be Needing These Any More: On Removing Unused Certificates From Trust Stores](docs/papers/on-removing-unused-certs.pdf) — only about two-thirds of trusted roots were observed signing HTTPS certificates.
 
-Incidents keep showing the same pattern: one bad or unwanted root is enough to break HTTPS for everyone who trusts it. Browsers and vendors react after the fact; a CLI that can **list**, **backup**, **whitelist**, and **restore** trust stores is how you take that control yourself. A non-exhaustive sample of cases that justify that tooling (not a complete history of CA failures):
+Incidents keep showing the same pattern: one bad or unwanted root is enough to break HTTPS for everyone who trusts it. Browsers and vendors react after the fact; a CLI that can **list**, **backup**, **allowlist**, and **restore** trust stores is how you take that control yourself. A non-exhaustive sample of cases that justify that tooling (not a complete history of CA failures):
 
 - **[DigiNotar (2011)](https://www.mozilla.org/en-US/security/advisories/mfsa2011-34/):** After fraudulent certificates — including a `*.google.com` wildcard used in active MITM attacks — were issued from DigiNotar’s CA, Mozilla [removed the DigiNotar root](https://blog.mozilla.org/security/2011/09/02/diginotar-removal-follow-up/) from its products. Anyone still trusting that root in a local store remained exposed until they removed it.
 - **[Lenovo Superfish (2015)](https://blog.mozilla.org/security/2015/02/27/getting-superfish-out-of-firefox/):** Preinstalled adware installed a shared root CA (with a recoverable private key) into Windows and Firefox trust stores, so anyone with that key could impersonate any HTTPS site on affected machines. Users had to find and remove a vendor-installed root that browsers had not shipped.
@@ -213,7 +213,7 @@ Vendors and browsers react after the fact. `cert-manage` is for putting that con
 | [mozilla/tls-observatory](https://github.com/mozilla/tls-observatory) | Suite for scanning TLS configurations and inspecting X.509 certificates. |
 | [MSylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter) | Tool for installing certificates and modifying trust settings on macOS. |
 | [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory) | Continuously monitors and records major platforms’ root certificate stores. |
-| [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools) | macOS Keychain trust-settings tools for blacklisting certificates by fingerprint. |
+| [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools) | macOS Keychain trust-settings tools for blocking certificates by fingerprint. |
 | [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen) | Generates a self-signed TLS certificate and adds it to the local trusted store. |
 
 ## Related reading

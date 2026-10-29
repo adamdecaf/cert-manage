@@ -15,9 +15,9 @@
 // Fingerprints are derived from Chromium's net/data/ssl/blacklist data,
 // Copyright The Chromium Authors, used under a BSD-style license. See NOTICE.
 // Generated on 2018-05-29T09:11:15Z by adam, any modifications will be overwritten
-package whitelist
+package allowlist
 
-var blacklistedFingerprints = []string{
+var blocklistedFingerprints = []string{
 	// CN=DigiNotar Root CA,O=DigiNotar,C=NL
 	`0d136e439f0ab6e97f3a02a540da9f0641aa554e1d66ea51ae2920d51b2f7217`,
 	// CN=DSDTestProvider,OU=DSDTestProvider,O=DSDTestProvider

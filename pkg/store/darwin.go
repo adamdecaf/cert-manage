@@ -26,9 +26,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 var (
@@ -416,10 +416,10 @@ func readInstalledCerts(paths ...string) ([]*x509.Certificate, error) {
 	return res, nil
 }
 
-// Remove works to mark certificates not whitelisted as 'Never Trust' in the System keychain.
+// Remove works to mark certificates not allowlisted as 'Never Trust' in the System keychain.
 // This effectively disables the certificate unless the user's login keychain has overrides.
-func (s darwinStore) Remove(wh whitelist.Whitelist) error {
-	// We just want to read the system roots and remove trust in those not whitelisted
+func (s darwinStore) Remove(al allowlist.Allowlist) error {
+	// We just want to read the system roots and remove trust in those not allowlisted
 	roots, err := readInstalledCerts(systemRootCertificates)
 	if err != nil {
 		return fmt.Errorf("remove: error reading certs from %s, err=%w", systemRootCertificates, err)
@@ -428,7 +428,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	if DryRun() {
 		var details []string
 		for i := range roots {
-			if !wh.Matches(roots[i]) {
+			if !al.Matches(roots[i]) {
 				details = append(details, fmt.Sprintf("distrust %s", formatCertLine(roots[i])))
 			}
 		}
@@ -444,8 +444,8 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	defer os.Remove(tmp.Name())
 
 	for i := range roots {
-		if !wh.Matches(roots[i]) {
-			// Root CA isn't part of our whitelist, so we need to remove trust for
+		if !al.Matches(roots[i]) {
+			// Root CA isn't part of our allowlist, so we need to remove trust for
 			// it in the system keychain
 			err = certutil.ToFile(tmp.Name(), roots[i:i+1]) // avoid new slice
 			if err != nil {
@@ -490,7 +490,7 @@ func defaultCertTrustPolicy(certPath string, cert *x509.Certificate) error {
 	return nil
 }
 
-// No idea why, but there are some Apple certificates which don't get whitelisted.
+// No idea why, but there are some Apple certificates which don't get allowlisted.
 // For now, let's force them to be fixed up
 var appleRootFingerprints = []string{
 	"b0b1730ecbc7ff4505142c49f1295e6eda6bcaed7e2c68c5be91b5a11001f024", // CN=Apple Root CA

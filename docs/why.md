@@ -18,7 +18,7 @@ In October 2026, the private keys of eight [eMudhra](https://emudhra.com/en/post
 
 ## Incidents
 
-Incidents keep showing the same pattern: one bad or unwanted root is enough to break HTTPS for everyone who trusts it. Browsers and vendors react after the fact; a CLI that can **list**, **backup**, **whitelist**, and **restore** trust stores is how you take that control yourself. A non-exhaustive sample (not a complete history of CA failures):
+Incidents keep showing the same pattern: one bad or unwanted root is enough to break HTTPS for everyone who trusts it. Browsers and vendors react after the fact; a CLI that can **list**, **backup**, **allowlist**, and **restore** trust stores is how you take that control yourself. A non-exhaustive sample (not a complete history of CA failures):
 
 - **[DigiNotar (2011)](https://www.mozilla.org/en-US/security/advisories/mfsa2011-34/):** After fraudulent certificates — including a `*.google.com` wildcard used in active MITM attacks — were issued from DigiNotar’s CA, Mozilla [removed the DigiNotar root](https://blog.mozilla.org/security/2011/09/02/diginotar-removal-follow-up/) from its products. Anyone still trusting that root in a local store remained exposed until they removed it.
 - **[Lenovo Superfish (2015)](https://blog.mozilla.org/security/2015/02/27/getting-superfish-out-of-firefox/):** Preinstalled adware installed a shared root CA (with a recoverable private key) into Windows and Firefox trust stores, so anyone with that key could impersonate any HTTPS site on affected machines. Users had to find and remove a vendor-installed root that browsers had not shipped.

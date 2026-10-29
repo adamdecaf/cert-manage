@@ -26,10 +26,10 @@ import (
 	"sync"
 	"text/tabwriter"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
+	"github.com/adamdecaf/trustprune/pkg/allowlist/gen"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/store"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
-	"github.com/adamdecaf/trustprune/pkg/whitelist/gen"
 )
 
 var (
@@ -38,7 +38,7 @@ var (
 	exampleDNSNamesLength = 3
 )
 
-func GenerateWhitelist(output string, from, file string) error {
+func GenerateAllowlist(output string, from, file string) error {
 	if output == "" || (from == "" && file == "") {
 		return errors.New("you need to specify -out <path> and either -from or -file")
 	}
@@ -105,10 +105,10 @@ func GenerateWhitelist(output string, from, file string) error {
 	}
 
 	if len(accum) == 0 {
-		return errors.New("no urls found to generate whitelist from")
+		return errors.New("no urls found to generate allowlist from")
 	}
 
-	// Generate whitelist and write to file
+	// Generate allowlist and write to file
 	authorities, err := gen.FindCAs(accum, nil)
 	if err != nil {
 		return err
@@ -145,8 +145,8 @@ func GenerateWhitelist(output string, from, file string) error {
 		return fmt.Errorf("problem flushing output: %w", err)
 	}
 
-	wh := whitelist.FromCertificates(acc.GetCertificates())
-	return wh.ToFile(output)
+	al := allowlist.FromCertificates(acc.GetCertificates())
+	return al.ToFile(output)
 }
 
 func getChoices(from, file string) []string {
@@ -193,7 +193,7 @@ func addCertsToPoolForApp(pool *x509.CertPool, appName string) {
 
 func debugLog(msg string, args ...interface{}) {
 	if debug {
-		fmt.Printf("cmd/gen-whitelist: "+msg+"\n", args...)
+		fmt.Printf("cmd/gen-allowlist: "+msg+"\n", args...)
 	}
 }
 

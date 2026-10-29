@@ -28,9 +28,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adamdecaf/trustprune/pkg/allowlist"
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
-	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 type cadir struct {
@@ -196,7 +196,7 @@ func (s linuxStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 // Steps
 // 1. Walk through the dir (/etc/ssl/certs/) and chmod 000 the certs we aren't trusting
 // 2. Run `update-ca-certificates` to re-create the ca-certificates.crt file
-func (s linuxStore) Remove(wh whitelist.Whitelist) error {
+func (s linuxStore) Remove(al allowlist.Allowlist) error {
 	if DryRun() {
 		var details []string
 		err := filepath.Walk(s.ca.dir, func(path string, info os.FileInfo, err error) error {
@@ -208,7 +208,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 				return err
 			}
 			for i := range read {
-				if !wh.Matches(read[i]) {
+				if !al.Matches(read[i]) {
 					details = append(details, fmt.Sprintf("remove %s from %s", formatCertLine(read[i]), path))
 				}
 			}
@@ -237,7 +237,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 		}
 		for i := 0; i < len(read); i++ {
 			// Remove the cert if we don't match
-			if !wh.Matches(read[i]) {
+			if !al.Matches(read[i]) {
 				read = append(read[:i], read[i+1:]...)
 				if len(read) == 0 {
 					break
