@@ -16,9 +16,9 @@ Apple says most people do not need to touch the file. For administrators who wil
 
 Hand-editing a system PEM bundle is workable as an emergency one-liner. As an operations practice, it is fragile.
 
-**There is no structured backup.** Apple's first step copies the file once to `cert.pem.orig`. That is better than nothing, and still a single overwritten sibling with no inventory of which certificates you removed, when, or on which machines.
+**There is no structured backup.** Apple's first step copies the file once to `cert.pem.orig`. That is better than nothing, and still a single static sibling with no inventory of which certificates you removed, when, or on which machines.
 
-**It is easy to break the file or remove the wrong root.** A mistyped subject string in `awk` can leave the file untouched, empty it, or drop an unrelated CA. Apple warns that removing **AAA Certificate Services** can stop verification for sites that chain through unaffected intermediates. There is no dry-run that lists subjects and fingerprints before the write.
+**It is easy to break the file or remove the wrong root.** A mistyped subject string in `awk` can leave the file untouched or remove an unintended matching CA. Apple warns that removing **AAA Certificate Services** can stop verification for sites that chain through unaffected intermediates. There is no dry-run that lists subjects and fingerprints before the write.
 
 **It is not repeatable across a fleet.** Copy-pasting four Terminal commands onto every Mac, then again after every update that restores the file, does not scale. MDM can wrap the same script; the underlying model is still "rewrite the vendor file by hand."
 
@@ -26,7 +26,7 @@ Hand-editing a system PEM bundle is workable as an emergency one-liner. As an op
 
 **There is no audit trail.** Success is "the command shows nothing." You do not get a before/after list of SHA-256 fingerprints, a backup directory you can restore from, or a recorded plan of what would change.
 
-That pattern—treating a PEM or CA directory as a text file to edit under stress—is why trustprune exists. trustprune (CLI binary currently named `cert-manage`) lists, backs up, whitelists, restores, and adds certificates across platform and application stores on Linux, macOS, and Windows, including Java, NSS/Firefox, Chrome, and OpenSSL where those stores are present. It is not a magic fix for Apple's PEM gap on Darwin today: the macOS platform store works through Keychain paths and does not rewrite `/etc/ssl/cert.pem`. The point is the workflow you should demand of any trust-store change, including the next incident that lands on Linux, Java, or a browser profile.
+That pattern—treating a PEM or CA directory as a text file to edit under stress—is why trustprune exists. trustprune (CLI binary currently named `cert-manage`) runs these operations on the platform and application stores that support them. The Windows platform store supports listing only. OpenSSL supports adding certificates only. It is not a magic fix for Apple's PEM gap on Darwin today: the macOS platform store works through Keychain paths and does not rewrite `/etc/ssl/cert.pem`. The point is the workflow you should demand of any trust-store change, including the next incident that lands on Linux, Java, or a browser profile.
 
 See which stores are actually on the machine:
 
@@ -67,7 +67,7 @@ cert-manage list
 cert-manage connect https://example.com
 ```
 
-On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and whitelist file are repeatable; backups land under `~/.cert-manage/` or `~/Library/cert-manage/` with timestamped entries you can restore from.
+On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and whitelist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Backups land under `~/.cert-manage/` or `~/Library/cert-manage/` with timestamped entries you can restore from.
 
 Apple's PEM recipe is an honest interim for a real hole in macOS CLI trust. It also shows what "just edit the bundle" costs: silent reverts, brittle scripts, and no plan you can review before you write. Prefer a tool that dry-runs, backs up, restores, and applies the same policy on every store you actually use. That is safer than hand-editing a PEM under pressure—not a guarantee that nothing will break.
 
