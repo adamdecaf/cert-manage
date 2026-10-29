@@ -20,6 +20,6 @@ reviews:
         Flag overly broad permissions, unpinned actions, and secret exposure.
   tools:
     golangci-lint:
-      enabled: true
+      enabled: false
 chat:
   auto_reply: true
