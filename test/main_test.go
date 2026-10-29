@@ -11,7 +11,11 @@ func TestCertManage_help(t *testing.T) {
 
 	usage := "Usage of cert-manage version"
 	subCmdUsage := func(name string) string {
-		return fmt.Sprintf("Usage: cert-manage %s ", name)
+		bin := "cert-manage"
+		if name == "gen-allowlist" {
+			bin = "trustprune"
+		}
+		return fmt.Sprintf("Usage: %s %s ", bin, name)
 	}
 
 	// no args, fs.Usage()
