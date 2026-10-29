@@ -470,9 +470,8 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
 	}
 	if err := os.RemoveAll(aside); err != nil {
-		// Aside was kept; point the operator at it.
-		fmt.Printf("store/nss: previous profile files moved aside to %s\n", aside)
-		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore recovery directory %s: %w", aside, err))
+		// Restore already applied; warn about the leftover aside and keep success.
+		fmt.Printf("store/nss: warning: previous profile files kept at %s after restore\n", aside)
 	}
 	return nssRestoreCleanupError(cleanupErrs)
 }

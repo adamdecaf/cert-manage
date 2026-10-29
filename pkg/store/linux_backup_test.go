@@ -432,3 +432,49 @@ func TestLinuxRestore_LogsAsidePathWhenKept(t *testing.T) {
 		t.Errorf("aside should be kept when rollback cannot move live: %s", aside)
 	}
 }
+
+func TestLinuxRestore_AsideCleanupFailureWarns(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses directory mode 0555; aside cleanup cannot be blocked by permissions")
+	}
+	// After a successful restore, a leftover *.restore-old is a warning, not an error.
+	s := linuxTestStore(t)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+	aside := s.ca.dir + ".restore-old"
+	parent := filepath.Dir(s.ca.dir)
+
+	script := filepath.Join(t.TempDir(), "refresh-ok-lock.sh")
+	body := "#!/bin/sh\nchmod 555 \"$PARENT\"\nexit 0\n"
+	if err := os.WriteFile(script, []byte(body), 0755); err != nil {
+		t.Fatal(err)
+	}
+	s.ca.refresh = script
+	t.Setenv("PARENT", parent)
+	t.Cleanup(func() { _ = os.Chmod(parent, 0755) })
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	err = s.Restore("")
+	_ = w.Close()
+	os.Stdout = old
+	if err != nil {
+		t.Fatalf("Restore should succeed despite aside cleanup failure: %v", err)
+	}
+	out, readErr := io.ReadAll(r)
+	_ = r.Close()
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Contains(out, []byte("warning")) || !bytes.Contains(out, []byte(aside)) {
+		t.Fatalf("expected warning naming kept aside %s, got %q", aside, out)
+	}
+	if !fileExists(t, aside) {
+		t.Errorf("aside should remain when cleanup fails: %s", aside)
+	}
+}
