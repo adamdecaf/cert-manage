@@ -1,0 +1,25 @@
+language: "en-US"
+tone_instructions: "Be terse. Prefer short bullet findings. Skip praise and fluff."
+reviews:
+  profile: "chill"
+  poem: false
+  high_level_summary: true
+  review_status: true
+  review_details: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: [".*"]
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        Go focus: error wrapping, nil/race/resource leaks, path traversal on cert/store paths,
+        privileged ops, never deleting certs without backup, tests for failure paths. Keep comments short.
+    - path: ".github/workflows/**"
+      instructions: |
+        Flag overly broad permissions, unpinned actions, and secret exposure.
+  tools:
+    golangci-lint:
+      enabled: true
+chat:
+  auto_reply: true

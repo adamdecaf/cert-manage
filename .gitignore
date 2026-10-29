@@ -19,6 +19,7 @@ build/*/*.class
 *.yaml
 !testdata/*.yaml
 !.goreleaser.yaml
+!.coderabbit.yaml
 *.json
 !testdata/*.json
 
