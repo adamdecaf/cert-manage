@@ -79,7 +79,7 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 2. **Do not restore against real system stores yet.** Linux restore currently deletes the live CA directory before copying the backup back. A failed copy can leave the machine with an empty CA dir. Until the temp-dir-then-swap fix merges, practice restore only on temp or container fixtures — never on `/etc` or `/usr` CA paths on a machine you care about.
 3. **Linux restore ignores `where` / `-file`.** The CLI accepts `-file`, but `linuxStore.Restore` always uses the latest backup under `~/.cert-manage/linux/`.
 4. **NSS backups are incomplete** until [#142](https://github.com/adamdecaf/cert-manage/issues/142) is fixed (see above).
-5. **`-dry-run` is not implemented yet** (see Roadmap). Until then, use `list` and `connect` to inspect impact, and keep a known-good backup.
+5. **`-dry-run` is not implemented yet**. Until then, use `list` and `connect` to inspect impact, and keep a known-good backup.
 
 ## Install
 
@@ -165,30 +165,26 @@ Help with docs, bugfixes, tests, and new or deeper store support is welcome. One
 
 This project follows the [Google Code of Conduct](https://opensource.google.com/conduct/).
 
-## Roadmap
+## Why this matters
 
-Daily plan (2026). Dates are goals, not promises. App tests (Java, browsers) should run across multiple platforms — store paths differ.
-
-| When | Focus | Tracking |
-|------|--------|----------|
-| **Oct 29** | Java backup/restore on the Linux distro matrix | [#230](https://github.com/adamdecaf/cert-manage/issues/230) |
-| **Oct 30** | Safe Linux restore (copy to a temp dir, then swap) | [#231](https://github.com/adamdecaf/cert-manage/issues/231) |
-| **Oct 31** | Restore honors `where` / `-file`; NSS backup path fix | [#231](https://github.com/adamdecaf/cert-manage/issues/231) |
-| **Nov 1** | `-dry-run` for destructive commands | [#232](https://github.com/adamdecaf/cert-manage/issues/232) |
-| **Nov 2** | Java on Mac | [#230](https://github.com/adamdecaf/cert-manage/issues/230) |
-| **Nov 3** | More Linux distros (Rocky, Fedora, Arch) | [#233](https://github.com/adamdecaf/cert-manage/issues/233) |
-| **Nov 4** | Firefox test suite | [#236](https://github.com/adamdecaf/cert-manage/issues/236) |
-| **Nov 5** | Chrome test suite | [#236](https://github.com/adamdecaf/cert-manage/issues/236) |
-| **Nov 6** | Raise store / cmd coverage | [#234](https://github.com/adamdecaf/cert-manage/issues/234) |
-| **Nov 7** | Windows beyond list-only | [#235](https://github.com/adamdecaf/cert-manage/issues/235) |
-| **Nov 8** | **0.2.0** release | [#237](https://github.com/adamdecaf/cert-manage/issues/237) |
-| **Nov 9** | Adoption push | [#237](https://github.com/adamdecaf/cert-manage/issues/237) |
-
-## Why this matters (research)
+Research keeps showing that default trust stores are larger than most users need:
 
 - [Analysis of the HTTPS Certificate Ecosystem](docs/papers/https-imc13.pdf) (2013) — more than **1,800 entities** able to issue certificates for any website; compromise of one intermediate would force ~26% of HTTPS sites to re-issue.
 - [CAge — Taming Certificate Authorities by Inferring Restricted Scopes](docs/papers/cage-fc13.pdf) — simple inference rules cut attack surface nearly tenfold without blocking most CA activity.
 - [You Won't Be Needing These Any More: On Removing Unused Certificates From Trust Stores](docs/papers/on-removing-unused-certs.pdf) — only about two-thirds of trusted roots were observed signing HTTPS certificates.
+
+Incidents keep showing the same pattern: one bad or unwanted root is enough to break HTTPS for everyone who trusts it. Browsers and vendors react after the fact; a CLI that can **list**, **backup**, **whitelist**, and **restore** trust stores is how you take that control yourself. A non-exhaustive sample of cases that justify that tooling (not a complete history of CA failures):
+
+- **[DigiNotar (2011)](https://www.mozilla.org/en-US/security/advisories/mfsa2011-34/):** After fraudulent certificates — including a `*.google.com` wildcard used in active MITM attacks — were issued from DigiNotar’s CA, Mozilla [removed the DigiNotar root](https://blog.mozilla.org/security/2011/09/02/diginotar-removal-follow-up/) from its products. Anyone still trusting that root in a local store remained exposed until they removed it.
+- **[Lenovo Superfish (2015)](https://blog.mozilla.org/security/2015/02/27/getting-superfish-out-of-firefox/):** Preinstalled adware installed a shared root CA (with a recoverable private key) into Windows and Firefox trust stores, so anyone with that key could impersonate any HTTPS site on affected machines. Users had to find and remove a vendor-installed root that browsers had not shipped.
+- **[Dell eDellRoot (2015)](https://www.kb.cert.org/vuls/id/870761):** Dell Foundation Services installed the `eDellRoot` certificate *and its private key* into the Windows Trusted Root store, enabling MITM and spoofing. Microsoft later marked it untrusted via CTL updates; operators still needed to remove the root and stop the component that reinstalled it.
+- **[CNNIC / MCS intermediate (2015)](https://blog.mozilla.org/security/2015/03/23/revoking-trust-in-one-cnnic-intermediate-certificate/):** CNNIC issued an unconstrained intermediate that a customer loaded into an SSL-inspection firewall, which then minted certificates for domains it did not control. Mozilla pushed the intermediate into OneCRL; the episode showed how a single trusted intermediate can MITM any site.
+- **[WoSign / StartCom (2016)](https://blog.mozilla.org/security/2016/10/24/distrusting-new-wosign-and-startcom-certificates/):** After backdated SHA-1 certificates, undisclosed ownership ties, and other failures, Mozilla and [Google](https://security.googleblog.com/2016/10/distrusting-wosign-and-startcom.html) stopped trusting new certificates from these CAs. Default trust had to be walked back in stages across every affected client store.
+- **[Symantec legacy PKI (2017–2018)](https://security.googleblog.com/2017/09/chromes-plan-to-distrust-symantec.html):** Systemic mis-issuance and weak oversight led Chrome and Mozilla to phase out trust in Symantec’s legacy roots (Thawte, VeriSign, GeoTrust, RapidSSL, and related brands). Site operators had to re-issue; users depended on browser updates to stop trusting a long-defaulted hierarchy.
+- **[Kazakhstan MITM root (2019)](https://blog.mozilla.org/security/2019/08/21/protecting-our-users-in-kazakhstan/):** ISPs directed users to install a government root so HTTPS could be intercepted. Mozilla and Google blocked that root even when users installed it manually — a reminder that “trusted because someone put it in my store” is not the same as trustworthy.
+- **[TrustCor (2022)](https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/oxX69KFvsm4):** After researchers documented close ties between TrustCor and a company that distributed a malware SDK, Mozilla set distrust-after dates on TrustCor’s roots and later removed them from NSS. No public TLS mis-issuance was required for browsers to decide the CA should not stay in default trust.
+- **[e-Tugra (2023)](https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/C-HrP1SEq1A):** Following a breach of non-CA systems, inadequate change control, and slow incident response, Mozilla removed e-Tugra’s roots from its store (Chrome did likewise). Another case where default inclusion outlasted confidence in the operator.
+- **[Entrust (2024)](https://security.googleblog.com/2024/06/sustaining-digital-certificate-security.html):** After years of compliance failures and delayed remediations, Chrome stopped trusting new Entrust/AffirmTrust TLS certificates (SCT after 11 November 2024). Mozilla took parallel distrust action. Large, long-trusted CAs can still leave users waiting on vendor schedules unless they can audit and trim local stores themselves.
 
 ## Background: CA incidents
 
@@ -206,18 +202,16 @@ Vendors and browsers react after the fact. `cert-manage` is for putting that con
 
 ## Related projects
 
-- [certpatrol](http://patrol.psyced.org/)
-- [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts)
-- [drduh/macOS-Security-and-Privacy-Guide](https://github.com/drduh/macOS-Security-and-Privacy-Guide#certificate-authorities)
-- [kirei/catt](https://github.com/kirei/catt)
-- [mkcert.org](https://mkcert.org/)
-- [mozilla/tls-observatory](https://github.com/mozilla/tls-observatory)
-- [MSylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter)
-- [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory)
-- [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools)
-- [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen)
-- [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py)
-- [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx)
+| Project | Description |
+|---------|-------------|
+| [drduh/macOS-Security-and-Privacy-Guide](https://github.com/drduh/macOS-Security-and-Privacy-Guide#certificate-authorities) | Community guide to hardening macOS, including a Certificate Authorities section. |
+| [kirei/catt](https://github.com/kirei/catt) | Certification Authority Trust Tracker — scripts and data for which CAs root programs trust. |
+| [mkcert.org](https://mkcert.org/) | API to build custom PEM trust stores from Mozilla’s root list (include or exclude by label). |
+| [mozilla/tls-observatory](https://github.com/mozilla/tls-observatory) | Suite for scanning TLS configurations and inspecting X.509 certificates. |
+| [MSylvia/CertTrustSetter](https://github.com/MSylvia/CertTrustSetter) | Tool for installing certificates and modifying trust settings on macOS. |
+| [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory) | Continuously monitors and records major platforms’ root certificate stores. |
+| [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools) | macOS Keychain trust-settings tools for blacklisting certificates by fingerprint. |
+| [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen) | Generates a self-signed TLS certificate and adds it to the local trusted store. |
 
 ## Related reading
 
