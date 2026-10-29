@@ -326,30 +326,167 @@ func (s nssStore) Restore(where string) error {
 	// Queue notification to restart app
 	defer s.notifyToRestart()
 
-	// Directory backups / -file folders: restore the matching profile set.
+	dst := s.foundCertdbLocation
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+
+	// Stage the whole profile set into a sibling temp dir, then swap into
+	// place with rollback. A failed stage must leave the live profile files
+	// untouched (same idea as linuxStore.Restore since #240).
+	if err := os.RemoveAll(tmp); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(tmp, backupDirPerms); err != nil {
+		return err
+	}
+
+	names, err := nssStageRestoreFiles(src, tmp)
+	if err != nil {
+		_ = os.RemoveAll(tmp)
+		return err
+	}
+	if len(names) == 0 {
+		_ = os.RemoveAll(tmp)
+		return fmt.Errorf("no NSS profile files to restore from %s", src)
+	}
+
+	return nssSwapStagedFiles(dst, tmp, aside, names)
+}
+
+// nssStageRestoreFiles copies the backup profile set (or a legacy single-file
+// backup) into tmp and returns the basenames that were staged.
+func nssStageRestoreFiles(src, tmp string) ([]string, error) {
 	if st, err := os.Stat(src); err == nil && st.IsDir() {
 		names := nssCert9ProfileFiles
 		if file.Exists(filepath.Join(src, "cert8.db")) && !file.Exists(filepath.Join(src, "cert9.db")) {
 			names = nssCert8ProfileFiles
 		}
+		var staged []string
 		for _, name := range names {
 			from := filepath.Join(src, name)
 			if !file.Exists(from) {
 				continue
 			}
-			if err := file.CopyFile(from, filepath.Join(s.foundCertdbLocation, name)); err != nil {
-				return err
+			if err := file.CopyFile(from, filepath.Join(tmp, name)); err != nil {
+				return nil, err
 			}
+			staged = append(staged, name)
 		}
-		return nil
+		return staged, nil
 	}
 
-	// Legacy single-file backups: restore to cert9.db (or cert8.db if named so).
 	fname := "cert9.db"
 	if strings.Contains(filepath.Base(src), "cert8") {
 		fname = "cert8.db"
 	}
-	return file.CopyFile(src, filepath.Join(s.foundCertdbLocation, fname))
+	if err := file.CopyFile(src, filepath.Join(tmp, fname)); err != nil {
+		return nil, err
+	}
+	return []string{fname}, nil
+}
+
+// nssSwapStagedFiles renames staged files into dst. Existing live files are
+// moved under aside first so a mid-swap failure can roll them back. On
+// success tmp and aside are removed.
+func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
+	// A crash mid-swap can leave originals only under aside. Never wipe a
+	// non-empty aside from a previous attempt.
+	if st, err := os.Stat(aside); err == nil {
+		if !st.IsDir() {
+			_ = os.RemoveAll(tmp)
+			return fmt.Errorf("previous restore aside exists as a file at %s; remove it before restoring again", aside)
+		}
+		entries, err := os.ReadDir(aside)
+		if err != nil {
+			_ = os.RemoveAll(tmp)
+			return err
+		}
+		if len(entries) > 0 {
+			_ = os.RemoveAll(tmp)
+			return fmt.Errorf("previous restore aside still at %s; move those files back or remove the directory before restoring again", aside)
+		}
+	}
+	if err := os.RemoveAll(aside); err != nil {
+		_ = os.RemoveAll(tmp)
+		return err
+	}
+	if err := os.MkdirAll(aside, backupDirPerms); err != nil {
+		_ = os.RemoveAll(tmp)
+		return err
+	}
+
+	var swapped []string
+	var rollbackErrs []error
+	rollback := func() {
+		for i := len(swapped) - 1; i >= 0; i-- {
+			name := swapped[i]
+			live := filepath.Join(dst, name)
+			old := filepath.Join(aside, name)
+			if err := os.Remove(live); err != nil && !errors.Is(err, os.ErrNotExist) {
+				rollbackErrs = append(rollbackErrs, err)
+			}
+			if file.Exists(old) {
+				if err := os.Rename(old, live); err != nil {
+					rollbackErrs = append(rollbackErrs, err)
+				}
+			}
+		}
+	}
+	fail := func(err error) error {
+		rollback()
+		_ = os.RemoveAll(tmp)
+		if len(rollbackErrs) > 0 {
+			// Keep aside: it may still hold the only copy of the originals.
+			return errors.Join(append([]error{err, fmt.Errorf("rollback incomplete, originals kept in %s", aside)}, rollbackErrs...)...)
+		}
+		_ = os.RemoveAll(aside)
+		return err
+	}
+
+	loggedAside := false
+	for _, name := range names {
+		live := filepath.Join(dst, name)
+		staged := filepath.Join(tmp, name)
+		old := filepath.Join(aside, name)
+
+		if file.Exists(live) {
+			if err := os.Rename(live, old); err != nil {
+				return fail(err)
+			}
+			if !loggedAside {
+				// Log while aside still exists so a crash mid-swap is recoverable.
+				fmt.Printf("store/nss: previous profile files moved aside to %s\n", aside)
+				loggedAside = true
+			}
+		}
+		// Register before install so a partial CopyFile is rolled back too.
+		swapped = append(swapped, name)
+		if err := os.Rename(staged, live); err != nil {
+			// If rename across dirs fails, fall back to copy then remove staged.
+			if cerr := file.CopyFile(staged, live); cerr != nil {
+				return fail(errors.Join(err, cerr))
+			}
+			_ = os.Remove(staged)
+		}
+	}
+
+	var cleanupErrs []error
+	if err := os.RemoveAll(tmp); err != nil {
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
+	}
+	if err := os.RemoveAll(aside); err != nil {
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore recovery directory %s: %w", aside, err))
+	}
+	return nssRestoreCleanupError(cleanupErrs)
+}
+
+// nssRestoreCleanupError wraps post-swap cleanup failures so callers can tell
+// the restore itself already landed (unlike a mid-swap rollback error).
+func nssRestoreCleanupError(cleanupErrs []error) error {
+	if len(cleanupErrs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("NSS restore applied, but cleanup failed: %w", errors.Join(cleanupErrs...))
 }
 
 // certdbItem represents an x509 Certificate with the NSS trust attributes

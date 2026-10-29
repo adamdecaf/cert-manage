@@ -16,8 +16,11 @@ package store
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -352,5 +355,340 @@ func TestStoreNSS_RestoreHonorsWhereSingleFile(t *testing.T) {
 	}
 	if !bytes.Equal(got, alt) {
 		t.Fatalf("Restore did not honor where file; got %q want %q", got, alt)
+	}
+}
+
+func TestStoreNSS_FailedStageLeavesLiveIntact(t *testing.T) {
+	// A mid-stage copy failure must not mutate live profile files.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	live := map[string][]byte{
+		"cert9.db":   []byte("live-cert9\n"),
+		"key4.db":    []byte("live-key4\n"),
+		"pkcs11.txt": []byte("live-pkcs11\n"),
+	}
+	for name, body := range live {
+		if err := os.WriteFile(filepath.Join(nssdbDir, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	backup := t.TempDir()
+	if err := os.WriteFile(filepath.Join(backup, "cert9.db"), []byte("backup-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Directory where a file is expected makes CopyFile fail (EISDIR on read).
+	if err := os.Mkdir(filepath.Join(backup, "key4.db"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(backup, "pkcs11.txt"), []byte("backup-pkcs11\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(backup); err == nil {
+		t.Fatal("expected Restore to fail when staging key4.db")
+	}
+	for name, want := range live {
+		got, err := os.ReadFile(filepath.Join(nssdbDir, name))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("%s mutated after failed stage: got %q want %q", name, got, want)
+		}
+	}
+	if nssPathExists(t, nssdbDir+".restore-tmp") {
+		t.Errorf("restore-tmp left behind: %s", nssdbDir+".restore-tmp")
+	}
+	if nssPathExists(t, nssdbDir+".restore-old") {
+		t.Errorf("restore-old left behind: %s", nssdbDir+".restore-old")
+	}
+}
+
+func TestStoreNSS_RestoreTmpCleanedOnStageFailure(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	backup := t.TempDir()
+	if err := os.WriteFile(filepath.Join(backup, "cert9.db"), []byte("backup\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(backup, "key4.db"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	tmp := nssdbDir + ".restore-tmp"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "stale"), []byte("x"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(backup); err == nil {
+		t.Fatal("expected Restore to fail")
+	}
+	if nssPathExists(t, tmp) {
+		t.Fatalf("expected %s cleaned up after stage failure", tmp)
+	}
+}
+
+func TestStoreNSS_SwapRollbackRestoresLive(t *testing.T) {
+	// Mid-swap failure after the first file is installed must put live back.
+	dst := t.TempDir()
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	live := map[string][]byte{
+		"cert9.db": []byte("live-cert9\n"),
+		"key4.db":  []byte("live-key4\n"),
+	}
+	for name, body := range live {
+		if err := os.WriteFile(filepath.Join(dst, name), body, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "cert9.db"), []byte("staged-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Missing staged key4.db makes the second rename fail after cert9 swapped.
+
+	err := nssSwapStagedFiles(dst, tmp, aside, []string{"cert9.db", "key4.db"})
+	if err == nil {
+		t.Fatal("expected swap to fail on missing staged key4.db")
+	}
+	for name, want := range live {
+		got, err := os.ReadFile(filepath.Join(dst, name))
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("%s after rollback: got %q want %q", name, got, want)
+		}
+	}
+	if nssPathExists(t, tmp) {
+		t.Errorf("tmp left behind: %s", tmp)
+	}
+	if nssPathExists(t, aside) {
+		t.Errorf("aside left behind: %s", aside)
+	}
+}
+
+func TestStoreNSS_SwapRollbackRemovesNewFile(t *testing.T) {
+	// A file with no live copy must be removed when a later swap step fails.
+	dst := t.TempDir()
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "key4.db"), []byte("staged-key4\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// No live key4.db and no staged cert9.db: key4 installs, then cert9 fails.
+
+	err := nssSwapStagedFiles(dst, tmp, aside, []string{"key4.db", "cert9.db"})
+	if err == nil {
+		t.Fatal("expected swap to fail on missing staged cert9.db")
+	}
+	if nssPathExists(t, filepath.Join(dst, "key4.db")) {
+		t.Errorf("newly installed key4.db left after rollback")
+	}
+	got, err := os.ReadFile(filepath.Join(dst, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, []byte("live-cert9\n")) {
+		t.Fatalf("cert9.db after rollback: got %q", got)
+	}
+	if nssPathExists(t, tmp) {
+		t.Errorf("tmp left behind: %s", tmp)
+	}
+	if nssPathExists(t, aside) {
+		t.Errorf("aside left behind: %s", aside)
+	}
+}
+
+func TestStoreNSS_RejectsNonEmptyAside(t *testing.T) {
+	dst := t.TempDir()
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(aside, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(aside, "cert9.db"), []byte("crash-survivor\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "cert9.db"), []byte("staged\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := nssSwapStagedFiles(dst, tmp, aside, []string{"cert9.db"})
+	if err == nil {
+		t.Fatal("expected swap to reject non-empty aside")
+	}
+	got, err := os.ReadFile(filepath.Join(aside, "cert9.db"))
+	if err != nil {
+		t.Fatalf("aside should be preserved: %v", err)
+	}
+	if string(got) != "crash-survivor\n" {
+		t.Fatalf("aside cert9.db=%q", got)
+	}
+	live, err := os.ReadFile(filepath.Join(dst, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(live) != "live\n" {
+		t.Fatalf("live should be untouched: %q", live)
+	}
+}
+
+func TestStoreNSS_RestoreCleansTmpAndAside(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "key4.db"), []byte("live-key\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	backup := t.TempDir()
+	if err := os.WriteFile(filepath.Join(backup, "cert9.db"), []byte("bak\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(backup, "key4.db"), []byte("bak-key\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := NssStore("firefox-test", "0", nssdbDir)
+	if err := s.Restore(backup); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	if nssPathExists(t, nssdbDir+".restore-tmp") {
+		t.Errorf("restore-tmp left after success")
+	}
+	if nssPathExists(t, nssdbDir+".restore-old") {
+		t.Errorf("restore-old left after success")
+	}
+	got, err := os.ReadFile(filepath.Join(nssdbDir, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "bak\n" {
+		t.Fatalf("cert9.db=%q", got)
+	}
+}
+
+func TestStoreNSS_LogsAsidePath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
+	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nssdbDir, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	backup := t.TempDir()
+	if err := os.WriteFile(filepath.Join(backup, "cert9.db"), []byte("bak\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	aside := nssdbDir + ".restore-old"
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := os.Stdout
+	os.Stdout = w
+	s := NssStore("firefox-test", "0", nssdbDir)
+	err = s.Restore(backup)
+	_ = w.Close()
+	os.Stdout = old
+	if err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	out, err := io.ReadAll(r)
+	_ = r.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out, []byte(aside)) {
+		t.Fatalf("expected stdout to mention aside path %s, got %q", aside, out)
+	}
+	if !bytes.Contains(out, []byte("moved aside")) {
+		t.Fatalf("expected recoverability log about moved-aside files, got %q", out)
+	}
+}
+
+func nssPathExists(t *testing.T, path string) bool {
+	t.Helper()
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	t.Fatalf("stat %s: %v", path, err)
+	return false
+}
+
+func TestStoreNSS_RestoreCleanupErrorMessage(t *testing.T) {
+	err := nssRestoreCleanupError(nil)
+	if err != nil {
+		t.Fatalf("empty cleanup: %v", err)
+	}
+	err = nssRestoreCleanupError([]error{errors.New("tmp busy"), errors.New("aside busy")})
+	if err == nil {
+		t.Fatal("expected cleanup error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "NSS restore applied") {
+		t.Fatalf("missing applied marker: %q", msg)
+	}
+	if !strings.Contains(msg, "cleanup failed") {
+		t.Fatalf("missing cleanup marker: %q", msg)
+	}
+	if !strings.Contains(msg, "tmp busy") || !strings.Contains(msg, "aside busy") {
+		t.Fatalf("missing joined causes: %q", msg)
 	}
 }
