@@ -204,8 +204,6 @@ Vendors and browsers react after the fact. `cert-manage` is for putting that con
 
 | Project | Description |
 |---------|-------------|
-| [certpatrol](http://patrol.psyced.org/) | Firefox/Mozilla add-on that pins HTTPS certificates and alerts when a site’s cert changes. |
-| [chengr28/RevokeChinaCerts](https://github.com/chengr28/RevokeChinaCerts) | Cross-platform tools to revoke selected Chinese CA certificates from OS and browser stores. |
 | [drduh/macOS-Security-and-Privacy-Guide](https://github.com/drduh/macOS-Security-and-Privacy-Guide#certificate-authorities) | Community guide to hardening macOS, including a Certificate Authorities section. |
 | [kirei/catt](https://github.com/kirei/catt) | Certification Authority Trust Tracker — scripts and data for which CAs root programs trust. |
 | [mkcert.org](https://mkcert.org/) | API to build custom PEM trust stores from Mozilla’s root list (include or exclude by label). |
@@ -214,8 +212,6 @@ Vendors and browsers react after the fact. `cert-manage` is for putting that con
 | [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory) | Continuously monitors and records major platforms’ root certificate stores. |
 | [ntkme/security-trust-settings-tools](https://github.com/ntkme/security-trust-settings-tools) | macOS Keychain trust-settings tools for blacklisting certificates by fingerprint. |
 | [sebdeckers/tls-keygen](https://gitlab.com/sebdeckers/tls-keygen) | Generates a self-signed TLS certificate and adds it to the local trusted store. |
-| [storborg/dotfiles paranoia.py](https://github.com/storborg/dotfiles/blob/master/scripts/paranoia.py) | Historical personal script related to CA distrust (upstream path currently unavailable). |
-| [SSL Blacklist 4.0](http://www.codefromthe70s.org/sslblacklist.aspx) | Firefox extension that warned about TLS certificates using known-weak Debian OpenSSL keys. |
 
 ## Related reading
 
