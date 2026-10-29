@@ -15,6 +15,7 @@
 package gen
 
 import (
+	"fmt"
 	"net/url"
 	"reflect"
 	"sync"
@@ -174,5 +175,68 @@ func TestGen__gate(t *testing.T) {
 	}
 	if w1.IsZero() || w2.IsZero() || w3.IsZero() {
 		t.Errorf("can't be zero: w1=%q, w2=%q, w3=%q", w1, w2, w3)
+	}
+}
+
+// Concurrent find / addDNSName / findSigners on shared CAs. Under -race this
+// fails without the locks in find, addDNSName, and findSigners.
+func TestCAsConcurrentFindAndAddDNSName(t *testing.T) {
+	example, err := certutil.FromFile("../../../testdata/example.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	banno, err := certutil.FromFile("../../../testdata/banno.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	certA, certB := example[0], banno[0]
+
+	authorities := CAs{}
+	const workers = 16
+	const perWorker = 40
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for w := 0; w < workers; w++ {
+		go func(w int) {
+			defer wg.Done()
+			for n := 0; n < perWorker; n++ {
+				cert := certA
+				if n%2 == 1 {
+					cert = certB
+				}
+				ca, _ := authorities.find(cert)
+				name := fmt.Sprintf("host-%d-%d.example", w, n)
+				ca.addDNSName(name)
+				ca.addDNSName(name) // duplicate must be ignored
+				_ = authorities.findSigners(name)
+				_ = authorities.findSigners("missing.example")
+			}
+		}(w)
+	}
+	wg.Wait()
+
+	if got := len(authorities.items); got != 2 {
+		t.Fatalf("got %d CAs, want 2 (find-or-create raced)", got)
+	}
+
+	seen := make(map[string]bool, 2)
+	wantNames := workers * (perWorker / 2)
+	for _, ca := range authorities.items {
+		if seen[ca.Fingerprint] {
+			t.Errorf("duplicate CA fingerprint %s", ca.Fingerprint)
+		}
+		seen[ca.Fingerprint] = true
+
+		names := make(map[string]int, len(ca.DNSNames))
+		for _, dns := range ca.DNSNames {
+			names[dns]++
+			if names[dns] > 1 {
+				t.Errorf("duplicate DNS name %q on %s", dns, ca.Fingerprint)
+			}
+		}
+		if len(ca.DNSNames) != wantNames {
+			t.Errorf("CA %s: got %d DNS names, want %d", ca.Fingerprint[:16], len(ca.DNSNames), wantNames)
+		}
 	}
 }

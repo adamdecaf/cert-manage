@@ -53,7 +53,7 @@ generate:
 
 test: check
 	$(MAKE) linux
-	go test -count=1 -timeout 5m ./test/
+	go test -count=1 -timeout 5m $(GOTEST_FLAGS) ./test/
 
 build: check
 	go build -trimpath -o cert-manage github.com/adamdecaf/trustprune
