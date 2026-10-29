@@ -108,6 +108,12 @@ func (s nssStore) notifyToRestart() {
 }
 
 func (s nssStore) Add(certs []*x509.Certificate) error {
+	if DryRun() {
+		details := reportDryRunCerts("add", certs)
+		reportDryRun("add certificates to", s.nssType, s.foundCertdbLocation, details...)
+		return nil
+	}
+
 	dir, err := ioutil.TempDir("", "cert-manage-nss-add")
 	if err != nil {
 		return err
@@ -139,17 +145,29 @@ func (s nssStore) Add(certs []*x509.Certificate) error {
 }
 
 func (s nssStore) Backup() error {
-	dir, err := getCertManageDir(s.nssType)
-	if err != nil {
-		return err
-	}
-
 	// Only backup the first nss cert.db path for now
 	if s.foundCertdbLocation == "" {
 		return errors.New("No NSS cert db paths found")
 	}
 
 	names, err := nssProfileFilesToBackup(s.foundCertdbLocation)
+	if err != nil {
+		return err
+	}
+
+	if DryRun() {
+		details := []string{fmt.Sprintf("mirror profile set into $HOME/.cert-manage/%s/<timestamp>", s.nssType)}
+		for _, name := range names {
+			src := filepath.Join(s.foundCertdbLocation, name)
+			if file.Exists(src) {
+				details = append(details, fmt.Sprintf("include %s", name))
+			}
+		}
+		reportDryRun("backup", s.nssType, s.foundCertdbLocation, details...)
+		return nil
+	}
+
+	dir, err := getCertManageDir(s.nssType)
 	if err != nil {
 		return err
 	}
@@ -242,6 +260,20 @@ func (s nssStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
+	if DryRun() {
+		var details []string
+		for i := range items {
+			if wh.MatchesAll(items[i].certs) {
+				continue
+			}
+			for j := range items[i].certs {
+				details = append(details, fmt.Sprintf("distrust %s (nick %s)", formatCertLine(items[i].certs[j]), items[i].nick))
+			}
+		}
+		reportDryRun("remove certificates from", s.nssType, s.foundCertdbLocation, details...)
+		return nil
+	}
+
 	// Remove trust from each cert if needed.
 	for i := range items {
 		if wh.MatchesAll(items[i].certs) {
@@ -266,6 +298,30 @@ func (s nssStore) Restore(where string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if DryRun() {
+		details := []string{fmt.Sprintf("source %s", src), fmt.Sprintf("destination %s", s.foundCertdbLocation)}
+		if st, err := os.Stat(src); err == nil && st.IsDir() {
+			names := nssCert9ProfileFiles
+			if file.Exists(filepath.Join(src, "cert8.db")) && !file.Exists(filepath.Join(src, "cert9.db")) {
+				names = nssCert8ProfileFiles
+			}
+			for _, name := range names {
+				from := filepath.Join(src, name)
+				if file.Exists(from) {
+					details = append(details, fmt.Sprintf("copy %s", from))
+				}
+			}
+		} else {
+			fname := "cert9.db"
+			if strings.Contains(filepath.Base(src), "cert8") {
+				fname = "cert8.db"
+			}
+			details = append(details, fmt.Sprintf("copy %s -> %s", src, filepath.Join(s.foundCertdbLocation, fname)))
+		}
+		reportDryRun("restore", s.nssType, s.foundCertdbLocation, details...)
+		return nil
 	}
 
 	// Queue notification to restart app

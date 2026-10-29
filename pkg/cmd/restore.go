@@ -27,7 +27,11 @@ func RestoreForApp(app, path string) error {
 	}
 	err = s.Restore(path)
 	if err == nil {
-		fmt.Println("Restore completed successfully")
+		if store.DryRun() {
+			fmt.Println("dry-run: no changes made")
+		} else {
+			fmt.Println("Restore completed successfully")
+		}
 	}
 	return err
 }
@@ -35,7 +39,11 @@ func RestoreForApp(app, path string) error {
 func RestoreForPlatform(path string) error {
 	err := store.Platform().Restore(path)
 	if err == nil {
-		fmt.Println("Restore completed successfully")
+		if store.DryRun() {
+			fmt.Println("dry-run: no changes made")
+		} else {
+			fmt.Println("Restore completed successfully")
+		}
 	}
 	return err
 }

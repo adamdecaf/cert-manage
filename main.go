@@ -59,6 +59,9 @@ var (
 	flagCount  = fs.Bool("count", false, "")
 	flagFormat = fs.String("format", ui.DefaultFormat(), "")
 
+	// -dry-run previews mutating commands without writing to stores
+	flagDryRun = fs.Bool("dry-run", false, "")
+
 	// internal override to show help text
 	callForHelp = false
 )
@@ -88,6 +91,7 @@ APPS
 
 FLAGS
   -app <name>      The name of an application which to perform the given command on.
+  -dry-run         Preview add/backup/restore/whitelist changes without writing to stores
   -file <path>     Local file path
   -from <type(s)>  Which sources to capture urls from. Comma separated list. (Options: browser, chrome, firefox, file)
   -help            Show this help dialog
@@ -167,6 +171,7 @@ func main() {
 		Outfile: *flagOutFile,
 		UI:      *flagUI,
 	}
+	store.SetDryRun(*flagDryRun)
 
 	// Build up sub-commands
 	commands := make(map[string]*command)
@@ -185,7 +190,7 @@ func main() {
 			}
 			return cmd.AddCertsToAppFromFile(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage add -file <path> [-app <name>]
+		help: fmt.Sprintf(`Usage: cert-manage add -file <path> [-app <name>] [-dry-run]
 
   Add a certificate to the platform store
     cert-manage add -file <path>
@@ -203,7 +208,7 @@ APPS
 		appfn: func(a string) error {
 			return cmd.BackupForApp(a)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage backup [-app <name>]
+		help: fmt.Sprintf(`Usage: cert-manage backup [-app <name>] [-dry-run]
 
   Backup a certificate store. This can be done for the platform or a given app.
 
@@ -311,7 +316,7 @@ APPS
 		appfn: func(a string) error {
 			return cmd.RestoreForApp(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage restore [-app <name>] [-file <path>]
+		help: fmt.Sprintf(`Usage: cert-manage restore [-app <name>] [-file <path>] [-dry-run]
 
   Restore certificates from the latest backup
     cert-manage restore
@@ -340,7 +345,7 @@ APPS
 			}
 			return cmd.WhitelistForApp(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage whitelist [-app <name>] -file <path>
+		help: fmt.Sprintf(`Usage: cert-manage whitelist [-app <name>] -file <path> [-dry-run]
 
   Remove untrusted certificates from a store for the platform
     cert-manage whitelist -file whitelist.json

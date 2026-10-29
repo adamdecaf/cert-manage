@@ -65,10 +65,18 @@ func platform() Store {
 }
 
 func (s windowsStore) Add(certs []*x509.Certificate) error {
+	if DryRun() {
+		reportDryRun("add certificates to", "windows", "", reportDryRunCerts("add", certs)...)
+		return nil
+	}
 	return nil
 }
 
 func (s windowsStore) Backup() error {
+	if DryRun() {
+		reportDryRun("backup", "windows", "")
+		return nil
+	}
 	return nil
 }
 
@@ -290,9 +298,21 @@ func skipWindowsExport(out string, err error) bool {
 }
 
 func (s windowsStore) Remove(wh whitelist.Whitelist) error {
+	if DryRun() {
+		reportDryRun("remove certificates from", "windows", "")
+		return nil
+	}
 	return nil
 }
 
 func (s windowsStore) Restore(where string) error {
+	if DryRun() {
+		details := []string{}
+		if where != "" {
+			details = append(details, fmt.Sprintf("source %s", where))
+		}
+		reportDryRun("restore", "windows", "", details...)
+		return nil
+	}
 	return nil
 }

@@ -31,6 +31,10 @@ func (s emptyStore) printNotce() {
 }
 
 func (s emptyStore) Add(certs []*x509.Certificate) error {
+	if DryRun() {
+		reportDryRun("add certificates to", "empty", "", reportDryRunCerts("add", certs)...)
+		return nil
+	}
 	s.printNotce()
 	return nil
 }
@@ -45,16 +49,32 @@ func (s emptyStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 	return nil, nil
 }
 func (s emptyStore) Remove(whitelist.Whitelist) error {
+	if DryRun() {
+		reportDryRun("remove certificates from", "empty", "")
+		return nil
+	}
 	s.printNotce()
 	return nil
 }
 func (s emptyStore) Restore(where string) error {
+	if DryRun() {
+		details := []string{}
+		if where != "" {
+			details = append(details, fmt.Sprintf("source %s", where))
+		}
+		reportDryRun("restore", "empty", "", details...)
+		return nil
+	}
 	s.printNotce()
 	return nil
 }
 
 // Saver
 func (s emptyStore) Backup() error {
+	if DryRun() {
+		reportDryRun("backup", "empty", "")
+		return nil
+	}
 	s.printNotce()
 	return nil
 }

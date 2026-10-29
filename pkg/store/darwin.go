@@ -76,6 +76,12 @@ func platform() Store {
 }
 
 func (s darwinStore) Add(certs []*x509.Certificate) error {
+	if DryRun() {
+		details := reportDryRunCerts("add", certs)
+		reportDryRun("add certificates to", "darwin", loginKeychainFile(), details...)
+		return nil
+	}
+
 	dir, err := ioutil.TempDir("", "cert-manage-add")
 	if err != nil {
 		return fmt.Errorf("Add: error creating temp dir err=%v", err)
@@ -108,6 +114,12 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 }
 
 func (s darwinStore) Backup() error {
+	if DryRun() {
+		reportDryRun("backup", "darwin", loginKeychainFile(),
+			"export trusted certificates from the login keychain into ~/Library/cert-manage/darwin/<timestamp>/")
+		return nil
+	}
+
 	// setup (and create) backup (parent) dir
 	parent, err := getCertManageDir(fmt.Sprintf("%s/%d", darwinBackupDir, time.Now().Unix()))
 	if err != nil {
@@ -414,6 +426,17 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 		return fmt.Errorf("Remove: error reading certs from %s, err=%v", systemRootCertificates, err)
 	}
 
+	if DryRun() {
+		var details []string
+		for i := range roots {
+			if !wh.Matches(roots[i]) {
+				details = append(details, fmt.Sprintf("distrust %s", formatCertLine(roots[i])))
+			}
+		}
+		reportDryRun("remove certificates from", "darwin", systemRootCertificates, details...)
+		return nil
+	}
+
 	// prep a temp file we can re-use
 	tmp, err := ioutil.TempFile("", "cert-manage-darwin-remove")
 	if err != nil {
@@ -537,6 +560,15 @@ func getAppleRootCertificates() []*appleRoot {
 //
 // TODO(adam): `where` needs to be a directory with properly exported certs from keychain files
 func (s darwinStore) Restore(where string) error {
+	if DryRun() {
+		details := []string{"reset trust settings toward Apple system roots"}
+		if where != "" {
+			details = append(details, fmt.Sprintf("using backup path %s", where))
+		}
+		reportDryRun("restore", "darwin", systemKeychain, details...)
+		return nil
+	}
+
 	// Grab apple provided system root, this is our baseline
 	roots, err := readInstalledCerts(systemRootCertificates)
 	if err != nil {
