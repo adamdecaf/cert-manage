@@ -161,9 +161,9 @@ func (s linuxStore) uname(args ...string) string {
 }
 
 func (s linuxStore) GetInfo() *Info {
-	path := s.ca.dir
+	path := s.ca.all
 	if path == "" {
-		path = s.ca.all
+		path = s.ca.dir
 	}
 	return &Info{
 		Name:    s.uname("-o"), // GNU/Linux,

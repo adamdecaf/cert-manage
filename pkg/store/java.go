@@ -121,7 +121,7 @@ func (s javaStore) GetInfo() *Info {
 		Name:    "Java",
 		Version: s.version(),
 	}
-	if path, err := (keytool{}).getKeystorePath(); err == nil {
+	if path, err := ktool.getKeystorePath(); err == nil {
 		info.Path = path
 	}
 	return info
