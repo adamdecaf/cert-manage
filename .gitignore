@@ -18,6 +18,7 @@ build/*/*.class
 
 *.yaml
 !testdata/*.yaml
+!.goreleaser.yaml
 *.json
 !testdata/*.json
 
