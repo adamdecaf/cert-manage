@@ -42,6 +42,13 @@ func TestFormatScriptLine(t *testing.T) {
 	if got := dockerTempPrefix("cert-manage:alpine"); got != "cert-manage-alpine" {
 		t.Fatalf("temp prefix=%q", got)
 	}
+
+	// javaKeystoreByteRoundTrip resolves $JAVA_HOME layouts inside sh -c.
+	got = formatScriptLine(Command("sh", "-c", `test -n "$JAVA_HOME"; if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/lib/security/cacerts"; fi`))
+	want = `sh -c 'test -n "$JAVA_HOME"; if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/lib/security/cacerts"; fi'`
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
 }
 
 func TestDocker_basic(t *testing.T) {
