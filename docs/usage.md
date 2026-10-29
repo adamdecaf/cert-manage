@@ -9,6 +9,30 @@ Global flags work with the subcommands that accept them. Add `-dry-run` to `add`
 
 Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
 
+
+## apps
+
+List every supported application store plus the platform store. For each one, show whether it was found on this machine and the store path. Detection is read-only.
+
+```bash
+cert-manage apps
+cert-manage apps -format json
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-format json` | Emit a JSON array of `{name, found, path}` objects (default is one aligned line per store) |
+
+Default terse output looks like:
+
+```text
+chrome    found      /home/you/.pki/nssdb
+firefox   not-found  -
+java      not-found  -
+openssl   found      /etc/ssl/certs/ca-certificates.crt
+platform  found      /etc/ssl/certs/ca-certificates.crt
+```
+
 ## list
 
 Show trusted certificates from the platform store, an app store, a local file, or a remote URL.

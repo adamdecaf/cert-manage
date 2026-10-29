@@ -36,13 +36,8 @@ var (
 
 // FirefoxStore returns a Mozilla Firefox implementation of Store
 func FirefoxStore() Store {
-	for i := range firefoxProfileSuggestions {
-		matches, _ := filepath.Glob(firefoxProfileSuggestions[i])
-		for j := range matches {
-			if containsCertdb(matches[j]) {
-				return NssStore("firefox", firefoxVersion(), matches[j])
-			}
-		}
+	if where, ok := locateFirefoxProfile(firefoxProfileSuggestions); ok {
+		return NssStore("firefox", firefoxVersion(), where)
 	}
 	return emptyStore{}
 }

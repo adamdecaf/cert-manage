@@ -15,9 +15,7 @@
 package store
 
 import (
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -44,8 +42,7 @@ func ChromeStore() Store {
 			Platform(),
 		}
 	case "linux":
-		where := filepath.Join(file.HomeDir(), ".pki/nssdb")
-		if _, err := os.Stat(where); !os.IsNotExist(err) {
+		if where, ok := locateChromeNSS(file.HomeDir()); ok {
 			return NssStore("chrome", chromeVersion(), where)
 		}
 	}
