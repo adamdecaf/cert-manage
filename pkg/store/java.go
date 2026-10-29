@@ -117,10 +117,14 @@ func (s javaStore) GetLatestBackup() (string, error) {
 }
 
 func (s javaStore) GetInfo() *Info {
-	return &Info{
+	info := &Info{
 		Name:    "Java",
 		Version: s.version(),
 	}
+	if path, err := ktool.getKeystorePath(); err == nil {
+		info.Path = path
+	}
+	return info
 }
 
 func (s javaStore) version() string {

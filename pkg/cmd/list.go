@@ -42,7 +42,12 @@ func ListCertsFromFile(where string, cfg *ui.Config) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return ui.ListCertificates(certs, cfg)
+	if cfg != nil {
+		c := *cfg
+		c.SourcePath = where
+		cfg = &c
+	}
+	return ui.ListCertificatesWithMeta(ui.Meta{Name: "file"}, certs, cfg)
 }
 
 // ListCertsFromURL downloads a url and shows the certificates
@@ -127,8 +132,12 @@ func ListCertsForApp(app string, cfg *ui.Config) error {
 
 func createMeta(st store.Store) ui.Meta {
 	info := st.GetInfo()
+	if info == nil {
+		return ui.Meta{}
+	}
 	return ui.Meta{
 		Name:    info.Name,
 		Version: info.Version,
+		Path:    info.Path,
 	}
 }

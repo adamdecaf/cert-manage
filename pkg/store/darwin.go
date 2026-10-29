@@ -172,6 +172,7 @@ func (s darwinStore) GetInfo() *Info {
 	return &Info{
 		Name:    "Darwin (OSX)",
 		Version: s.version(),
+		Path:    systemKeychain,
 	}
 }
 

@@ -54,10 +54,16 @@ type chromeStore struct {
 }
 
 func (s chromeStore) GetInfo() *Info {
-	return &Info{
+	info := &Info{
 		Name:    "Chrome",
 		Version: chromeVersion(),
 	}
+	if s.Store != nil {
+		if inner := s.Store.GetInfo(); inner != nil {
+			info.Path = inner.Path
+		}
+	}
+	return info
 }
 
 func chromeVersion() string {

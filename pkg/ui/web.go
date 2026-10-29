@@ -97,6 +97,14 @@ func write(w io.Writer, tpl string, data interface{}) error {
 	return nil
 }
 
+// writePrinterFailure reports a printer error and still offers Close so /done is reachable.
+func writePrinterFailure(w io.Writer, err error) {
+	_, _ = io.WriteString(w, fmt.Sprintf(`<p>ERROR: %v</p>
+Options: <a href="/done" style="color: #000;">Close</a>
+`, err))
+	_ = write(w, footer, nil)
+}
+
 func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 	server.Register()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +136,10 @@ func showCertsOnWeb(certs []*x509.Certificate, cfg *Config) error {
 			var buf bytes.Buffer
 			w1 := bufio.NewWriter(&buf)
 
-			p.write(w1, certs[i:i+1])
+			if err := p.write(w1, certs[i:i+1]); err != nil {
+				writePrinterFailure(w, err)
+				return
+			}
 			_ = w1.Flush()
 
 			contents[i] = cert{

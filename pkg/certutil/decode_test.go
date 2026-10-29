@@ -15,8 +15,8 @@
 package certutil
 
 import (
-	"io"
 	"compress/gzip"
+	"io"
 	"os"
 	"testing"
 )
@@ -54,5 +54,30 @@ func TestCertUtil__decodeNSS(t *testing.T) {
 	}
 	if len(certs) != 132 {
 		t.Errorf("got %d", len(certs))
+	}
+}
+
+func TestCertUtil__decodeLots(t *testing.T) {
+	bs, err := os.ReadFile("../../testdata/lots.crt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	certs, err := Decode(bs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(certs) != 5 {
+		t.Fatalf("got %d certs, want 5", len(certs))
+	}
+	// First cert is the Entrust.net 2048 CA from the fixture.
+	if got := GetHexSHA256Fingerprint(*certs[0]); got == "" {
+		t.Fatal("empty sha256 fingerprint")
+	}
+	algo, bits := PublicKeyInfo(certs[0])
+	if algo != "RSA" || bits != 2048 {
+		t.Fatalf("key info = %s-%d, want RSA-2048", algo, bits)
+	}
+	if !certs[0].IsCA {
+		t.Fatal("expected first lots.crt cert to be a CA")
 	}
 }

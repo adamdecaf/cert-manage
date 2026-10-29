@@ -89,6 +89,7 @@ func (s windowsStore) GetInfo() *Info {
 	if err != nil {
 		return &Info{
 			Name: "Windows",
+			Path: `Cert:\LocalMachine\Root`,
 		}
 	}
 	info := string(out)
@@ -102,6 +103,7 @@ func (s windowsStore) GetInfo() *Info {
 	return &Info{
 		Name:    strings.TrimSpace(name),
 		Version: strings.TrimSpace(version),
+		Path:    `Cert:\LocalMachine\Root`,
 	}
 }
 

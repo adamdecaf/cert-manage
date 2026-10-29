@@ -87,20 +87,22 @@ func (s opensslStore) GetLatestBackup() (string, error) {
 }
 
 func (s opensslStore) GetInfo() *Info {
+	info := &Info{Name: "OpenSSL"}
+	if path, err := s.findCertPath(); err == nil {
+		info.Path = path
+	}
 	out, err := exec.Command("openssl", "version").CombinedOutput()
 	if err != nil {
-		return &Info{ // just return something non-nil
-			Name: "OpenSSL",
-		}
+		return info
 	}
 
 	// 'LibreSSL 2.2.7' or 'OpenSSL 1.0.2g  1 Mar 2016'
 	parts := strings.Split(string(out), " ")
-
-	return &Info{
-		Name:    strings.TrimSpace(parts[0]),
-		Version: strings.TrimSpace(parts[1]),
+	info.Name = strings.TrimSpace(parts[0])
+	if len(parts) > 1 {
+		info.Version = strings.TrimSpace(parts[1])
 	}
+	return info
 }
 
 func (s opensslStore) List(_ *ListOptions) ([]*x509.Certificate, error) {

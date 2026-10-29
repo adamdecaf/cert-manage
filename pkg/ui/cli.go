@@ -26,6 +26,18 @@ func showCertsOnCli(certs []*x509.Certificate, cfg *Config) error {
 	if !ok {
 		return fmt.Errorf("unknown format %s specified", cfg.Format)
 	}
-	p.write(os.Stdout, certs)
-	return nil
+	return showCertsOnCliWithPrinter(certs, cfg, p)
+}
+
+func showCertsOnCliWithPrinter(certs []*x509.Certificate, cfg *Config, p printer) error {
+	if tp, ok := p.(tablePrinter); ok {
+		tp.verbose = cfg != nil && cfg.Verbose
+		if cfg != nil {
+			tp.path = cfg.SourcePath
+		}
+		p = tp
+	}
+	err := p.write(os.Stdout, certs)
+	p.close()
+	return err
 }

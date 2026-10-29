@@ -161,9 +161,14 @@ func (s linuxStore) uname(args ...string) string {
 }
 
 func (s linuxStore) GetInfo() *Info {
+	path := s.ca.all
+	if path == "" {
+		path = s.ca.dir
+	}
 	return &Info{
 		Name:    s.uname("-o"), // GNU/Linux,
 		Version: s.uname("-r"), // 4.9.60-linuxkit-aufs
+		Path:    path,
 	}
 }
 

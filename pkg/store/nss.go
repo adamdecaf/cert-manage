@@ -218,6 +218,7 @@ func (s nssStore) GetInfo() *Info {
 	return &Info{
 		Name:    titleASCII(s.nssType),
 		Version: s.appVersion,
+		Path:    s.foundCertdbLocation,
 	}
 }
 
