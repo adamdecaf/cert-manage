@@ -37,7 +37,7 @@ func showCertsOnCliWithPrinter(certs []*x509.Certificate, cfg *Config, p printer
 		}
 		p = tp
 	}
-	p.write(os.Stdout, certs)
+	err := p.write(os.Stdout, certs)
 	p.close()
-	return nil
+	return err
 }

@@ -15,10 +15,12 @@
 package certutil
 
 import (
+	"crypto/x509"
 	"fmt"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCertutil__sha1Fingerprint(t *testing.T) {
@@ -64,5 +66,31 @@ func verify(path, algo, fp string, t *testing.T) {
 	resp := strings.TrimSpace(string(out))
 	if resp != fp {
 		t.Errorf("bad fingerprint match with openssl:\n  openssl=%s\n  expected=%s", resp, fp)
+	}
+}
+
+func TestDaysUntilExpiry(t *testing.T) {
+	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name string
+		after time.Time
+		want int
+	}{
+		{"exact day", now.Add(48 * time.Hour), 2},
+		{"same day remaining", now.Add(6 * time.Hour), 0},
+		{"expired one hour", now.Add(-1 * time.Hour), -1},
+		{"expired almost one day", now.Add(-23 * time.Hour), -1},
+		{"expired just over one day", now.Add(-25 * time.Hour), -2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &x509.Certificate{NotAfter: tc.after}
+			if got := DaysUntilExpiry(c, now); got != tc.want {
+				t.Fatalf("DaysUntilExpiry = %d, want %d", got, tc.want)
+			}
+		})
+	}
+	if DaysUntilExpiry(nil, now) != 0 {
+		t.Fatal("nil cert should return 0")
 	}
 }

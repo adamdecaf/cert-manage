@@ -17,7 +17,6 @@ package ui
 import (
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io"
 	"time"
 
@@ -47,12 +46,15 @@ type jsonPrinter struct {
 
 func (jsonPrinter) close() {}
 
-func (p jsonPrinter) write(w io.Writer, certs []*x509.Certificate) {
+func (p jsonPrinter) write(w io.Writer, certs []*x509.Certificate) error {
 	out := make([]jsonCert, 0, len(certs))
 	store := p.meta.Name
 	path := ""
 	if p.cfg != nil {
 		path = p.cfg.SourcePath
+	}
+	if path == "" {
+		path = p.meta.Path
 	}
 	for _, c := range certs {
 		if c == nil {
@@ -76,6 +78,7 @@ func (p jsonPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(out); err != nil {
-		fmt.Fprintf(w, "error encoding certificates as JSON: %v\n", err)
+		return err
 	}
+	return nil
 }

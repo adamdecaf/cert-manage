@@ -15,14 +15,17 @@
 package certutil
 
 import (
+	"crypto/dsa" //nolint:staticcheck // DSA still appears in legacy certificates
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -60,6 +63,8 @@ func StringifyPubKeyAlgo(p x509.PublicKeyAlgorithm) string {
 		return "ECDSA"
 	case x509.Ed25519:
 		return "Ed25519"
+	case x509.MLDSA:
+		return "ML-DSA"
 	default:
 		return "Unknown"
 	}
@@ -83,6 +88,21 @@ func PublicKeyInfo(c *x509.Certificate) (algo string, bits int) {
 	case ed25519.PublicKey:
 		algo = "Ed25519"
 		bits = 256
+	case *dsa.PublicKey: //nolint:staticcheck // DSA still appears in legacy certificates
+		if k.P != nil {
+			bits = k.P.BitLen()
+		}
+	case *mldsa.PublicKey:
+		params := k.Parameters()
+		algo = params.String()
+		switch params {
+		case mldsa.MLDSA44():
+			bits = 128
+		case mldsa.MLDSA65():
+			bits = 192
+		case mldsa.MLDSA87():
+			bits = 256
+		}
 	}
 	return algo, bits
 }
@@ -97,9 +117,10 @@ func FormatKeyLabel(c *x509.Certificate) string {
 }
 
 // DaysUntilExpiry returns whole days from now until NotAfter (negative if expired).
+// Negative fractional days round down so a cert that expired an hour ago reports -1.
 func DaysUntilExpiry(c *x509.Certificate, now time.Time) int {
 	if c == nil {
 		return 0
 	}
-	return int(c.NotAfter.Sub(now).Hours() / 24)
+	return int(math.Floor(c.NotAfter.Sub(now).Hours() / 24))
 }

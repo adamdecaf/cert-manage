@@ -76,9 +76,16 @@ func ListCertificates(certs []*x509.Certificate, cfg *Config) error {
 type Meta struct {
 	Name    string
 	Version string
+	Path    string
 }
 
 func ListCertificatesWithMeta(meta Meta, certs []*x509.Certificate, cfg *Config) error {
+	if cfg != nil && cfg.SourcePath == "" && meta.Path != "" {
+		c := *cfg
+		c.SourcePath = meta.Path
+		cfg = &c
+	}
+
 	if cfg.Count { // ignore any cfg.UI setting
 		fmt.Printf("%d\n", len(certs))
 		return nil

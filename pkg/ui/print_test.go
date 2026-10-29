@@ -116,7 +116,9 @@ func TestTablePrinterIncludesKeyAndDays(t *testing.T) {
 		t.Fatal(err)
 	}
 	var buf bytes.Buffer
-	tablePrinter{}.write(&buf, certs)
+	if err := (tablePrinter{}).write(&buf, certs); err != nil {
+		t.Fatal(err)
+	}
 	out := buf.String()
 	if !strings.Contains(out, "KEY") || !strings.Contains(out, "DAYS") {
 		t.Fatalf("missing KEY/DAYS headers:\n%s", out)

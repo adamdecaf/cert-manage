@@ -109,6 +109,7 @@ type Store interface {
 type Info struct {
 	Name    string
 	Version string
+	Path    string
 }
 
 // Platform returns a new instance of Store for the running os/platform

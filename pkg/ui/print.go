@@ -63,7 +63,7 @@ func GetFormats() []string {
 
 type printer interface {
 	close()
-	write(io.Writer, []*x509.Certificate)
+	write(io.Writer, []*x509.Certificate) error
 }
 
 func getPrinter(name string) (printer, bool) {
@@ -79,7 +79,7 @@ type tablePrinter struct {
 }
 
 func (tablePrinter) close() {}
-func (p tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
+func (p tablePrinter) write(fd io.Writer, certs []*x509.Certificate) error {
 	w := tabwriter.NewWriter(fd, 0, 0, 1, ' ', 0)
 	now := time.Now()
 	if p.verbose {
@@ -87,12 +87,6 @@ func (p tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
 	} else {
 		fmt.Fprintln(w, "Subject\tIssuer\tKEY\tDAYS\tSHA256 Fingerprint\tNot Before\tNot After")
 	}
-	defer func() {
-		err := w.Flush()
-		if err != nil {
-			fmt.Printf("error flushing output table - %s\n", err)
-		}
-	}()
 
 	rows := make([]string, len(certs))
 	for i := range certs {
@@ -123,6 +117,10 @@ func (p tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
 	for i := range rows {
 		fmt.Fprintln(w, rows[i])
 	}
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flushing output table: %w", err)
+	}
+	return nil
 }
 
 type opensslPrinter struct {
@@ -145,12 +143,11 @@ func (p opensslPrinter) printCertificate(w io.Writer, cert []*x509.Certificate) 
 }
 
 // printCertsOpenSSL shells out to openssl (if available) to print out each certificate
-func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
+func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) error {
 	if p.tmp == nil {
 		tmp, err := os.CreateTemp("", "cert-mange-print-cert")
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 		p.tmp = tmp
 	}
@@ -158,10 +155,10 @@ func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	for i := range certs {
 		err := p.printCertificate(w, certs[i:i+1])
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func (p opensslPrinter) close() {
@@ -175,7 +172,7 @@ func (p opensslPrinter) close() {
 type shortPrinter struct{}
 
 func (shortPrinter) close() {}
-func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
+func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) error {
 	for i := range certs {
 		fmt.Fprintf(w, "Certificate\n")
 		fmt.Fprintf(w, "  SHA256 Fingerprint: %s\n", certutil.GetHexSHA256Fingerprint(*certs[i]))
@@ -225,4 +222,5 @@ func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 			}
 		}
 	}
+	return nil
 }
