@@ -96,6 +96,16 @@ func (s linuxStore) Add(certs []*x509.Certificate) error {
 		return errors.New("unable to find certificate directory")
 	}
 
+	if DryRun() {
+		details := []string{fmt.Sprintf("add directory %s", s.ca.add)}
+		details = append(details, reportDryRunCerts("add", certs)...)
+		if len(certs) > 0 {
+			details = append(details, fmt.Sprintf("then run %s", s.ca.refresh))
+		}
+		reportDryRun("add certificates to", "linux", s.ca.dir, details...)
+		return nil
+	}
+
 	// install each certificate
 	for i := range certs {
 		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
@@ -116,6 +126,18 @@ func (s linuxStore) Add(certs []*x509.Certificate) error {
 // Backup takes a snapshot of the current set of CA certificates and
 // saves them to another location. It will overwrite any previous backup.
 func (s linuxStore) Backup() error {
+	if DryRun() {
+		names, err := listDirBasenames(s.ca.dir)
+		if err != nil {
+			return err
+		}
+		details := []string{fmt.Sprintf("mirror %s into $HOME/.cert-manage/%s/<timestamp>", s.ca.dir, linuxBackupDir)}
+		for _, name := range names {
+			details = append(details, fmt.Sprintf("include %s", name))
+		}
+		reportDryRun("backup", "linux", s.ca.dir, details...)
+		return nil
+	}
 	dir, err := getCertManageDir(fmt.Sprintf("%s/%d", linuxBackupDir, time.Now().Unix()))
 	if err != nil {
 		return err
@@ -176,6 +198,31 @@ func (s linuxStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 // 1. Walk through the dir (/etc/ssl/certs/) and chmod 000 the certs we aren't trusting
 // 2. Run `update-ca-certificates` to re-create the ca-certificates.crt file
 func (s linuxStore) Remove(wh whitelist.Whitelist) error {
+	if DryRun() {
+		var details []string
+		err := filepath.Walk(s.ca.dir, func(path string, info os.FileInfo, err error) error {
+			if (err != nil && err != filepath.SkipDir) || info.IsDir() {
+				return nil
+			}
+			read, err := certutil.FromFile(path)
+			if err != nil {
+				return err
+			}
+			for i := range read {
+				if !wh.Matches(read[i]) {
+					details = append(details, fmt.Sprintf("remove %s from %s", formatCertLine(read[i]), path))
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		details = append(details, fmt.Sprintf("then run %s", s.ca.refresh))
+		reportDryRun("remove certificates from", "linux", s.ca.dir, details...)
+		return nil
+	}
+
 	// Check each CA cert file and optionally disable
 	walk := func(path string, info os.FileInfo, err error) error {
 		// Ignore SkipDir and directories
@@ -228,6 +275,17 @@ func (s linuxStore) Restore(where string) error {
 	}
 	if debug {
 		fmt.Printf("store/linux: restoring from backup dir %s\n", dir)
+	}
+
+	if DryRun() {
+		names, err := listDirBasenames(dir)
+		if err != nil {
+			return err
+		}
+		details := restoreFileDetails(dir, s.ca.dir, names)
+		details = append(details, fmt.Sprintf("then run %s", s.ca.refresh))
+		reportDryRun("restore", "linux", s.ca.dir, details...)
+		return nil
 	}
 
 	// Mirror into a sibling temp dir, then swap into place. A failed copy

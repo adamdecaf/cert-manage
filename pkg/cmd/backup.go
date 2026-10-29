@@ -27,7 +27,11 @@ func BackupForApp(app string) error {
 	}
 	err = s.Backup()
 	if err == nil {
-		fmt.Println("Backup completed successfully")
+		if store.DryRun() {
+			fmt.Println("dry-run: no changes made")
+		} else {
+			fmt.Println("Backup completed successfully")
+		}
 	}
 	return err
 }
@@ -35,7 +39,11 @@ func BackupForApp(app string) error {
 func BackupForPlatform() error {
 	err := store.Platform().Backup()
 	if err == nil {
-		fmt.Println("Backup completed successfully")
+		if store.DryRun() {
+			fmt.Println("dry-run: no changes made")
+		} else {
+			fmt.Println("Backup completed successfully")
+		}
 	}
 	return err
 }

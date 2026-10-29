@@ -162,10 +162,13 @@ func getCertManageDir(name string) (string, error) {
 		dir = name
 	}
 
-	// Create the dir and set ownership
-	err = os.MkdirAll(dir, os.ModeDir|backupDirPerms)
-	if err != nil {
-		return "", err
+	// Create the dir and set ownership (skipped under dry-run so previews
+	// make no filesystem writes at all).
+	if !DryRun() {
+		err = os.MkdirAll(dir, os.ModeDir|backupDirPerms)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return dir, nil
@@ -184,10 +187,12 @@ func getCertManageParentDir() (string, error) {
 			parent = filepath.Join(uhome, ".cert-manage")
 		}
 
-		// Make parent dir and set ownership
-		err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
-		if err != nil {
-			return "", err
+		// Make parent dir and set ownership (skipped under dry-run).
+		if !DryRun() {
+			err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
+			if err != nil {
+				return "", err
+			}
 		}
 		return parent, nil
 	}

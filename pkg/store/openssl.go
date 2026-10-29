@@ -54,6 +54,12 @@ func (s opensslStore) Add(certs []*x509.Certificate) error {
 		return err
 	}
 
+	if DryRun() {
+		details := reportDryRunCerts("add", certs)
+		reportDryRun("add certificates to", "openssl", dir, details...)
+		return nil
+	}
+
 	for i := range certs {
 		fp := certutil.GetHexSHA256Fingerprint(*certs[i])
 		path := filepath.Join(dir, fmt.Sprintf("%s.crt", fp))
@@ -69,6 +75,10 @@ func (s opensslStore) Add(certs []*x509.Certificate) error {
 }
 
 func (s opensslStore) Backup() error {
+	if DryRun() {
+		reportDryRun("backup", "openssl", "")
+		return nil
+	}
 	return nil
 }
 
@@ -98,10 +108,22 @@ func (s opensslStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 }
 
 func (s opensslStore) Remove(wh whitelist.Whitelist) error {
+	if DryRun() {
+		reportDryRun("remove certificates from", "openssl", "")
+		return nil
+	}
 	return nil
 }
 
 func (s opensslStore) Restore(where string) error {
+	if DryRun() {
+		details := []string{}
+		if where != "" {
+			details = append(details, fmt.Sprintf("source %s", where))
+		}
+		reportDryRun("restore", "openssl", "", details...)
+		return nil
+	}
 	return nil
 }
 

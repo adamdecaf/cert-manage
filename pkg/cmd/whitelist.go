@@ -50,7 +50,11 @@ func WhitelistForApp(app, whpath string) error {
 		return err
 	}
 
-	fmt.Println("Whitelist completed successfully")
+	if store.DryRun() {
+		fmt.Println("dry-run: no changes made")
+	} else {
+		fmt.Println("Whitelist completed successfully")
+	}
 	return nil
 }
 
@@ -79,6 +83,10 @@ func WhitelistForPlatform(whpath string) error {
 		return err
 	}
 
-	fmt.Println("Whitelist completed successfully")
+	if store.DryRun() {
+		fmt.Println("dry-run: no changes made")
+	} else {
+		fmt.Println("Whitelist completed successfully")
+	}
 	return nil
 }

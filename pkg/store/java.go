@@ -51,6 +51,16 @@ func JavaStore() Store {
 }
 
 func (s javaStore) Add(certs []*x509.Certificate) error {
+	if DryRun() {
+		kpath, err := ktool.getKeystorePath()
+		if err != nil {
+			return err
+		}
+		details := reportDryRunCerts("add", certs)
+		reportDryRun("add certificates to", "java", kpath, details...)
+		return nil
+	}
+
 	dir, err := ioutil.TempDir("", "cert-manage-java-add")
 	if err != nil {
 		return err
@@ -80,6 +90,12 @@ func (s javaStore) Backup() error {
 	kpath, err := ktool.getKeystorePath()
 	if err != nil {
 		return err
+	}
+	if DryRun() {
+		_, filename := filepath.Split(kpath)
+		reportDryRun("backup", "java", kpath,
+			fmt.Sprintf("copy %s to $HOME/.cert-manage/%s/%s-<timestamp>.bck", kpath, javaCertManageDir, filename))
+		return nil
 	}
 	dir, err := getCertManageDir(javaCertManageDir)
 	if err != nil {
@@ -143,6 +159,25 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		return err
 	}
 
+	if DryRun() {
+		var details []string
+		for i := range shortCerts {
+			if !shortCerts[i].hasFingerprints() {
+				return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
+			}
+			for j := range certs {
+				if shortCerts[i].matches(certs[j]) {
+					if !wh.Matches(certs[j]) {
+						details = append(details, fmt.Sprintf("remove %s (alias %s)", formatCertLine(certs[j]), shortCerts[i].alias))
+					}
+					break
+				}
+			}
+		}
+		reportDryRun("remove certificates from", "java", kpath, details...)
+		return nil
+	}
+
 	// Map of short cert aliases we've already deleted
 	// Used to cleanup debug logging
 	deleted := make(map[string]bool)
@@ -196,6 +231,13 @@ func (s javaStore) Restore(where string) error {
 	dst, err := ktool.getKeystorePath()
 	if err != nil {
 		return err
+	}
+
+	if DryRun() {
+		reportDryRun("restore", "java", dst,
+			fmt.Sprintf("source %s", src),
+			fmt.Sprintf("copy %s -> %s", src, dst))
+		return nil
 	}
 
 	// This sometimes requires escalated permissions because the `cacerts` file
