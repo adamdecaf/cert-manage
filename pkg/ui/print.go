@@ -20,8 +20,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
 	"github.com/adamdecaf/trustprune/pkg/file"
@@ -33,6 +35,7 @@ var (
 		"openssl":     opensslPrinter{},
 		"table":       tablePrinter{},
 		defaultFormat: shortPrinter{},
+		jsonFormat:    jsonPrinter{},
 	}
 
 	fingerprintPreviewLength = 16
@@ -43,14 +46,18 @@ func DefaultFormat() string {
 	return defaultFormat
 }
 
-// GetFormats returns the names of all output formats
+// GetFormats returns the names of all output formats, sorted.
 func GetFormats() []string {
-	out := []string{
-		observatoryFormat, // we need to include 'observatory' as an option
-	}
+	out := make([]string, 0, len(printers)+1)
+	seen := map[string]bool{}
 	for k := range printers {
 		out = append(out, k)
+		seen[k] = true
 	}
+	if !seen[observatoryFormat] {
+		out = append(out, observatoryFormat)
+	}
+	sort.Strings(out)
 	return out
 }
 
@@ -66,12 +73,20 @@ func getPrinter(name string) (printer, bool) {
 
 // tablePrinter outputs a nicely formatted table of the certs found. This uses golang's
 // native text/tabwriter package to align based on the rows given to it.
-type tablePrinter struct{}
+type tablePrinter struct {
+	verbose bool
+	path    string
+}
 
 func (tablePrinter) close() {}
-func (tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
+func (p tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
 	w := tabwriter.NewWriter(fd, 0, 0, 1, ' ', 0)
-	fmt.Fprintln(w, "Subject\tIssuer\tPublic Key Algorithm\tSHA256 Fingerprint\tNot Before\tNot After")
+	now := time.Now()
+	if p.verbose {
+		fmt.Fprintln(w, "Subject\tIssuer\tKEY\tDAYS\tSHA256 Fingerprint\tSerial\tPath\tNot Before\tNot After")
+	} else {
+		fmt.Fprintln(w, "Subject\tIssuer\tKEY\tDAYS\tSHA256 Fingerprint\tNot Before\tNot After")
+	}
 	defer func() {
 		err := w.Flush()
 		if err != nil {
@@ -82,16 +97,26 @@ func (tablePrinter) write(fd io.Writer, certs []*x509.Certificate) {
 	rows := make([]string, len(certs))
 	for i := range certs {
 		fingerprint := certutil.GetHexSHA256Fingerprint(*certs[i])
-
 		c1 := certutil.StringifyPKIXName(certs[i].Subject)
 		c2 := certutil.StringifyPKIXName(certs[i].Issuer)
-		c3 := certutil.StringifyPubKeyAlgo(certs[i].PublicKeyAlgorithm)
-		c4 := fingerprint[:fingerprintPreviewLength]
-
+		key := certutil.FormatKeyLabel(certs[i])
+		days := fmt.Sprintf("%d", certutil.DaysUntilExpiry(certs[i], now))
+		fp := fingerprint
+		if !p.verbose {
+			fp = fingerprint[:fingerprintPreviewLength]
+		}
 		c5 := certs[i].NotBefore.Format("2006-01-02")
 		c6 := certs[i].NotAfter.Format("2006-01-02")
-
-		rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s", c1, c2, c3, c4, c5, c6)
+		if p.verbose {
+			serial := certs[i].SerialNumber.String()
+			path := p.path
+			if path == "" {
+				path = "-"
+			}
+			rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", c1, c2, key, days, fp, serial, path, c5, c6)
+		} else {
+			rows[i] = fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s", c1, c2, key, days, fp, c5, c6)
+		}
 	}
 
 	file.SortNames(rows)
@@ -158,6 +183,8 @@ func (shortPrinter) write(w io.Writer, certs []*x509.Certificate) {
 		fmt.Fprintf(w, "  Subject: %s\n", certutil.StringifyPKIXName(certs[i].Subject))
 		fmt.Fprintf(w, "  Issuer: %s\n", certutil.StringifyPKIXName(certs[i].Issuer))
 		fmt.Fprintf(w, "  NotBefore: %s | NotAfter: %s\n", certs[i].NotBefore, certs[i].NotAfter)
+		fmt.Fprintf(w, "  KEY: %s\n", certutil.FormatKeyLabel(certs[i]))
+		fmt.Fprintf(w, "  DAYS: %d\n", certutil.DaysUntilExpiry(certs[i], time.Now()))
 
 		if certs[i].IsCA {
 			fmt.Fprintf(w, "  IsCA: %t\n", certs[i].IsCA)

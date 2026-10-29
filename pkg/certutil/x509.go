@@ -15,11 +15,15 @@
 package certutil
 
 import (
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
+	"time"
 )
 
 func GetHexSHA1Fingerprint(c x509.Certificate) string {
@@ -47,14 +51,55 @@ func GetHexSHA256Fingerprint(c x509.Certificate) string {
 }
 
 func StringifyPubKeyAlgo(p x509.PublicKeyAlgorithm) string {
-	res := "Unknown"
 	switch p {
 	case x509.RSA:
-		res = "RSA"
+		return "RSA"
 	case x509.DSA:
-		res = "DSA"
+		return "DSA"
 	case x509.ECDSA:
-		res = "ECDSA"
+		return "ECDSA"
+	case x509.Ed25519:
+		return "Ed25519"
+	default:
+		return "Unknown"
 	}
-	return res
+}
+
+// PublicKeyInfo returns the public-key algorithm name and bit size.
+func PublicKeyInfo(c *x509.Certificate) (algo string, bits int) {
+	if c == nil {
+		return "Unknown", 0
+	}
+	algo = StringifyPubKeyAlgo(c.PublicKeyAlgorithm)
+	switch k := c.PublicKey.(type) {
+	case *rsa.PublicKey:
+		bits = k.N.BitLen()
+	case *ecdsa.PublicKey:
+		if k.Curve != nil {
+			if params := k.Params(); params != nil {
+				bits = params.BitSize
+			}
+		}
+	case ed25519.PublicKey:
+		algo = "Ed25519"
+		bits = 256
+	}
+	return algo, bits
+}
+
+// FormatKeyLabel returns a compact KEY column value such as "RSA-2048".
+func FormatKeyLabel(c *x509.Certificate) string {
+	algo, bits := PublicKeyInfo(c)
+	if bits <= 0 {
+		return algo
+	}
+	return fmt.Sprintf("%s-%d", algo, bits)
+}
+
+// DaysUntilExpiry returns whole days from now until NotAfter (negative if expired).
+func DaysUntilExpiry(c *x509.Certificate, now time.Time) int {
+	if c == nil {
+		return 0
+	}
+	return int(c.NotAfter.Sub(now).Hours() / 24)
 }

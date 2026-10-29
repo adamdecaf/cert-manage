@@ -42,6 +42,9 @@ func ListCertsFromFile(where string, cfg *ui.Config) error {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	if cfg != nil && cfg.SourcePath == "" {
+		cfg.SourcePath = where
+	}
 	return ui.ListCertificates(certs, cfg)
 }
 

@@ -60,9 +60,25 @@ type Config struct {
 	// Which user interface to show users, e.g. cli or web
 	// Default (and possible) value(s) can be found in the ui package
 	UI string
+
+	// Verbose adds full fingerprint, serial, and store path columns to table output.
+	Verbose bool
+
+	// SourcePath is the -file path when listing from a file (included in JSON).
+	SourcePath string
 }
 
 func ListCertificates(certs []*x509.Certificate, cfg *Config) error {
+	return ListCertificatesWithMeta(Meta{}, certs, cfg)
+}
+
+// Meta is used to add additional details on the certficiate store
+type Meta struct {
+	Name    string
+	Version string
+}
+
+func ListCertificatesWithMeta(meta Meta, certs []*x509.Certificate, cfg *Config) error {
 	if cfg.Count { // ignore any cfg.UI setting
 		fmt.Printf("%d\n", len(certs))
 		return nil
@@ -73,22 +89,16 @@ func ListCertificates(certs []*x509.Certificate, cfg *Config) error {
 		return errors.New("no certificates to display")
 	}
 
+	if isObservatory(cfg.Format) {
+		return writeObservatoryReport(meta, certs, cfg)
+	}
+	if strings.EqualFold(cfg.Format, jsonFormat) {
+		return showCertsOnCliWithPrinter(certs, cfg, jsonPrinter{meta: meta, cfg: cfg})
+	}
+
 	fn, ok := uiOptions[strings.ToLower(cfg.UI)]
 	if !ok {
 		return fmt.Errorf("unknown ui %q", cfg.UI)
 	}
 	return fn(certs, cfg)
-}
-
-// Meta is used to add additional details on the certficiate store
-type Meta struct {
-	Name    string
-	Version string
-}
-
-func ListCertificatesWithMeta(meta Meta, certs []*x509.Certificate, cfg *Config) error {
-	if isObservatory(cfg.Format) {
-		return writeObservatoryReport(meta, certs, cfg)
-	}
-	return ListCertificates(certs, cfg)
 }

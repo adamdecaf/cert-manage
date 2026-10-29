@@ -56,8 +56,9 @@ var (
 	flagOutFile = fs.String("out", "", "")
 
 	// Output
-	flagCount  = fs.Bool("count", false, "")
-	flagFormat = fs.String("format", ui.DefaultFormat(), "")
+	flagCount   = fs.Bool("count", false, "")
+	flagFormat  = fs.String("format", ui.DefaultFormat(), "")
+	flagVerbose = fs.Bool("v", false, "")
 
 	// -dry-run previews mutating commands without writing to stores
 	flagDryRun = fs.Bool("dry-run", false, "")
@@ -103,6 +104,7 @@ FLAGS
 OUTPUT
   -count  Output the count of certificates instead of each certificate
   -format <format> Change the output format for a given command (default: %s, options: %s)
+  -v      Show full fingerprints, serials, and paths in table output
 
 DEBUGGING
   Alongside command line flags are two environment variables read by cert-manage:
@@ -172,6 +174,7 @@ func main() {
 		Format:  *flagFormat,
 		Outfile: *flagOutFile,
 		UI:      *flagUI,
+		Verbose: *flagVerbose,
 	}
 	store.SetDryRun(*flagDryRun)
 
@@ -319,6 +322,11 @@ FORMATTING
 
   Change the output format (Default: %s, Options: %s)
     cert-manage list -format openssl
+    cert-manage list -format json
+    cert-manage list -format table
+
+  Table output adds KEY and DAYS by default; -v adds full fingerprint, serial, and path
+    cert-manage list -format table -v
 
   Only show the count of certificates found
     cert-manage list -count
