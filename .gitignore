@@ -9,6 +9,7 @@ bin/*.exe
 cert-manage
 cert-manage-*
 build/*/allowlist.json
+build/*/allowlist.yaml
 build/*/whitelist.json
 build/*/main
 build/osx/allowlist.json

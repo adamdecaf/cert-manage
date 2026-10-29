@@ -129,9 +129,9 @@ cert-manage restore                 # latest backup
 cert-manage restore -file <path>    # explicit backup path
 
 # Generate an allowlist
-cert-manage gen-allowlist -out allowlist.json -from firefox
-cert-manage gen-allowlist -out allowlist.json -from browsers
-cert-manage gen-allowlist -out allowlist.json -file urls.txt
+cert-manage gen-allowlist -out allowlist.yaml -from firefox
+cert-manage gen-allowlist -out allowlist.yaml -from browsers
+cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
 
 # Verify connectivity after a change
 cert-manage connect https://example.com

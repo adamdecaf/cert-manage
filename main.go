@@ -276,13 +276,13 @@ APPS
   Generate an allowlist and write it to the filesystem. (At wherever -out points to.)
 
   Also, you can pass -file to read a newline delimited file of URL's.
-    cert-manage gen-allowlist -file <path> -out allowlist.json
+    cert-manage gen-allowlist -file <path> -out allowlist.yaml
 
   Generate an allowlist from browser history
-    cert-manage gen-allowlist -from firefox -out allowlist.json
+    cert-manage gen-allowlist -from firefox -out allowlist.yaml
 
   Generate an allowlist from all browsers on a computer
-    cert-manage gen-allowlist -from browsers -out allowlist.json
+    cert-manage gen-allowlist -from browsers -out allowlist.yaml
 
 APPS
   Supported apps: %s`, strings.Join(store.GetApps(), ", ")),

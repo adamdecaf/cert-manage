@@ -124,10 +124,10 @@ countries:
 Build an allowlist from browser history and/or a URL list file. The older `gen-whitelist` name remains as a hidden alias.
 
 ```bash
-cert-manage gen-allowlist -out allowlist.json -from firefox
-cert-manage gen-allowlist -out allowlist.json -from browsers
-cert-manage gen-allowlist -out allowlist.json -from chrome,firefox
-cert-manage gen-allowlist -out allowlist.json -file urls.txt
+cert-manage gen-allowlist -out allowlist.yaml -from firefox
+cert-manage gen-allowlist -out allowlist.yaml -from browsers
+cert-manage gen-allowlist -out allowlist.yaml -from chrome,firefox
+cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
 ```
 
 | Flag | Meaning |
