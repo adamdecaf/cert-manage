@@ -222,6 +222,13 @@ Vendors and browsers react after the fact. `cert-manage` is for putting that con
 - Apple: [About the compromised eMudhra intermediate CAs](https://support.apple.com/en-us/149555)
 - eMudhra: [Statement on certificate security incident](https://emudhra.com/en/post/certificate-security-incident)
 
+## Disclaimer
+Editing CA trust stores can break TLS for your system, browsers, package managers and other apps. It can lock you out of sites and services, and it can weaken your security if you remove, add or restore the wrong certificates. You use trustprune at your own risk. Run `backup` before every change, keep those backups somewhere safe, and test against a temporary or container store first.
+
+trustprune is provided "AS IS", without warranties or conditions of any kind. To the fullest extent the law allows, the authors and contributors are not liable for any damage, data loss, outage or security issue that comes from using it. See [LICENSE](LICENSE) (Apache License 2.0, Sections 7 and 8) for the full terms.
+
+trustprune is not affiliated with or endorsed by Apple, Google, Mozilla, Oracle or any CA.
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
