@@ -1,5 +1,4 @@
 SHELL := /bin/bash
-VERSION := $(shell grep -Eo '(\d\.\d\.\d)(-dev)?' main.go)
 GOARCH ?= $(shell go env GOARCH)
 
 .PHONY: build check test dist linux osx win lint
@@ -61,13 +60,3 @@ build: check
 	@chmod +x trustprune
 	@ln -sfn trustprune cert-manage
 
-mkrel: generate
-	gothub release -u adamdecaf -r trustprune -t $(VERSION) --name $(VERSION) --pre-release
-
-upload:
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "trustprune-linux" --file bin/trustprune-linux-$(GOARCH)
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "trustprune-osx" --file bin/trustprune-osx-$(GOARCH)
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "trustprune.exe" --file bin/trustprune-$(GOARCH).exe
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "cert-manage-linux" --file bin/trustprune-linux-$(GOARCH)
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "cert-manage-osx" --file bin/trustprune-osx-$(GOARCH)
-	gothub upload -u adamdecaf -r trustprune -t $(VERSION) --name "cert-manage.exe" --file bin/trustprune-$(GOARCH).exe
