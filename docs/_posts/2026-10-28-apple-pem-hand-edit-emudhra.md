@@ -67,7 +67,7 @@ cert-manage list
 cert-manage connect https://example.com
 ```
 
-On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and whitelist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Backups land under `~/.cert-manage/` or `~/Library/cert-manage/` with timestamped entries you can restore from.
+On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and whitelist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Stores that support backups write timestamped entries under `~/.cert-manage/` or `~/Library/cert-manage/` that you can restore from.
 
 Apple's PEM recipe is an honest interim for a real hole in macOS CLI trust. It also shows what "just edit the bundle" costs: silent reverts, brittle scripts, and no plan you can review before you write. Prefer a tool that dry-runs, backs up, restores, and applies the same policy on every store you actually use. That is safer than hand-editing a PEM under pressure—not a guarantee that nothing will break.
 
