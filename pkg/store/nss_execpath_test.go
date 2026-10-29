@@ -17,6 +17,7 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -39,6 +40,9 @@ func TestNSSExecPaths_Names(t *testing.T) {
 }
 
 func TestNSSGetExecPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("exec bit checks do not apply on Windows")
+	}
 	dir := t.TempDir()
 	missing := filepath.Join(dir, "missing", "certutil")
 	bin := filepath.Join(dir, "certutil")
