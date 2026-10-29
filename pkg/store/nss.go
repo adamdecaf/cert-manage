@@ -470,9 +470,14 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		}
 	}
 
-	_ = os.RemoveAll(tmp)
-	_ = os.RemoveAll(aside)
-	return nil
+	var cleanupErrs []error
+	if err := os.RemoveAll(tmp); err != nil {
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
+	}
+	if err := os.RemoveAll(aside); err != nil {
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore recovery directory %s: %w", aside, err))
+	}
+	return errors.Join(cleanupErrs...)
 }
 
 // certdbItem represents an x509 Certificate with the NSS trust attributes
