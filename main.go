@@ -72,6 +72,8 @@ func init() {
 SUB-COMMANDS
   add           Add certificate(s) to a store
 
+  apps          List supported apps and whether each store was found
+
   backup        Take a backup of the specified certificate store
 
   connect       Attempt to load a remote URL with the platform (or app) store
@@ -201,6 +203,29 @@ func main() {
 APPS
   Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
 	}
+	commands["apps"] = &command{
+		fn: func() error {
+			return cmd.ListApps(*flagFormat)
+		},
+		appfn: func(a string) error {
+			return fmt.Errorf("apps does not accept -app; remove -app %q and run: cert-manage apps", a)
+		},
+		help: `Usage: cert-manage apps [-format json]
+
+  List every supported application store plus the platform store, and show
+  whether each was found on this machine along with its store path.
+
+  Detection is read-only and never modifies certificate stores.
+
+  Default output is one aligned line per store:
+    chrome    found      /home/you/.pki/nssdb
+    firefox   not-found  -
+    platform  found      /etc/ssl/certs/ca-certificates.crt
+
+  JSON output:
+    cert-manage apps -format json
+`,
+	}
 	commands["backup"] = &command{
 		fn: func() error {
 			return cmd.BackupForPlatform()
@@ -280,10 +305,10 @@ APPS
   List certificates currently installed on the platform or application.
 
   List certificates from an application
-    cert-mange list -app firefox
+    cert-manage list -app firefox
 
   List certificates from a file
-    cert-mange list -file <path>
+    cert-manage list -file <path>
 
   List certificates from a URL
     cert-manage list -url <endpoint>
