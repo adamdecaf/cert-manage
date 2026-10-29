@@ -13,18 +13,51 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  # Detect whether this change needs the Go jobs. Docs-only PRs skip
+  # lint/build/test/distro so they still report the required check names
+  # as skipped (treated as passing). Workflow and Go-source edits keep
+  # the full matrix.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@f3360c560367c9daf72b88c0e6164162034c5721 # v4.0.3 + picomatch CVE fix
+        id: filter
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'makefile'
+              - 'Makefile'
+              - 'testdata/**'
+              - 'test/envs/**'
+              - '.golangci.yml'
+              - '.github/workflows/**'
+              - 'scripts/**'
+
   # Static analysis. golangci-lint version is pinned in the makefile.
   lint:
     name: lint
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: stable
       - name: Lint
@@ -34,13 +67,15 @@ jobs:
   # target without waiting on a hosted runner for that OS.
   build:
     name: cross-compile
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: stable
       - name: Cross-compile
@@ -70,6 +105,8 @@ jobs:
   # cgo roots (Security.framework) and the race detector.
   test:
     name: test (${{ matrix.os }}, cgo=${{ matrix.cgo }})
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -89,10 +126,10 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: stable
       - name: Vet and unit tests
@@ -134,6 +171,8 @@ jobs:
   # not block the others.
   distro:
     name: distro (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.go == 'true' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -149,10 +188,10 @@ jobs:
           - name: docker-smoke
             run: TestDocker
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: stable
       - name: Build linux binary
