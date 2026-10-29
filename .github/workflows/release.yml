@@ -45,11 +45,22 @@ jobs:
           cp dist/trustprune-osx-arm64 dist/cert-manage-osx-arm64
           cp dist/trustprune-amd64.exe dist/cert-manage-amd64.exe
           cp dist/trustprune-arm64.exe dist/cert-manage-arm64.exe
+
+          (
+            cd dist
+            sha256sum -- * > checksums.txt
+          )
       - name: Publish GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          gh release create "${{ github.ref_name }}" dist/* \
-            --title "${{ github.ref_name }}" \
-            --generate-notes
+          extra=()
+          case "$RELEASE_TAG" in
+            *-*) extra+=(--prerelease) ;;
+          esac
+          gh release create "$RELEASE_TAG" dist/* \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            "${extra[@]}"
