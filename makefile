@@ -34,8 +34,18 @@ lint: $(GOLANGCI_LINT_BIN)
 
 $(GOLANGCI_LINT_BIN):
 	@mkdir -p $(dir $@)
-	@set -euo pipefail; 	os=$$(uname -s | tr '[:upper:]' '[:lower:]'); 	arch=$$(uname -m); 	case "$$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; *) echo "unsupported arch: $$arch" >&2; exit 1 ;; esac; 	url="https://github.com/golangci/golangci-lint/releases/download/$(GOLANGCI_LINT_VERSION)/golangci-lint-$(GOLANGCI_LINT_VERSION:v%=%)-$$os-$$arch.tar.gz"; 	tmp=$$(mktemp -d); 	curl -fsSL "$$url" -o "$$tmp/gli.tar.gz"; 	tar -xzf "$$tmp/gli.tar.gz" -C "$$tmp"; 	cp "$$tmp"/golangci-lint-*/golangci-lint "$@"; 	chmod +x "$@"; 	rm -rf "$$tmp"
-
+	@set -euo pipefail; \
+	os=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+	arch=$$(uname -m); \
+	case "$$arch" in x86_64|amd64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; *) echo "unsupported arch: $$arch" >&2; exit 1 ;; esac; \
+	ver=$(GOLANGCI_LINT_VERSION:v%=%); \
+	url="https://github.com/golangci/golangci-lint/releases/download/$(GOLANGCI_LINT_VERSION)/golangci-lint-$$ver-$$os-$$arch.tar.gz"; \
+	tmp=$$(mktemp -d); \
+	curl -fsSL "$$url" -o "$$tmp/gli.tar.gz"; \
+	tar -xzf "$$tmp/gli.tar.gz" -C "$$tmp"; \
+	cp "$$tmp"/golangci-lint-*/golangci-lint "$@"; \
+	chmod +x "$@"; \
+	rm -rf "$$tmp"
 
 generate:
 	CGO_ENABLED=0 go run pkg/whitelist/blacklist_gen.go
