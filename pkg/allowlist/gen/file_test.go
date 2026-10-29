@@ -37,8 +37,31 @@ func TestGen_fromFile(t *testing.T) {
 			},
 		},
 		{
+			path:  "../../../testdata/tranco-sample.csv",
+			count: 4,
+			answer: []string{
+				"https://google.com",
+				"https://youtube.com",
+				"https://facebook.com",
+				"https://example.com",
+			},
+		},
+		{
+			path:  "../../../testdata/tranco-sample.csv.gz",
+			count: 4,
+			answer: []string{
+				"https://google.com",
+				"https://youtube.com",
+				"https://facebook.com",
+				"https://example.com",
+			},
+		},
+		{
 			path:  "../../../testdata/alexa-top-1m.csv.gz",
 			count: 1e6,
+			answer: []string{
+				"https://google.com", // first row only checked below when answer length < count
+			},
 		},
 		{
 			path:  "../../../testdata/cisco-top-1m.csv.gz",
@@ -54,14 +77,49 @@ func TestGen_fromFile(t *testing.T) {
 		if len(urls) != cases[i].count {
 			t.Errorf("%s got %d urls", cases[i].path, len(urls))
 		}
-		if cases[i].answer != nil {
-			var ss []string
-			for i := range urls {
-				ss = append(ss, urls[i].String())
+		if cases[i].answer == nil {
+			continue
+		}
+		if len(cases[i].answer) < cases[i].count {
+			// Spot-check the first URL on large lists.
+			if urls[0].String() != cases[i].answer[0] {
+				t.Errorf("%s first url=%q want %q", cases[i].path, urls[0], cases[i].answer[0])
 			}
-			if !reflect.DeepEqual(ss, cases[i].answer) {
-				t.Errorf("%s got %q", cases[i].path, ss)
-			}
+			continue
+		}
+		var ss []string
+		for j := range urls {
+			ss = append(ss, urls[j].String())
+		}
+		if !reflect.DeepEqual(ss, cases[i].answer) {
+			t.Errorf("%s got %q", cases[i].path, ss)
+		}
+	}
+}
+
+func TestFindURLInLine(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		line string
+		want string
+	}{
+		{"https://google.com", "https://google.com"},
+		{"1,google.com", "https://google.com"},
+		{" 42 , example.com ", "https://example.com"},
+		{"# comment", ""},
+		{"", ""},
+		{"not a url", ""},
+		{"google.com", ""}, // bare domain without rank is ignored
+		{"1,https://evil.example", ""}, // scheme in domain column rejected
+	}
+	for _, tc := range cases {
+		u := findURLInLine(tc.line)
+		got := ""
+		if u != nil {
+			got = u.String()
+		}
+		if got != tc.want {
+			t.Errorf("findURLInLine(%q)=%q want %q", tc.line, got, tc.want)
 		}
 	}
 }
