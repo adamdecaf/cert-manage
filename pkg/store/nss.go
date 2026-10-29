@@ -389,6 +389,23 @@ func nssStageRestoreFiles(src, tmp string) ([]string, error) {
 // moved under aside first so a mid-swap failure can roll them back. On
 // success tmp and aside are removed.
 func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
+	// A crash mid-swap can leave originals only under aside. Never wipe a
+	// non-empty aside from a previous attempt.
+	if st, err := os.Stat(aside); err == nil {
+		if !st.IsDir() {
+			_ = os.RemoveAll(tmp)
+			return fmt.Errorf("previous restore aside exists as a file at %s; remove it before restoring again", aside)
+		}
+		entries, err := os.ReadDir(aside)
+		if err != nil {
+			_ = os.RemoveAll(tmp)
+			return err
+		}
+		if len(entries) > 0 {
+			_ = os.RemoveAll(tmp)
+			return fmt.Errorf("previous restore aside still at %s; move those files back or remove the directory before restoring again", aside)
+		}
+	}
 	if err := os.RemoveAll(aside); err != nil {
 		_ = os.RemoveAll(tmp)
 		return err
@@ -399,20 +416,29 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 	}
 
 	var swapped []string
+	var rollbackErrs []error
 	rollback := func() {
 		for i := len(swapped) - 1; i >= 0; i-- {
 			name := swapped[i]
 			live := filepath.Join(dst, name)
 			old := filepath.Join(aside, name)
-			_ = os.Remove(live)
+			if err := os.Remove(live); err != nil && !errors.Is(err, os.ErrNotExist) {
+				rollbackErrs = append(rollbackErrs, err)
+			}
 			if file.Exists(old) {
-				_ = os.Rename(old, live)
+				if err := os.Rename(old, live); err != nil {
+					rollbackErrs = append(rollbackErrs, err)
+				}
 			}
 		}
 	}
 	fail := func(err error) error {
 		rollback()
 		_ = os.RemoveAll(tmp)
+		if len(rollbackErrs) > 0 {
+			// Keep aside: it may still hold the only copy of the originals.
+			return errors.Join(append([]error{err, fmt.Errorf("rollback incomplete, originals kept in %s", aside)}, rollbackErrs...)...)
+		}
 		_ = os.RemoveAll(aside)
 		return err
 	}
@@ -423,8 +449,7 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		staged := filepath.Join(tmp, name)
 		old := filepath.Join(aside, name)
 
-		hadLive := file.Exists(live)
-		if hadLive {
+		if file.Exists(live) {
 			if err := os.Rename(live, old); err != nil {
 				return fail(err)
 			}
@@ -434,18 +459,15 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 				loggedAside = true
 			}
 		}
+		// Register before install so a partial CopyFile is rolled back too.
+		swapped = append(swapped, name)
 		if err := os.Rename(staged, live); err != nil {
 			// If rename across dirs fails, fall back to copy then remove staged.
 			if cerr := file.CopyFile(staged, live); cerr != nil {
-				if hadLive {
-					_ = os.Remove(live)
-					_ = os.Rename(old, live)
-				}
 				return fail(errors.Join(err, cerr))
 			}
 			_ = os.Remove(staged)
 		}
-		swapped = append(swapped, name)
 	}
 
 	_ = os.RemoveAll(tmp)

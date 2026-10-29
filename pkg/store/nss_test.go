@@ -491,6 +491,84 @@ func TestStoreNSS_SwapRollbackRestoresLive(t *testing.T) {
 	}
 }
 
+func TestStoreNSS_SwapRollbackRemovesNewFile(t *testing.T) {
+	// A file with no live copy must be removed when a later swap step fails.
+	dst := t.TempDir()
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, "cert9.db"), []byte("live-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "key4.db"), []byte("staged-key4\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// No live key4.db and no staged cert9.db: key4 installs, then cert9 fails.
+
+	err := nssSwapStagedFiles(dst, tmp, aside, []string{"key4.db", "cert9.db"})
+	if err == nil {
+		t.Fatal("expected swap to fail on missing staged cert9.db")
+	}
+	if nssPathExists(t, filepath.Join(dst, "key4.db")) {
+		t.Errorf("newly installed key4.db left after rollback")
+	}
+	got, err := os.ReadFile(filepath.Join(dst, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, []byte("live-cert9\n")) {
+		t.Fatalf("cert9.db after rollback: got %q", got)
+	}
+	if nssPathExists(t, tmp) {
+		t.Errorf("tmp left behind: %s", tmp)
+	}
+	if nssPathExists(t, aside) {
+		t.Errorf("aside left behind: %s", aside)
+	}
+}
+
+func TestStoreNSS_RejectsNonEmptyAside(t *testing.T) {
+	dst := t.TempDir()
+	tmp := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	if err := os.MkdirAll(tmp, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(aside, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(aside, "cert9.db"), []byte("crash-survivor\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmp, "cert9.db"), []byte("staged\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dst, "cert9.db"), []byte("live\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := nssSwapStagedFiles(dst, tmp, aside, []string{"cert9.db"})
+	if err == nil {
+		t.Fatal("expected swap to reject non-empty aside")
+	}
+	got, err := os.ReadFile(filepath.Join(aside, "cert9.db"))
+	if err != nil {
+		t.Fatalf("aside should be preserved: %v", err)
+	}
+	if string(got) != "crash-survivor\n" {
+		t.Fatalf("aside cert9.db=%q", got)
+	}
+	live, err := os.ReadFile(filepath.Join(dst, "cert9.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(live) != "live\n" {
+		t.Fatalf("live should be untouched: %q", live)
+	}
+}
+
 func TestStoreNSS_RestoreCleansTmpAndAside(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
