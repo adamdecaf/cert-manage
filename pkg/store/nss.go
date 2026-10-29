@@ -37,12 +37,12 @@ var (
 	cutil = crtutil{
 		execPaths: []string{
 			"/usr/local/opt/nss/bin/certutil", // Darwin
-			"/usr/bin/crtutil",                // Linux
+			"/usr/bin/certutil",               // Linux
 		},
 	}
 
 	// certutil trust attrubutes
-	// Run `crtutil -A -H` for the full list
+	// Run `certutil -A -H` for the full list
 	trustAttrsProhibited = "p,p,p"
 	trustAttrsTrusted    = "CT,C,C"
 
@@ -224,8 +224,8 @@ func (s nssStore) GetInfo() *Info {
 
 // List returns the installed (and trusted) certificates contained in a NSS cert.db file
 //
-// To list certificates with the NSS `crtutil` tool the following would be ran
-// $ /usr/local/opt/nss/bin/crtutil -L -d "$dir"
+// To list certificates with the NSS `certutil` tool the following would be ran
+// $ /usr/local/opt/nss/bin/certutil -L -d "$dir"
 //
 // Note: `dir` represents a directory path which contains a cert.db file
 func (s nssStore) List(opts *ListOptions) ([]*x509.Certificate, error) {
@@ -358,7 +358,7 @@ type certdbItem struct {
 	nick  string
 	certs []*x509.Certificate
 
-	// The 'Trust Attributes' header from `crtutil -L`, this represents three usecases for
+	// The 'Trust Attributes' header from `certutil -L`, this represents three usecases for
 	// x509 Certificates: SSL,S/MIME,JAR/XPI
 	trustAttrs string
 }
@@ -383,7 +383,7 @@ func (c certdbItem) trustedForSSL() bool {
 }
 
 // crtutil represents the NSS cli tool by the same name
-// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/crtutil
+// https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Tools/certutil
 type crtutil struct {
 	execPaths []string
 }
@@ -394,7 +394,7 @@ func (c crtutil) getExecPath() (string, error) {
 			return c.execPaths[i], nil
 		}
 	}
-	return "", errors.New("No executable for NSS `crtutil` found")
+	return "", errors.New("nss: certutil not found; install NSS tools (libnss3-tools, nss-tools or brew install nss)")
 }
 
 // Different versions of NSS/cert.db files require different prefixes
@@ -433,7 +433,7 @@ func (c crtutil) addCertificate(dir string, where string, nick string) error {
 }
 
 // Emulates the following
-// /usr/local/opt/nss/bin/crtutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
+// /usr/local/opt/nss/bin/certutil -L -d '~/Library/Application Support/Firefox/Profiles/rrdlhe7o.default'
 //
 // TODO(adam): Check for opts.Expired or opts.Revoked
 func (c crtutil) listCertsFromDB(path string) ([]certdbItem, error) {
@@ -526,7 +526,7 @@ func (c crtutil) parseCertdbItem(line string) (nick string, trust string) {
 
 // Emulates
 //
-// /usr/local/opt/nss/bin/crtutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
+// /usr/local/opt/nss/bin/certutil -L -d "$dir" -n 'Microsoft IT SSL SHA2' -a
 func (c crtutil) readCertificatesForNick(path string, nick string) ([]*x509.Certificate, error) {
 	expath, err := c.getExecPath()
 	if err != nil {
@@ -561,7 +561,7 @@ func (c crtutil) readCertificatesForNick(path string, nick string) ([]*x509.Cert
 
 // Emulates
 //
-// $ /usr/local/opt/nss/bin/crtutil -M -n <nick> -t <trust-args> -d <dir>
+// $ /usr/local/opt/nss/bin/certutil -M -n <nick> -t <trust-args> -d <dir>
 func (c crtutil) modifyTrustAttributes(path string, nick, trustAttrs string) error {
 	expath, err := c.getExecPath()
 	if err != nil {
