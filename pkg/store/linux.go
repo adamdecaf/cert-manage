@@ -310,16 +310,16 @@ func (s linuxStore) Restore(where string) error {
 			_ = os.RemoveAll(tmp)
 			return err
 		}
-		// Log the aside path so a crash between this move and the swap
-		// (or before refresh succeeds) is recoverable by an operator.
-		fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
 	}
 
 	if err := os.Rename(tmp, s.ca.dir); err != nil {
-		if liveExists {
-			_ = os.Rename(aside, s.ca.dir)
-		}
 		_ = os.RemoveAll(tmp)
+		if liveExists {
+			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
+				fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
+				return fmt.Errorf("%w (previous CA dir still at %s)", err, aside)
+			}
+		}
 		return err
 	}
 
@@ -330,10 +330,13 @@ func (s linuxStore) Restore(where string) error {
 			failed := s.ca.dir + ".restore-failed"
 			_ = os.RemoveAll(failed)
 			if rerr := os.Rename(s.ca.dir, failed); rerr != nil {
+				// Aside still holds the previous CA dir; tell the operator where.
+				fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
 				return fmt.Errorf("%w (previous CA dir still at %s)", err, aside)
 			}
 			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
 				_ = os.Rename(failed, s.ca.dir)
+				fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
 				return fmt.Errorf("failed to restore previous CA dir from %s: %w", aside, errors.Join(err, rerr))
 			}
 			_ = os.RemoveAll(failed)
@@ -342,7 +345,10 @@ func (s linuxStore) Restore(where string) error {
 	}
 
 	if liveExists {
-		_ = os.RemoveAll(aside)
+		if err := os.RemoveAll(aside); err != nil {
+			// Restore already applied; warn about leftover path (contents may be partial).
+			fmt.Printf("store/linux: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
+		}
 	}
 	return nil
 }

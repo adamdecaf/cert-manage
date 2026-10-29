@@ -39,11 +39,11 @@ Parent directory (created as needed):
 `linuxStore.Restore` does **not** delete the live CA directory before copying. It:
 
 1. Mirrors the backup into a sibling temp directory (`<ca.dir>.restore-tmp`).
-2. Renames the live directory aside to `<ca.dir>.restore-old` (and prints that path).
+2. Renames the live directory aside to `<ca.dir>.restore-old`. It always uses that fixed path, so an operator can find it even after a crash; restore prints the path only when a failure leaves `<ca.dir>.restore-old` in place.
 3. Renames the temp directory into place as the live CA dir.
 4. Runs `update-ca-certificates` / `update-ca-trust` (via `sudo` unless already root).
 5. On refresh failure, moves the failed tree to `<ca.dir>.restore-failed` and renames the aside directory back.
-6. On success, removes the aside directory.
+6. On success, removes the aside directory. If that removal fails, restore still succeeds and prints a warning naming `<ca.dir>.restore-old` (remaining contents may be incomplete).
 
 If the swap rename itself fails after the live tree was moved aside, the previous directory is renamed back. A failed mirror leaves the live directory untouched.
 
@@ -63,10 +63,10 @@ NSS backups for Chrome (Linux) and Firefox copy whichever members of the profile
 `nssStore.Restore` does **not** copy profile files straight onto the live paths. It:
 
 1. Stages the backup set into a sibling temp directory (`<profile>.restore-tmp`).
-2. Moves each existing live file aside under `<profile>.restore-old/` (and prints that path).
+2. Moves each existing live file aside under `<profile>.restore-old/`. It always uses that fixed path, so an operator can find it even after a crash; restore prints the path only when a failure leaves `<profile>.restore-old/` in place.
 3. Renames each staged file into the live profile.
 4. On any staging or swap failure, rolls live files back from the aside directory and removes the temp dirs.
-5. On success, removes the temp and aside directories.
+5. On success, removes the temp and aside directories. An aside-directory cleanup failure alone does not fail the restore (a warning names `<profile>.restore-old/` and notes contents may be incomplete); if temporary-directory cleanup also fails, restore returns that error.
 
 A failed stage leaves the live profile files untouched. Restore from a **legacy single file** uses the same stage-then-swap path onto `cert9.db` (or `cert8.db` if the backup basename contains `cert8`). Explicit `-file` / `where` is honored.
 

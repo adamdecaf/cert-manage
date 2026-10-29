@@ -437,13 +437,13 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		_ = os.RemoveAll(tmp)
 		if len(rollbackErrs) > 0 {
 			// Keep aside: it may still hold the only copy of the originals.
+			fmt.Printf("store/nss: previous profile files moved aside to %s\n", aside)
 			return errors.Join(append([]error{err, fmt.Errorf("rollback incomplete, originals kept in %s", aside)}, rollbackErrs...)...)
 		}
 		_ = os.RemoveAll(aside)
 		return err
 	}
 
-	loggedAside := false
 	for _, name := range names {
 		live := filepath.Join(dst, name)
 		staged := filepath.Join(tmp, name)
@@ -452,11 +452,6 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		if file.Exists(live) {
 			if err := os.Rename(live, old); err != nil {
 				return fail(err)
-			}
-			if !loggedAside {
-				// Log while aside still exists so a crash mid-swap is recoverable.
-				fmt.Printf("store/nss: previous profile files moved aside to %s\n", aside)
-				loggedAside = true
 			}
 		}
 		// Register before install so a partial CopyFile is rolled back too.
@@ -475,7 +470,8 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore temp directory %s: %w", tmp, err))
 	}
 	if err := os.RemoveAll(aside); err != nil {
-		cleanupErrs = append(cleanupErrs, fmt.Errorf("remove NSS restore recovery directory %s: %w", aside, err))
+		// Aside cleanup failure alone does not fail the restore (tmp cleanup still can).
+		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
 	}
 	return nssRestoreCleanupError(cleanupErrs)
 }

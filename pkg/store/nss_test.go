@@ -615,6 +615,7 @@ func TestStoreNSS_RestoreCleansTmpAndAside(t *testing.T) {
 }
 
 func TestStoreNSS_LogsAsidePath(t *testing.T) {
+	// Successful restore deletes *.restore-old, so do not print the path.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -651,11 +652,11 @@ func TestStoreNSS_LogsAsidePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(out, []byte(aside)) {
-		t.Fatalf("expected stdout to mention aside path %s, got %q", aside, out)
+	if bytes.Contains(out, []byte("moved aside")) {
+		t.Fatalf("successful restore must not log moved-aside path, got %q", out)
 	}
-	if !bytes.Contains(out, []byte("moved aside")) {
-		t.Fatalf("expected recoverability log about moved-aside files, got %q", out)
+	if nssPathExists(t, aside) {
+		t.Errorf("aside left behind: %s", aside)
 	}
 }
 
