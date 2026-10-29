@@ -20,7 +20,6 @@ package store
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sort"
@@ -47,7 +46,7 @@ func TestStoreDarwin__Backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	namesBefore, err := ioutil.ReadDir(dir)
+	namesBefore, err := os.ReadDir(dir)
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}
@@ -59,7 +58,7 @@ func TestStoreDarwin__Backup(t *testing.T) {
 	}
 
 	// check we added one backup file
-	namesAfter, err := ioutil.ReadDir(dir)
+	namesAfter, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

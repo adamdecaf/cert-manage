@@ -24,7 +24,7 @@ import (
 func showCertsOnCli(certs []*x509.Certificate, cfg *Config) error {
 	p, ok := getPrinter(cfg.Format)
 	if !ok {
-		return fmt.Errorf("Unknown format %s specified", cfg.Format)
+		return fmt.Errorf("unknown format %s specified", cfg.Format)
 	}
 	p.write(os.Stdout, certs)
 	return nil

@@ -18,7 +18,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -206,16 +205,19 @@ func getCertManageParentDir() (string, error) {
 // lexigraphical sorting. Results are sorted in descending order and the
 // first element (if exists) is returned
 func getLatestBackup(dir string) (string, error) {
-	fis, err := ioutil.ReadDir(dir)
+	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return "", err
 	}
-	if len(fis) == 0 {
+	if len(ents) == 0 {
 		return "", nil
 	}
 
-	// get largest
-	file.SortFileInfos(fis)
-	latest := fis[len(fis)-1]
-	return filepath.Join(dir, latest.Name()), nil
+	// get largest name (case-insensitive), matching previous FileInfo sort
+	names := make([]string, len(ents))
+	for i := range ents {
+		names[i] = ents[i].Name()
+	}
+	file.SortNames(names)
+	return filepath.Join(dir, names[len(names)-1]), nil
 }

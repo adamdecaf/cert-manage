@@ -19,7 +19,6 @@ package test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -263,11 +262,11 @@ func loadTestSite(t *testing.T) error {
 	t.Helper()
 
 	// render our Go code to another file and then `go run` it.
-	tmp, err := ioutil.TempFile("", "load-our test site")
+	tmp, err := os.CreateTemp("", "load-our test site")
 	if err != nil {
 		t.Fatalf("error creating temp dir for loadTestSite, err=%v", err)
 	}
-	err = ioutil.WriteFile(tmp.Name(), loadTestSiteSourceCode, 0644)
+	err = os.WriteFile(tmp.Name(), loadTestSiteSourceCode, 0644)
 	if err != nil {
 		t.Fatalf("error writing loadTestSite source code to %s, err=%v", tmp.Name(), err)
 	}

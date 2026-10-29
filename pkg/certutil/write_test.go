@@ -15,7 +15,6 @@
 package certutil
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -27,7 +26,7 @@ func TestCertutilPEM__write(t *testing.T) {
 	}
 
 	// write that back, then read it again and compare
-	f, err := ioutil.TempFile("", "cert-manage")
+	f, err := os.CreateTemp("", "cert-manage")
 	// f, err := os.Create("cert-mange-pem")
 	if err != nil {
 		t.Fatal(err)

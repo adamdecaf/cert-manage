@@ -30,7 +30,6 @@ var (
 	srv *http.Server
 	wg  sync.WaitGroup
 
-	seed sync.Once
 
 	doneTpl = `<!doctype html>
 <html>
@@ -62,7 +61,8 @@ func Register() {
 	}
 
 	srv = &http.Server{
-		Addr: fmt.Sprintf("127.0.0.1:%d", getPort()),
+		Addr:              fmt.Sprintf("127.0.0.1:%d", getPort()),
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	http.HandleFunc("/done", func(w http.ResponseWriter, r *http.Request) {
@@ -71,18 +71,13 @@ func Register() {
 		t := template.Must(template.New("contents").Parse(doneTpl))
 		err := t.Execute(w, nil)
 		if err != nil {
-			io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
+			_, _ = io.WriteString(w, fmt.Sprintf("ERROR: %v", err))
 		}
 	})
 }
 
 func getPort() int {
-	// prep seed, otherwise math/rand.Intn is deterministic, which means there could be
-	// something relying on that port
-	seed.Do(func() {
-		rand.Seed(time.Now().Unix()) // something
-	})
-
+	// Local UI only needs an ephemeral listen port, not cryptographic randomness.
 	lowerBound := 1024 // ports below require elevated privileges
 	n := rand.Intn(2<<15 - lowerBound)
 	return n + lowerBound

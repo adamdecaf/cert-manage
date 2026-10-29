@@ -21,7 +21,7 @@ import (
 
 // Check if we're online or not, via:
 // - localhost icmp ping
-// - TRAVIS_OS_NAME env var
+// - CI env vars
 func online(t *testing.T) bool {
 	t.Helper()
 

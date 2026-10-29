@@ -15,7 +15,7 @@
 package file
 
 import (
-	"io/ioutil"
+	"os"
 	"sort"
 	"testing"
 )
@@ -45,7 +45,7 @@ func TestFile__sortNames(t *testing.T) {
 }
 
 func TestFile__sortFileInfos(t *testing.T) {
-	fds, err := ioutil.ReadDir(".")
+	fds, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -15,7 +15,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,7 +26,7 @@ func TestLocateChromeNSS(t *testing.T) {
 		t.Skip("unix-style .pki/nssdb layout")
 	}
 
-	home, err := ioutil.TempDir("", "cert-manage-chrome-nss")
+	home, err := os.MkdirTemp("", "cert-manage-chrome-nss")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +54,7 @@ func TestLocateFirefoxProfile(t *testing.T) {
 		t.Skip("unix-style firefox profile layout")
 	}
 
-	home, err := ioutil.TempDir("", "cert-manage-ff-profile")
+	home, err := os.MkdirTemp("", "cert-manage-ff-profile")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +78,7 @@ func TestLocateFirefoxProfile(t *testing.T) {
 	if err := os.MkdirAll(good, 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(good, "cert9.db"), []byte("data"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(good, "cert9.db"), []byte("data"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	where, ok := locateFirefoxProfile(suggestions)
@@ -111,7 +110,7 @@ func TestDetectJavaWithTempKeystore(t *testing.T) {
 		t.Skip("unix java home layout")
 	}
 
-	dir, err := ioutil.TempDir("", "cert-manage-java-detect")
+	dir, err := os.MkdirTemp("", "cert-manage-java-detect")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +121,7 @@ func TestDetectJavaWithTempKeystore(t *testing.T) {
 		t.Fatal(err)
 	}
 	ksPath := filepath.Join(ksDir, "cacerts")
-	if err := ioutil.WriteFile(ksPath, []byte("fake-keystore"), 0644); err != nil {
+	if err := os.WriteFile(ksPath, []byte("fake-keystore"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -145,14 +144,14 @@ func TestDetectOpenSSLWithTempPath(t *testing.T) {
 		t.Skip("openssl store unsupported on windows")
 	}
 
-	dir, err := ioutil.TempDir("", "cert-manage-openssl-detect")
+	dir, err := os.MkdirTemp("", "cert-manage-openssl-detect")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
 	bundle := filepath.Join(dir, "ca-certificates.crt")
-	if err := ioutil.WriteFile(bundle, []byte("x"), 0644); err != nil {
+	if err := os.WriteFile(bundle, []byte("x"), 0644); err != nil {
 		t.Fatal(err)
 	}
 

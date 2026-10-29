@@ -22,7 +22,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -122,9 +121,9 @@ func (s windowsStore) certsFromStore(store string) ([]*x509.Certificate, error) 
 	// Trust-store certs have no private key, so certutil -exportPFX cannot
 	// represent them (PKCS#12 parse fails, list returns 0). Dump DER via
 	// PowerShell in one call per store instead of one certutil per cert.
-	tmp, err := ioutil.TempFile("", "cert-manage-win-store")
+	tmp, err := os.CreateTemp("", "cert-manage-win-store")
 	if err != nil {
-		return nil, fmt.Errorf("error creating temp file, err=%v", err)
+		return nil, fmt.Errorf("error creating temp file, err=%w", err)
 	}
 	path := tmp.Name()
 	tmp.Close()
@@ -147,9 +146,9 @@ Get-ChildItem -LiteralPath 'Cert:\LocalMachine\%s' | ForEach-Object {
 		return nil, fmt.Errorf("error reading store %s: %v: %s", store, err, strings.TrimSpace(string(out)))
 	}
 
-	bs, err := ioutil.ReadFile(path)
+	bs, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("error reading exported store %s: %v", store, err)
+		return nil, fmt.Errorf("error reading exported store %s: %w", store, err)
 	}
 	if len(bytes.TrimSpace(bs)) == 0 {
 		return nil, nil
@@ -189,7 +188,7 @@ func (s windowsStore) certSerialsFromStore(store string) ([]string, error) {
 	cmd.Stdout = &stdout
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("error reading serials from store %s err=%v", store, err)
+		return nil, fmt.Errorf("error reading serials from store %s err=%w", store, err)
 	}
 	return s.readCertSerials(string(stdout.Bytes()))
 }
@@ -206,7 +205,7 @@ var (
 func (s windowsStore) readCertSerials(out string) ([]string, error) {
 	matches := winSerialNumberRegex.FindAllString(out, -1)
 	for i := range matches {
-		matches[i] = strings.TrimSpace(strings.Replace(matches[i], winSerialNumberPrefix, "", -1))
+		matches[i] = strings.TrimSpace(strings.ReplaceAll(matches[i], winSerialNumberPrefix, ""))
 	}
 	return matches, nil
 }
@@ -216,9 +215,9 @@ var (
 )
 
 func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certificate, error) {
-	tmp, err := ioutil.TempFile("", "cert-manage-windows")
+	tmp, err := os.CreateTemp("", "cert-manage-windows")
 	if err != nil {
-		return nil, fmt.Errorf("error creating temp file, err=%v", err)
+		return nil, fmt.Errorf("error creating temp file, err=%w", err)
 	}
 
 	// close and rm file, we got a unique name
@@ -249,12 +248,12 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 			}
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12 err=%q", serial, store, err)
+		return nil, fmt.Errorf("error exporting cert %q (from %s) to PKCS #12: %w", serial, store, err)
 	}
 
-	bs, err := ioutil.ReadFile(tmp.Name())
+	bs, err := os.ReadFile(tmp.Name())
 	if err != nil {
-		return nil, fmt.Errorf("error reading temp file, err=%v", err)
+		return nil, fmt.Errorf("error reading temp file, err=%w", err)
 	}
 	cert, err := certutil.DecodePKCS12(bs, pfxPassword)
 	if err != nil {
@@ -264,7 +263,7 @@ func (s windowsStore) exportCertFromStore(serial, store string) (*x509.Certifica
 			}
 			return nil, nil
 		}
-		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s, err=%q", serial, store, err)
+		return nil, fmt.Errorf("error parsing PKCS #12 of serial %q from %s: %w", serial, store, err)
 	}
 	return cert, nil
 }

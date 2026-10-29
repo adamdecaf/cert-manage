@@ -20,7 +20,6 @@ package store
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,9 +81,9 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 		return nil
 	}
 
-	dir, err := ioutil.TempDir("", "cert-manage-add")
+	dir, err := os.MkdirTemp("", "cert-manage-add")
 	if err != nil {
-		return fmt.Errorf("Add: error creating temp dir err=%v", err)
+		return fmt.Errorf("add: error creating temp dir err=%w", err)
 	}
 	defer os.RemoveAll(dir)
 
@@ -94,7 +93,7 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 		path := filepath.Join(dir, fmt.Sprintf("%s.pem", fp))
 		err := certutil.ToFile(path, certs[i:i+1])
 		if err != nil {
-			return fmt.Errorf("Add: error writing cert %s to tempfile %s, err=%v", certs[i].Subject, path, err)
+			return fmt.Errorf("add: error writing cert %s to tempfile %s, err=%w", certs[i].Subject, path, err)
 		}
 
 		// add cert to keychain
@@ -123,7 +122,7 @@ func (s darwinStore) Backup() error {
 	// setup (and create) backup (parent) dir
 	parent, err := getCertManageDir(fmt.Sprintf("%s/%d", darwinBackupDir, time.Now().Unix()))
 	if err != nil {
-		return fmt.Errorf("Backup: error getting cert-manage dir, err=%v", err)
+		return fmt.Errorf("backup: error getting cert-manage dir, err=%w", err)
 	}
 
 	// Backup the certificates from the login keychain and export each into a separate file
@@ -140,11 +139,11 @@ func (s darwinStore) Backup() error {
 	_, fname := filepath.Split(loginKeychain)
 	certs, err := readInstalledCerts(login)
 	if err != nil {
-		return fmt.Errorf("Backup: error reading installed certs from %s, err=%v", login, err)
+		return fmt.Errorf("backup: error reading installed certs from %s, err=%w", login, err)
 	}
 	dir, err := getCertManageDir(filepath.Join(parent, fname))
 	if err != nil {
-		return fmt.Errorf("Backup: error getting cert-manage dir, err=%v", err)
+		return fmt.Errorf("backup: error getting cert-manage dir, err=%w", err)
 	}
 
 	// Write each certificate to the underlying fs
@@ -154,7 +153,7 @@ func (s darwinStore) Backup() error {
 
 		err = certutil.ToFile(where, certs[i:i+1]) // avoid creating a new slice
 		if err != nil {
-			return fmt.Errorf("Backup: error writing cert %s to temp file %s, err=%v", certs[i].Subject, where, err)
+			return fmt.Errorf("backup: error writing cert %s to temp file %s, err=%w", certs[i].Subject, where, err)
 		}
 	}
 
@@ -164,7 +163,7 @@ func (s darwinStore) Backup() error {
 func (s darwinStore) GetLatestBackup() (string, error) {
 	dir, err := getCertManageDir(darwinBackupDir)
 	if err != nil {
-		return "", fmt.Errorf("Restore: error reading backup dir, err=%v", err)
+		return "", fmt.Errorf("restore: error reading backup dir, err=%w", err)
 	}
 	return getLatestBackup(dir)
 }
@@ -344,7 +343,7 @@ func certTrustedWithSystem(cert *x509.Certificate) bool {
 	if cert == nil {
 		return false
 	}
-	tmp, err := ioutil.TempFile("", "verify-cert")
+	tmp, err := os.CreateTemp("", "verify-cert")
 	if err != nil {
 		if debug {
 			fmt.Printf("store/darwin: error creating temp file for verify-cert: err=%v\n", err)
@@ -423,7 +422,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	// We just want to read the system roots and remove trust in those not whitelisted
 	roots, err := readInstalledCerts(systemRootCertificates)
 	if err != nil {
-		return fmt.Errorf("Remove: error reading certs from %s, err=%v", systemRootCertificates, err)
+		return fmt.Errorf("remove: error reading certs from %s, err=%w", systemRootCertificates, err)
 	}
 
 	if DryRun() {
@@ -438,9 +437,9 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 	}
 
 	// prep a temp file we can re-use
-	tmp, err := ioutil.TempFile("", "cert-manage-darwin-remove")
+	tmp, err := os.CreateTemp("", "cert-manage-darwin-remove")
 	if err != nil {
-		return fmt.Errorf("Remove: error creating temp dir, err=%v", err)
+		return fmt.Errorf("remove: error creating temp dir, err=%w", err)
 	}
 	defer os.Remove(tmp.Name())
 
@@ -463,7 +462,7 @@ func (s darwinStore) Remove(wh whitelist.Whitelist) error {
 					fmt.Printf("  Command ran: %q\n", strings.Join(cmd.Args, " "))
 					fmt.Printf("  Output was: %s\n", output)
 				}
-				return fmt.Errorf("error marking cert %s as 'Never Trust' in system keychain, err=%v", roots[i].Subject, err)
+				return fmt.Errorf("error marking cert %s as 'Never Trust' in system keychain, err=%w", roots[i].Subject, err)
 			}
 		}
 	}
@@ -477,7 +476,7 @@ func defaultCertTrustPolicy(certPath string, cert *x509.Certificate) error {
 	// -r unspecified removes 'Always Trust' or 'Never Trust' from entry
 	cmd := exec.Command("sudo", "security", "add-trusted-cert", "-d", "-r", "unspecified", "-k", systemKeychain, certPath)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Remove: error removing 'Never Trust' from cert %s, err=%v", cert.Subject, err)
+		return fmt.Errorf("remove: error removing 'Never Trust' from cert %s, err=%w", cert.Subject, err)
 	}
 
 	fp := certutil.GetHexSHA1Fingerprint(*cert)
@@ -486,7 +485,7 @@ func defaultCertTrustPolicy(certPath string, cert *x509.Certificate) error {
 		if strings.Contains(string(out), "Unable to delete certificate matching") {
 			return nil // cert didn't exist
 		}
-		return fmt.Errorf("Remove: error deleting cert %s from keychain, err=%v", cert.Subject, err)
+		return fmt.Errorf("remove: error deleting cert %s from keychain, err=%w", cert.Subject, err)
 	}
 	return nil
 }
@@ -507,7 +506,7 @@ type appleRoot struct {
 }
 
 func newAppleRoot(cert *x509.Certificate) *appleRoot {
-	tmp, err := ioutil.TempFile("", "apple-root")
+	tmp, err := os.CreateTemp("", "apple-root")
 	if err != nil {
 		return nil
 	}
@@ -572,20 +571,20 @@ func (s darwinStore) Restore(where string) error {
 	// Grab apple provided system root, this is our baseline
 	roots, err := readInstalledCerts(systemRootCertificates)
 	if err != nil {
-		return fmt.Errorf("Restore: error reading certs from %s, err=%v", systemRootCertificates, err)
+		return fmt.Errorf("restore: error reading certs from %s, err=%w", systemRootCertificates, err)
 	}
 
 	// temp file for certs
-	tmp, err := ioutil.TempFile("", "restore-verify-cert")
+	tmp, err := os.CreateTemp("", "restore-verify-cert")
 	if err != nil {
-		return fmt.Errorf("Restore: error creating temp dir, err=%v", err)
+		return fmt.Errorf("restore: error creating temp dir, err=%w", err)
 	}
 	defer os.Remove(tmp.Name())
 
 	for i := range roots {
 		err = certutil.ToFile(tmp.Name(), roots[i:i+1])
 		if err != nil {
-			return fmt.Errorf("Restore: error writing cert %s to temp dir %s, err=%v", roots[i].Subject, tmp.Name(), err)
+			return fmt.Errorf("restore: error writing cert %s to temp dir %s, err=%v", roots[i].Subject, tmp.Name(), err)
 		}
 
 		cmd := exec.Command("security", "verify-cert", "-p", "ssl", "-k", systemKeychain, "-c", tmp.Name())
@@ -611,7 +610,7 @@ func (s darwinStore) Restore(where string) error {
 				if debug {
 					fmt.Printf("store/darwin: cert %s ran into other issue with verify-cert: %s\n", roots[i].Subject, strings.TrimSpace(outStr))
 				}
-				return fmt.Errorf("Restore: ran into other error with verify-cert for %s, err=%v", roots[i].Subject, err)
+				return fmt.Errorf("restore: ran into other error with verify-cert for %s, err=%w", roots[i].Subject, err)
 			}
 		}
 	}
@@ -622,10 +621,10 @@ func (s darwinStore) Restore(where string) error {
 		root := appleRoots[i]
 		err = defaultCertTrustPolicy(root.file, root.cert)
 		if err != nil {
-			return fmt.Errorf("Restore: error restoring apple root %s, err=%v", root.cert.Subject, err)
+			return fmt.Errorf("restore: error restoring apple root %s, err=%w", root.cert.Subject, err)
 		}
 		if err := root.cleanup(); err != nil {
-			return fmt.Errorf("Restore: problem cleaning up apple root %s: %v", root.cert.Subject, err)
+			return fmt.Errorf("restore: problem cleaning up apple root %s: %w", root.cert.Subject, err)
 		}
 	}
 
@@ -635,7 +634,7 @@ func (s darwinStore) Restore(where string) error {
 	// and verify it's matching the sha1 filename and compare against the already installed certs.
 	dir, err := s.GetLatestBackup()
 	if err != nil {
-		return fmt.Errorf("Restore: error getting latest backup, err=%v", err)
+		return fmt.Errorf("restore: error getting latest backup, err=%w", err)
 	}
 	dir = filepath.Join(dir, "login.keychain")
 	if debug {
@@ -644,7 +643,7 @@ func (s darwinStore) Restore(where string) error {
 
 	alreadyInstalled, err := readInstalledCerts(loginKeychainFile())
 	if err != nil {
-		return fmt.Errorf("Restore: error getting login keychain certs, err=%v", err)
+		return fmt.Errorf("restore: error getting login keychain certs, err=%w", err)
 	}
 	var alreadyInstalledFingerprints []string
 	for i := range alreadyInstalled {
@@ -652,16 +651,16 @@ func (s darwinStore) Restore(where string) error {
 	}
 
 	// read each file from our backup
-	certfiles, err := ioutil.ReadDir(dir)
+	certfiles, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("Restore: error reading backup dir contents, err=%v", err)
+		return fmt.Errorf("restore: error reading backup dir contents, err=%w", err)
 	}
 	for i := range certfiles {
 		// For each cert file, grab the certs and find the one that matches the filename hash
 		_, fp := filepath.Split(certfiles[i].Name())
 		certs, err := certutil.FromFile(filepath.Join(dir, certfiles[i].Name()))
 		if err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("Restore: error reading certs from %s, err=%v", certfiles[i].Name(), err)
+			return fmt.Errorf("restore: error reading certs from %s, err=%v", certfiles[i].Name(), err)
 		}
 		if len(certs) == 0 {
 			if debug {
@@ -681,7 +680,7 @@ func (s darwinStore) Restore(where string) error {
 				if shouldAdd {
 					err = s.Add(certs[j : j+1])
 					if err != nil {
-						return fmt.Errorf("Restore: error adding cert %s to login keychain, err=%v", certs[j].Subject, err)
+						return fmt.Errorf("restore: error adding cert %s to login keychain, err=%w", certs[j].Subject, err)
 					}
 				}
 			}

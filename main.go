@@ -159,12 +159,12 @@ func main() {
 		fs.Usage()
 		return
 	}
-	fs.Parse(os.Args[1:])
+	_ = fs.Parse(os.Args[1:])
 	if len(os.Args) == 2 && calledHelp() {
 		fs.Usage()
 		return
 	}
-	fs.Parse(os.Args[2:]) // reparse
+	_ = fs.Parse(os.Args[2:]) // reparse
 
 	// Lift config options into a higher-level
 	cfg := &ui.Config{
@@ -440,7 +440,7 @@ func parseConnectUrl(fs *flag.FlagSet) (*url.URL, error) {
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %v", raw, err)
+		return nil, fmt.Errorf("failed to parse %s: %w", raw, err)
 	}
 	if u.Scheme != "https" {
 		return nil, fmt.Errorf("non-secure url scheme used: %s", u.String())

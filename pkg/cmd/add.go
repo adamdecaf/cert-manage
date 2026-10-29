@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/adamdecaf/trustprune/pkg/certutil"
@@ -38,7 +37,7 @@ func AddCertsToAppFromFile(app string, where string) error {
 }
 
 func addCerts(st store.Store, where string) error {
-	bs, err := ioutil.ReadFile(where)
+	bs, err := os.ReadFile(where)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

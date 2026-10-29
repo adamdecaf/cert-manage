@@ -16,7 +16,6 @@ package store
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +23,7 @@ import (
 
 func TestStoreNSS_certdbDiscovery(t *testing.T) {
 	// create a dir, add a 'cert.db' file and verify we can discover it
-	tmp, err := ioutil.TempDir("", "nss-discovery")
+	tmp, err := os.MkdirTemp("", "nss-discovery")
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,7 +36,7 @@ func TestStoreNSS_certdbDiscovery(t *testing.T) {
 
 	// Create a blank cert.db file
 	where := filepath.Join(tmp, "cert9.db")
-	err = ioutil.WriteFile(where, []byte("data"), 0644)
+	err = os.WriteFile(where, []byte("data"), 0644)
 	if err != nil {
 		t.Error(err)
 	}

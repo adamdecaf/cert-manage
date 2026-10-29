@@ -27,7 +27,7 @@ func NewTrace(where string) (*Trace, error) {
 
 	fd, err := os.Create(where)
 	if err != nil {
-		return nil, fmt.Errorf("error creating trace, err=%v", err)
+		return nil, fmt.Errorf("error creating trace, err=%w", err)
 	}
 
 	return &Trace{

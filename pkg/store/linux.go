@@ -22,7 +22,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -148,7 +147,7 @@ func (s linuxStore) Backup() error {
 func (s linuxStore) GetLatestBackup() (string, error) {
 	dir, err := getCertManageDir(linuxBackupDir)
 	if err != nil {
-		return "", fmt.Errorf("GetLatestBackup: error getting linux backup directory, err=%v", err)
+		return "", fmt.Errorf("getLatestBackup: error getting linux backup directory, err=%w", err)
 	}
 	return getLatestBackup(dir)
 }
@@ -177,7 +176,7 @@ func (s linuxStore) List(_ *ListOptions) ([]*x509.Certificate, error) {
 		return nil, nil
 	}
 
-	bytes, err := ioutil.ReadFile(s.ca.all)
+	bytes, err := os.ReadFile(s.ca.all)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +200,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 	if DryRun() {
 		var details []string
 		err := filepath.Walk(s.ca.dir, func(path string, info os.FileInfo, err error) error {
-			if (err != nil && err != filepath.SkipDir) || info.IsDir() {
+			if (err != nil && !errors.Is(err, filepath.SkipDir)) || info.IsDir() {
 				return nil
 			}
 			read, err := certutil.FromFile(path)
@@ -226,7 +225,7 @@ func (s linuxStore) Remove(wh whitelist.Whitelist) error {
 	// Check each CA cert file and optionally disable
 	walk := func(path string, info os.FileInfo, err error) error {
 		// Ignore SkipDir and directories
-		if (err != nil && err != filepath.SkipDir) || info.IsDir() {
+		if (err != nil && !errors.Is(err, filepath.SkipDir)) || info.IsDir() {
 			return nil
 		}
 
@@ -296,7 +295,7 @@ func (s linuxStore) Restore(where string) error {
 	}
 	err = file.MirrorDir(dir, tmp)
 	if err != nil {
-		os.RemoveAll(tmp)
+		_ = os.RemoveAll(tmp)
 		return err
 	}
 
@@ -304,11 +303,11 @@ func (s linuxStore) Restore(where string) error {
 	liveExists := file.Exists(s.ca.dir)
 	if liveExists {
 		if err := os.RemoveAll(aside); err != nil {
-			os.RemoveAll(tmp)
+			_ = os.RemoveAll(tmp)
 			return err
 		}
 		if err := os.Rename(s.ca.dir, aside); err != nil {
-			os.RemoveAll(tmp)
+			_ = os.RemoveAll(tmp)
 			return err
 		}
 		// Log the aside path so a crash between this move and the swap
@@ -318,9 +317,9 @@ func (s linuxStore) Restore(where string) error {
 
 	if err := os.Rename(tmp, s.ca.dir); err != nil {
 		if liveExists {
-			os.Rename(aside, s.ca.dir)
+			_ = os.Rename(aside, s.ca.dir)
 		}
-		os.RemoveAll(tmp)
+		_ = os.RemoveAll(tmp)
 		return err
 	}
 
@@ -329,21 +328,21 @@ func (s linuxStore) Restore(where string) error {
 	if err := s.rebundleCerts(); err != nil {
 		if liveExists {
 			failed := s.ca.dir + ".restore-failed"
-			os.RemoveAll(failed)
+			_ = os.RemoveAll(failed)
 			if rerr := os.Rename(s.ca.dir, failed); rerr != nil {
-				return fmt.Errorf("%v (previous CA dir still at %s)", err, aside)
+				return fmt.Errorf("%w (previous CA dir still at %s)", err, aside)
 			}
 			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
-				os.Rename(failed, s.ca.dir)
-				return fmt.Errorf("%v (failed to restore previous CA dir from %s: %v)", err, aside, rerr)
+				_ = os.Rename(failed, s.ca.dir)
+				return fmt.Errorf("failed to restore previous CA dir from %s: %w", aside, errors.Join(err, rerr))
 			}
-			os.RemoveAll(failed)
+			_ = os.RemoveAll(failed)
 		}
 		return err
 	}
 
 	if liveExists {
-		os.RemoveAll(aside)
+		_ = os.RemoveAll(aside)
 	}
 	return nil
 }
@@ -365,7 +364,7 @@ func (s linuxStore) rebundleCerts() error {
 
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error updating trust status: err=%v, out=%s", err, out.String())
+		return fmt.Errorf("error updating trust status: err=%w, out=%s", err, out.String())
 	}
 	return nil
 }

@@ -15,7 +15,7 @@
 package file
 
 import (
-	"io/ioutil"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -98,7 +98,7 @@ func TestFile__existsDir(t *testing.T) {
 
 func TestFile__MirrorDir(t *testing.T) {
 	src := "../ui"
-	dst, err := ioutil.TempDir("", "cert-manage-file-test")
+	dst, err := os.MkdirTemp("", "cert-manage-file-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,14 +106,22 @@ func TestFile__MirrorDir(t *testing.T) {
 	// Throw in a symlink for fun
 	err = os.Symlink("./ui.go", "../ui/f")
 	if err != nil {
-		t.Fatal(err.(*os.LinkError).Err)
+		var le *os.LinkError
+		if errors.As(err, &le) {
+			t.Fatal(le.Err)
+		}
+		t.Fatal(err)
 	}
 	defer os.Remove("../ui/f")
 
 	// Create an invalid symlink
 	err = os.Symlink("./missing", "../ui/bad")
 	if err != nil {
-		t.Fatal(err.(*os.LinkError).Err)
+		var le *os.LinkError
+		if errors.As(err, &le) {
+			t.Fatal(le.Err)
+		}
+		t.Fatal(err)
 	}
 	defer os.Remove("../ui/bad")
 
@@ -165,7 +173,7 @@ func TestFile__MirrorDir(t *testing.T) {
 			continue
 		}
 		// compare them as files
-		if s.Mode().IsRegular() && s.Mode().IsRegular() {
+		if s.Mode().IsRegular() && d.Mode().IsRegular() {
 			// compare them as files
 			if s.Size() != d.Size() || s.Mode() != d.Mode() {
 				t.Fatalf("%s and %s aren't the same", s.Name(), d.Name())
@@ -190,11 +198,11 @@ func TestFile__CopyFile(t *testing.T) {
 	defer os.Remove(dst)
 
 	// compare contents
-	c1, err := ioutil.ReadFile(src)
+	c1, err := os.ReadFile(src)
 	if err != nil {
 		t.Fatalf("reading %s failed, err=%v", src, err)
 	}
-	c2, err := ioutil.ReadFile(dst)
+	c2, err := os.ReadFile(dst)
 	if err != nil {
 		t.Fatalf("reading %s failed, err=%v", dst, err)
 	}
@@ -204,7 +212,7 @@ func TestFile__CopyFile(t *testing.T) {
 }
 
 func TestFile__copyBrokenSymlink(t *testing.T) {
-	dir, err := ioutil.TempDir("", "cert-manage-file-copyBrokenSymlink")
+	dir, err := os.MkdirTemp("", "cert-manage-file-copyBrokenSymlink")
 	if err != nil {
 		t.Fatal(err)
 	}

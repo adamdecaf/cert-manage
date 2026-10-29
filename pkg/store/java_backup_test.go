@@ -15,6 +15,7 @@
 package store
 
 import (
+	"errors"
 	"bytes"
 	"context"
 	"fmt"
@@ -112,7 +113,7 @@ func importCertWithKeytool(keytoolBin, exampleCrt, cacertsPath string) error {
 	)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("%v: %s", err, bytes.TrimSpace(out))
+		return fmt.Errorf("%w: %s", err, bytes.TrimSpace(out))
 	}
 	return nil
 }
@@ -122,7 +123,7 @@ func createCacertsWithDocker(t *testing.T, workDir, exampleCrt, cacertsPath stri
 
 	docker, err := exec.LookPath("docker")
 	if err != nil {
-		return fmt.Errorf("docker not on PATH: %v", err)
+		return fmt.Errorf("docker not on PATH: %w", err)
 	}
 
 	absWork, err := filepath.Abs(workDir)
@@ -157,7 +158,7 @@ func createCacertsWithDocker(t *testing.T, workDir, exampleCrt, cacertsPath stri
 		return nil
 	}
 	_ = os.Remove(cacertsPath)
-	keytoolErr := fmt.Errorf("docker keytool: %v: %s", err, bytes.TrimSpace(out))
+	keytoolErr := fmt.Errorf("docker keytool: %w: %s", err, bytes.TrimSpace(out))
 
 	// Copy the image cacerts through stdout so the file is owned by this user
 	// (a bind-mounted copy would often be root-owned and trip SudoCopyFile).
@@ -169,10 +170,10 @@ func createCacertsWithDocker(t *testing.T, workDir, exampleCrt, cacertsPath stri
 	cat.Stdout = &stdout
 	cat.Stderr = &stderr
 	if err := cat.Run(); err != nil {
-		return fmt.Errorf("%v; docker cat cacerts: %v: %s", keytoolErr, err, bytes.TrimSpace(stderr.Bytes()))
+		return fmt.Errorf("docker cat cacerts: %s: %w", bytes.TrimSpace(stderr.Bytes()), errors.Join(keytoolErr, err))
 	}
 	if stdout.Len() == 0 {
-		return fmt.Errorf("%v; docker cat cacerts: empty output", keytoolErr)
+		return fmt.Errorf("%w; docker cat cacerts: empty output", keytoolErr)
 	}
 	if err := os.WriteFile(cacertsPath, stdout.Bytes(), 0644); err != nil {
 		return err
@@ -193,7 +194,7 @@ func assertWritableNonEmptyCacerts(t *testing.T, path string) {
 	if err != nil {
 		t.Fatalf("temp cacerts must be writable by the current user so Restore uses CopyFile, not sudo: %v", err)
 	}
-	f.Close()
+	_ = f.Close()
 }
 
 func refuseIfOutside(t *testing.T, root, path, what string) {

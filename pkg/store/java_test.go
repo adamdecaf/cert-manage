@@ -15,7 +15,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,12 +22,12 @@ import (
 
 func TestStoreJava__expandSymlink(t *testing.T) {
 	// Make a symlink to a cacerts file
-	dir, err := ioutil.TempDir("", "cert-manage-java")
+	dir, err := os.MkdirTemp("", "cert-manage-java")
 	if err != nil {
 		t.Error(err)
 	}
 	kpath := filepath.Join(dir, "cacerts")
-	err = ioutil.WriteFile(kpath, []byte("A"), 0666)
+	err = os.WriteFile(kpath, []byte("A"), 0666)
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,17 +62,17 @@ func TestStoreJava__expandSymlink(t *testing.T) {
 	if p != dir {
 		t.Errorf("%s should have been %s", p, dir)
 	}
-	os.RemoveAll("other" + string(os.PathSeparator))
+	_ = os.RemoveAll("other" + string(os.PathSeparator))
 }
 
 func TestStoreJava__getKeystorePath(t *testing.T) {
 	// Create a fake cacerts file
-	dir, err := ioutil.TempDir("", "cert-manage-java")
+	dir, err := os.MkdirTemp("", "cert-manage-java")
 	if err != nil {
 		t.Error(err)
 	}
 	kpath := filepath.Join(dir, "cacerts")
-	err = ioutil.WriteFile(kpath, []byte("A"), 0666)
+	err = os.WriteFile(kpath, []byte("A"), 0666)
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,7 +106,7 @@ func TestStoreJava__getKeystorePath(t *testing.T) {
 	}
 
 	// JAVA_HOME pointing at a directory without cacerts must not be returned
-	emptyHome, err := ioutil.TempDir("", "cert-manage-java-empty")
+	emptyHome, err := os.MkdirTemp("", "cert-manage-java-empty")
 	if err != nil {
 		t.Fatal(err)
 	}

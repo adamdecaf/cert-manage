@@ -18,7 +18,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -123,7 +122,7 @@ func (p opensslPrinter) printCertificate(w io.Writer, cert []*x509.Certificate) 
 // printCertsOpenSSL shells out to openssl (if available) to print out each certificate
 func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
 	if p.tmp == nil {
-		tmp, err := ioutil.TempFile("", "cert-mange-print-cert")
+		tmp, err := os.CreateTemp("", "cert-mange-print-cert")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -142,7 +141,7 @@ func (p opensslPrinter) write(w io.Writer, certs []*x509.Certificate) {
 
 func (p opensslPrinter) close() {
 	if p.tmp != nil {
-		os.Remove(p.tmp.Name())
+		_ = os.Remove(p.tmp.Name())
 	}
 }
 

@@ -30,7 +30,7 @@ func ConnectWithPlatformStore(uri *url.URL) error {
 		Trusted: true,
 	})
 	if err != nil {
-		return fmt.Errorf("problem getting certs: %v", err)
+		return fmt.Errorf("problem getting certs: %w", err)
 	}
 	return connect(uri, certs)
 }
@@ -38,13 +38,13 @@ func ConnectWithPlatformStore(uri *url.URL) error {
 func ConnectWithAppStore(uri *url.URL, app string) error {
 	st, err := store.ForApp(app)
 	if err != nil {
-		return fmt.Errorf("problem finding %s: %v", app, err)
+		return fmt.Errorf("problem finding %s: %w", app, err)
 	}
 	certs, err := st.List(&store.ListOptions{
 		Trusted: true,
 	})
 	if err != nil {
-		return fmt.Errorf("problem getting certs for %q: %v", app, err)
+		return fmt.Errorf("problem getting certs for %q: %w", app, err)
 	}
 	return connect(uri, certs)
 }
@@ -52,7 +52,7 @@ func ConnectWithAppStore(uri *url.URL, app string) error {
 func connect(uri *url.URL, roots []*x509.Certificate) error {
 	req, err := http.NewRequest("HEAD", uri.String(), nil)
 	if err != nil {
-		return fmt.Errorf("unable to make request for %s: %v", uri.String(), err)
+		return fmt.Errorf("unable to make request for %s: %w", uri.String(), err)
 	}
 	req.Close = true
 
@@ -70,10 +70,10 @@ func connect(uri *url.URL, roots []*x509.Certificate) error {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("problem with HEAD to %s: %v", uri.String(), err)
+		return fmt.Errorf("problem with HEAD to %s: %w", uri.String(), err)
 	}
 	if resp.Body != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 	fmt.Printf("Connection to %s passed!\n", uri.String())
 	return nil

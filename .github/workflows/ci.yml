@@ -15,6 +15,21 @@ permissions:
   contents: read
 
 jobs:
+  # Static analysis. golangci-lint version is pinned in the makefile.
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: Lint
+        run: make lint
+
   # Compile every GOOS/GOARCH we ship. Add a pair here to cover a new
   # target without waiting on a hosted runner for that OS.
   build:

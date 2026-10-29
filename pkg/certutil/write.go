@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"os"
 
 	"github.com/adamdecaf/trustprune/pkg/file"
@@ -44,5 +43,5 @@ func ToFile(path string, certs []*x509.Certificate) error {
 			return err
 		}
 	}
-	return ioutil.WriteFile(path, buf.Bytes(), perms)
+	return os.WriteFile(path, buf.Bytes(), perms)
 }

@@ -152,9 +152,7 @@ func (c *Cmd) String() string {
 Output:
   %s`, c.command, strings.Join(c.args, " "), c.output))
 	if c.err != nil {
-		buf.WriteString(fmt.Sprintf(`
-Error:
-  %v`, c.err))
+		fmt.Fprintf(buf, "\nError:\n  %v", c.err)
 	}
 	return buf.String()
 }

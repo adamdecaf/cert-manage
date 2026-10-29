@@ -17,7 +17,6 @@ package file
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -92,7 +91,7 @@ func MirrorDir(src, dst string) error {
 	}
 
 	// copy files, symlinks, and dirs
-	items, err := ioutil.ReadDir(src)
+	items, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}
@@ -110,7 +109,7 @@ func MirrorDir(src, dst string) error {
 
 		// Create the symlink by reading the path pointed to in `src`
 		// https://stackoverflow.com/questions/18062026/resolve-symlinks-in-go/18062079
-		if item.Mode()&os.ModeSymlink != 0 {
+		if item.Type()&os.ModeSymlink != 0 {
 			var final string
 			final, err = os.Readlink(s)
 			if err != nil && !os.IsNotExist(err) {
@@ -139,13 +138,13 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	// contents
 	_, err = io.Copy(out, in)

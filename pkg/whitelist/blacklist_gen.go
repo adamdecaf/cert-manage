@@ -26,6 +26,7 @@
 package main
 
 import (
+	"os"
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
@@ -33,7 +34,6 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"io/ioutil"
 	"log"
 	"os/user"
 	"runtime"
@@ -100,7 +100,7 @@ package whitelist
 		log.Fatalf("error formatting output code, err=%v", err)
 	}
 
-	err = ioutil.WriteFile(outputFilename, out, 0644)
+	err = os.WriteFile(outputFilename, out, 0644)
 	if err != nil {
 		log.Fatalf("error writing file, err=%v", err)
 	}
@@ -116,7 +116,7 @@ type cert struct {
 func getChromeCerts(u string) ([]*cert, error) {
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return nil, fmt.Errorf("getChromeCerts: can't build request for %s: %v", u, err)
+		return nil, fmt.Errorf("getChromeCerts: can't build request for %s: %w", u, err)
 	}
 	req.Close = true
 
@@ -157,7 +157,7 @@ func getChromeCerts(u string) ([]*cert, error) {
 		if header.Size > 0 && header.Typeflag == tar.TypeReg { // regular file
 			// collect certificates from files
 			if strings.HasSuffix(header.Name, ".pem") {
-				bs, _ := ioutil.ReadAll(tfile)
+				bs, _ := io.ReadAll(tfile)
 				cs, err := certutil.ParsePEM(bs)
 				for i := range cs {
 					certs = append(certs, &cert{

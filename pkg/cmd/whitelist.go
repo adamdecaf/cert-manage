@@ -38,7 +38,7 @@ func WhitelistForApp(app, whpath string) error {
 	// check for a backup
 	latest, err := s.GetLatestBackup()
 	if err != nil {
-		return fmt.Errorf("can't get latest %s backup err=%v", app, err)
+		return fmt.Errorf("can't get latest %s backup err=%w", app, err)
 	}
 	if latest == "" {
 		return fmt.Errorf("no backup for %s found", app)
@@ -71,7 +71,7 @@ func WhitelistForPlatform(whpath string) error {
 	// check for backup
 	latest, err := s.GetLatestBackup()
 	if err != nil {
-		return fmt.Errorf("can't get latest backup for %s err=%v", runtime.GOOS, err)
+		return fmt.Errorf("can't get latest backup for %s err=%w", runtime.GOOS, err)
 	}
 	if latest == "" {
 		return fmt.Errorf("no %s backup found", runtime.GOOS)

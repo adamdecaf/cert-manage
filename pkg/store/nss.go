@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -102,7 +101,7 @@ func containsCertdb(where string) bool {
 func (s nssStore) notifyToRestart() {
 	if strings.Contains(s.foundCertdbLocation, "cert8.db") {
 		s.notify.Do(func() {
-			fmt.Printf("Restart %s to refresh certificate trust\n", strings.Title(s.nssType))
+			fmt.Printf("Restart %s to refresh certificate trust\n", titleASCII(s.nssType))
 		})
 	}
 }
@@ -114,11 +113,11 @@ func (s nssStore) Add(certs []*x509.Certificate) error {
 		return nil
 	}
 
-	dir, err := ioutil.TempDir("", "cert-manage-nss-add")
+	dir, err := os.MkdirTemp("", "cert-manage-nss-add")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// write each cert out to a file and then add it
 	for i := range certs {
@@ -130,7 +129,7 @@ func (s nssStore) Add(certs []*x509.Certificate) error {
 			return err
 		}
 
-		nick := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
+		nick := strings.ReplaceAll(certutil.StringifyPKIXName(certs[i].Subject), " ", "_")
 		err = cutil.addCertificate(s.foundCertdbLocation, path, nick)
 		if err != nil {
 			return err
@@ -147,7 +146,7 @@ func (s nssStore) Add(certs []*x509.Certificate) error {
 func (s nssStore) Backup() error {
 	// Only backup the first nss cert.db path for now
 	if s.foundCertdbLocation == "" {
-		return errors.New("No NSS cert db paths found")
+		return errors.New("no NSS cert db paths found")
 	}
 
 	names, err := nssProfileFilesToBackup(s.foundCertdbLocation)
@@ -190,7 +189,7 @@ func (s nssStore) Backup() error {
 		copied++
 	}
 	if copied == 0 {
-		return fmt.Errorf("No NSS profile files found under %s", s.foundCertdbLocation)
+		return fmt.Errorf("no NSS profile files found under %s", s.foundCertdbLocation)
 	}
 	return nil
 }
@@ -204,20 +203,20 @@ func nssProfileFilesToBackup(profileDir string) ([]string, error) {
 	if file.Exists(filepath.Join(profileDir, "cert8.db")) {
 		return nssCert8ProfileFiles, nil
 	}
-	return nil, fmt.Errorf("No cert9.db or cert8.db found under %s", profileDir)
+	return nil, fmt.Errorf("no cert9.db or cert8.db found under %s", profileDir)
 }
 
 func (s nssStore) GetLatestBackup() (string, error) {
 	dir, err := getCertManageDir(s.nssType)
 	if err != nil {
-		return "", fmt.Errorf("GetLatestBackup: error getting %s backup directory err=%v", s.nssType, err)
+		return "", fmt.Errorf("getLatestBackup: error getting %s backup directory err=%w", s.nssType, err)
 	}
 	return getLatestBackup(dir)
 }
 
 func (s nssStore) GetInfo() *Info {
 	return &Info{
-		Name:    strings.Title(s.nssType),
+		Name:    titleASCII(s.nssType),
 		Version: s.appVersion,
 	}
 }
@@ -471,14 +470,14 @@ func (c crtutil) listCertsFromDB(path string) ([]certdbItem, error) {
 	for {
 		// read next line
 		line, err := stdout.ReadString(byte('\n'))
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
 
 		// convert the line into a certdbItem
 		nick, trust := c.parseCertdbItem(line)
 		if nick == "" || trust == "" {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			continue // skip blank lines (headers are returned here as blank)
@@ -495,7 +494,7 @@ func (c crtutil) listCertsFromDB(path string) ([]certdbItem, error) {
 		})
 
 		// quit if we hit the end
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 	}
@@ -583,4 +582,15 @@ func (c crtutil) modifyTrustAttributes(path string, nick, trustAttrs string) err
 		fmt.Printf("Command was: \n%s\nOutput was: \n%s\n", strings.Join(cmd.Args, " "), stdout.String())
 	}
 	return err
+}
+
+func titleASCII(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(s)
+	if r[0] >= 'a' && r[0] <= 'z' {
+		r[0] = r[0] - 'a' + 'A'
+	}
+	return string(r)
 }

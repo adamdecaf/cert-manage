@@ -20,7 +20,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,11 +60,11 @@ func (s javaStore) Add(certs []*x509.Certificate) error {
 		return nil
 	}
 
-	dir, err := ioutil.TempDir("", "cert-manage-java-add")
+	dir, err := os.MkdirTemp("", "cert-manage-java-add")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	for i := range certs {
 		// Write each cert to its own file and then add it
@@ -77,7 +76,7 @@ func (s javaStore) Add(certs []*x509.Certificate) error {
 		}
 
 		// this replace is too simplistic
-		alias := strings.Replace(certutil.StringifyPKIXName(certs[i].Subject), " ", "_", -1)
+		alias := strings.ReplaceAll(certutil.StringifyPKIXName(certs[i].Subject), " ", "_")
 		err = ktool.addCertificate(path, alias)
 		if err != nil {
 			return err
@@ -112,7 +111,7 @@ func (s javaStore) Backup() error {
 func (s javaStore) GetLatestBackup() (string, error) {
 	dir, err := getCertManageDir(javaCertManageDir)
 	if err != nil {
-		return "", fmt.Errorf("GetLatestBackup: error reading java backup directory, err=%v", err)
+		return "", fmt.Errorf("getLatestBackup: error reading java backup directory, err=%w", err)
 	}
 	return getLatestBackup(dir)
 }
@@ -133,7 +132,7 @@ func (s javaStore) version() string {
 	// e.g. java version "1.8.0_152"
 	r := regexp.MustCompile(`"([\d\._]+)"`)
 	m := r.FindString(string(out))
-	return strings.Replace(m, `"`, "", -1)
+	return strings.ReplaceAll(m, `"`, "")
 }
 
 // List returns the x509 Certificates from a java TrustStore
@@ -163,7 +162,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 		var details []string
 		for i := range shortCerts {
 			if !shortCerts[i].hasFingerprints() {
-				return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
+				return fmt.Errorf("no fingerprints found for certificate %s", shortCerts[i])
 			}
 			for j := range certs {
 				if shortCerts[i].matches(certs[j]) {
@@ -185,7 +184,7 @@ func (s javaStore) Remove(wh whitelist.Whitelist) error {
 	// compare against all listed certs
 	for i := range shortCerts {
 		if !shortCerts[i].hasFingerprints() {
-			return fmt.Errorf("No fingerprints found for certificate %s", shortCerts[i])
+			return fmt.Errorf("no fingerprints found for certificate %s", shortCerts[i])
 		}
 
 		// Find the cert
@@ -303,7 +302,8 @@ func (k keytool) addCertificate(where string, alias string) error {
 func (k keytool) expandSymlink(p string) (string, error) {
 	bin, err := os.Readlink(p)
 	if err != nil {
-		if _, ok := err.(*os.PathError); !ok {
+		var pe *os.PathError
+		if !errors.As(err, &pe) {
 			// The error was something other than path related, so return it, could be bad
 			return "", err
 		}
@@ -378,7 +378,7 @@ func (k keytool) getKeystorePath() (string, error) {
 		return "", errors.New("store/java: never found java and/or keystore path")
 	}
 	if s.Size() == 0 {
-		return "", fmt.Errorf("Found keystore at %s, but it's an empty file", kpath)
+		return "", fmt.Errorf("found keystore at %s, but it's an empty file", kpath)
 	}
 
 	return kpath, nil
@@ -496,12 +496,12 @@ func (k keytool) getShortCerts() ([]*cert, error) {
 			// Certificate fingerprint (SHA-256): 9A:CF:AB:7E:43:C8:D8:80:D0:6B:26:2A:94:DE:EE:E4:B4:65:99:89:C3:D0:CA:F1:9B:AF:64:05:E4:1A:B7:DF
 			if strings.Contains(curr, "SHA1") {
 				fp := curr[len(curr)-40-19:] // 40 chars from sha1 output, 19 :'s
-				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				fp = strings.ToLower(strings.ReplaceAll(fp, ":", ""))
 				item.sha1Fingerprint = fp
 			}
 			if strings.Contains(curr, "SHA-256") {
 				fp := curr[len(curr)-64-31:] // 64 chars from sha1 output, 31 :'s
-				fp = strings.ToLower(strings.Replace(fp, ":", "", -1))
+				fp = strings.ToLower(strings.ReplaceAll(fp, ":", ""))
 				item.sha256Fingerprint = fp
 			}
 
@@ -509,7 +509,7 @@ func (k keytool) getShortCerts() ([]*cert, error) {
 				if debug {
 					fmt.Printf("store/java: Failed to determine fingerprint algorithm of: %s\n%s\n", item.alias, curr)
 				}
-				return nil, fmt.Errorf("Unable to determine fingerprint of cert: %s", item)
+				return nil, fmt.Errorf("unable to determine fingerprint of cert: %s", item)
 			}
 
 			if debug {
