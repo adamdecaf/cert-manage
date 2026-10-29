@@ -48,7 +48,7 @@ Allowlist files are YAML or JSON. See [docs/allowlists.md](docs/allowlists.md) f
 | [apps](docs/usage.md#apps) | List supported app and platform stores with detection status and paths |
 | [version](docs/usage.md#version) | Print the version |
 
-Allowlisting also applies Chromium's certificate blocklist so known-bad CAs are never kept. That behavior cannot be disabled today.
+Allowlisting also applies Chromium's 2018-05-29 certificate blocklist, so certificates in that bundled list are never kept. That behavior cannot be disabled today.
 
 ## Platform and application support
 
