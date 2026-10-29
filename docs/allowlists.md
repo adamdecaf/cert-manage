@@ -60,12 +60,12 @@ The older `whitelist` command name remains as a hidden alias.
 `cert-manage` supports generating allowlists from browser history. Either all browsers `-from browser` or specific browsers `-from chrome`.
 
 ```
-$ cert-manage gen-allowlist -from browser -out wh.json
+$ cert-manage gen-allowlist -from browser -out wh.yaml
 CA                                             Fingerprint      Count Example DNSNames
 GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
 ...
 
-$ cert-manage gen-allowlist -from chrome -out wh.json
+$ cert-manage gen-allowlist -from chrome -out wh.yaml
 CA                                             Fingerprint      Count Example DNSNames
 GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
 ...
@@ -91,20 +91,17 @@ https://google.com
 https://yahoo.com
 https://bing.com
 
-$ cert-manage gen-allowlist -out wh.json -file urls.txt
+$ cert-manage gen-allowlist -out wh.yaml -file urls.txt
 CA                             Fingerprint      Count Example DNSNames
 DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
 Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com
 GeoTrust Inc.                  ff856a2d251dcd88 1     google.com
 
-$ cat wh.json
-{
-    "Fingerprints": [
-        "7431e5f4c3c1ce4690774f0b61e05440883ba9a01ed00ba6abd7806ed3b118cf",
-        "16af57a9f676b0ab126095aa5ebadef22ab31119d644ac95cd4b93dbf3f26aeb",
-        "ff856a2d251dcd88d36656f450126798cfabaade40799c722de4d2b5db36a73a"
-    ]
-}
+$ cat wh.yaml
+fingerprints:
+    - 7431e5f4c3c1ce4690774f0b61e05440883ba9a01ed00ba6abd7806ed3b118cf
+    - 16af57a9f676b0ab126095aa5ebadef22ab31119d644ac95cd4b93dbf3f26aeb
+    - ff856a2d251dcd88d36656f450126798cfabaade40799c722de4d2b5db36a73a
 ```
 
 
@@ -113,7 +110,7 @@ $ cat wh.json
 There are several services which offer "Top N Domains" lists. Most popular is the [Alexa top sites](https://www.alexa.com/topsites), which offers the list in a csv file. `cert-manage` can generate an allowlist from such a file. The file may also be compressed with gzip.
 
 ```
-$ cert-manage gen-allowlist -out wh.json -file alexa1mil.gz
+$ cert-manage gen-allowlist -out wh.yaml -file alexa1mil.gz
 CA                             Fingerprint      Count Example DNSNames
 DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
 Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com
