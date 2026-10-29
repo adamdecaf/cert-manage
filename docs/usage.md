@@ -12,7 +12,7 @@ Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
 
 ## apps
 
-List every supported application store plus the platform store. For each one, show whether it was found on this machine and the store path. Detection is read-only.
+List every supported application store plus the platform store. For each one, show whether it was found on this machine and the store path. Detection is read-only. Running `apps` also refreshes a 24-hour cache under the user cache directory so `-help` can list which apps were found without probing again.
 
 ```bash
 cert-manage apps

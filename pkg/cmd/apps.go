@@ -29,7 +29,7 @@ import (
 //
 // format is "json" for a JSON array, or empty/"short" for terse lines.
 func ListApps(format string) error {
-	return printApps(os.Stdout, store.DetectStatuses(), format)
+	return printApps(os.Stdout, store.DetectAndCacheStatuses(), format)
 }
 
 func printApps(w io.Writer, statuses []store.Status, format string) error {
