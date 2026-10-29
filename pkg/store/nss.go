@@ -465,24 +465,19 @@ func nssSwapStagedFiles(dst, tmp, aside string, names []string) error {
 		}
 	}
 
-	// Optional test hook: run after the live profile is updated, before cleanup.
-	if testNSSAfterSuccessfulSwap != nil {
-		testNSSAfterSuccessfulSwap(dst, tmp, aside)
-	}
-
 	// Restore already applied; leftover temp/aside paths are warnings only
 	// (same idea as linuxStore.Restore after a successful swap).
-	if err := os.RemoveAll(tmp); err != nil {
+	if err := nssRemoveAll(tmp); err != nil {
 		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", tmp, err)
 	}
-	if err := os.RemoveAll(aside); err != nil {
+	if err := nssRemoveAll(aside); err != nil {
 		fmt.Printf("store/nss: warning: could not fully remove %s after restore: %v (remaining contents may be incomplete)\n", aside, err)
 	}
 	return nil
 }
 
-// testNSSAfterSuccessfulSwap is set by tests to simulate post-swap cleanup failures.
-var testNSSAfterSuccessfulSwap func(dst, tmp, aside string)
+// nssRemoveAll is os.RemoveAll; tests swap it to simulate cleanup failures.
+var nssRemoveAll = os.RemoveAll
 
 // certdbItem represents an x509 Certificate with the NSS trust attributes
 type certdbItem struct {

@@ -16,6 +16,7 @@ package store
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -672,16 +673,12 @@ func nssPathExists(t *testing.T, path string) bool {
 }
 
 func TestStoreNSS_AsideCleanupFailureWarns(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("root bypasses directory mode 0555; aside cleanup cannot be blocked by permissions")
-	}
 	// After a successful restore, a leftover *.restore-old is a warning, not an error.
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
-	parent := t.TempDir()
-	nssdbDir := filepath.Join(parent, "nssdb")
+	nssdbDir := filepath.Join(t.TempDir(), "nssdb")
 	if err := os.MkdirAll(nssdbDir, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -695,15 +692,14 @@ func TestStoreNSS_AsideCleanupFailureWarns(t *testing.T) {
 	}
 
 	aside := nssdbDir + ".restore-old"
-	testNSSAfterSuccessfulSwap = func(dst, tmp, asidePath string) {
-		if err := os.Chmod(parent, 0555); err != nil {
-			t.Fatalf("chmod parent: %v", err)
+	orig := nssRemoveAll
+	nssRemoveAll = func(path string) error {
+		if path == aside {
+			return errors.New("aside locked")
 		}
+		return orig(path)
 	}
-	t.Cleanup(func() {
-		testNSSAfterSuccessfulSwap = nil
-		_ = os.Chmod(parent, 0755)
-	})
+	t.Cleanup(func() { nssRemoveAll = orig })
 
 	r, w, err := os.Pipe()
 	if err != nil {
