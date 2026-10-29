@@ -17,7 +17,7 @@
 
 package store
 
-import "github.com/adamdecaf/cert-manage/pkg/file"
+import "github.com/adamdecaf/trustprune/pkg/file"
 
 func detectPlatform() Status {
 	s := Status{Name: "platform"}

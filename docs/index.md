@@ -43,10 +43,11 @@ cert-manage restore -app java
 | [Basics](basics.md) | Command walkthrough (list, add, backup/restore, connect) |
 | [Whitelists](whitelists.md) | Allowlist format and generating from browser history |
 | [Why this matters](why.md) | Research and CA incidents that motivate the tool |
+| [Blog](blog.md) | Posts |
 | [Papers](papers/) | Related research PDFs |
 
 ## Source
 
-- [GitHub repository](https://github.com/adamdecaf/cert-manage)
-- [Releases](https://github.com/adamdecaf/cert-manage/releases)
-- License: [Apache 2.0](https://github.com/adamdecaf/cert-manage/blob/master/LICENSE)
+- [GitHub repository](https://github.com/adamdecaf/trustprune)
+- [Releases](https://github.com/adamdecaf/trustprune/releases)
+- License: [Apache 2.0](https://github.com/adamdecaf/trustprune/blob/master/LICENSE)

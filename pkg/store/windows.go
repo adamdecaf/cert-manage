@@ -27,9 +27,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 // Docs:

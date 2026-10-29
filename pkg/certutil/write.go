@@ -20,7 +20,7 @@ import (
 	"encoding/pem"
 	"os"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 )
 
 // ToFile overwrites file at `path` with the certificates encoded in

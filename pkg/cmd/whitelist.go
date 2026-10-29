@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/adamdecaf/cert-manage/pkg/store"
-	"github.com/adamdecaf/cert-manage/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 func WhitelistForApp(app, whpath string) error {

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
 )
 
 func enableDryRunCaptureAny(t *testing.T) *bytes.Buffer {

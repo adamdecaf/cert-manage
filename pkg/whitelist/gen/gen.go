@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
 )
 
 var (

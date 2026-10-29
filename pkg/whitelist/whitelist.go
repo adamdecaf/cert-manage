@@ -21,8 +21,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/file"
 	"gopkg.in/yaml.v3"
 )
 

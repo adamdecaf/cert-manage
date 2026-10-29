@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 )
 
 func TestStoreChrome__info(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamdecaf/cert-manage/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/whitelist"
 )
 
 // emptyStore represents a Store which has no implementation

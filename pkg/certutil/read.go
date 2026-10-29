@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/adamdecaf/cert-manage/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/file"
 )
 
 // FromFile reads a series of PEM encoded blocks from the given file

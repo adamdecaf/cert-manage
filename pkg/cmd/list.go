@@ -20,10 +20,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/httputil"
-	"github.com/adamdecaf/cert-manage/pkg/store"
-	"github.com/adamdecaf/cert-manage/pkg/ui"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/httputil"
+	"github.com/adamdecaf/trustprune/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/ui"
 )
 
 var (

@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
 )
 
 func TestWhitelist_nocert(t *testing.T) {
