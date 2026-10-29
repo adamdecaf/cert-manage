@@ -33,7 +33,7 @@ cert-manage restore -app java
 
 Whitelist files are YAML or JSON. See [docs/whitelists.md](docs/whitelists.md) for fingerprints, country filters, and generating a whitelist from browser history.
 
-> **Safety first:** Prefer experimenting against temp or container stores. Do not run `restore` against a real system CA directory until the restore fixes land (see [Safety](#safety)). Back up first, every time.
+> **Safety first:** Prefer experimenting against temp or container stores when learning. Back up first, every time. See [Safety](#safety) and the [docs site](https://adamdecaf.github.io/cert-manage/).
 
 ## Features
 
@@ -65,21 +65,20 @@ Honest status as of late October 2026. Levels match what the code does today.
 | Level | Application | Notes |
 |-------|-------------|--------|
 | **Supported** | Java (`cacerts`) | Paths differ by distro and JDK vendor; use `-app java`. Windows needs a usable `JAVA_HOME` / cacerts path. |
-| **Partial** | Chrome | Linux uses NSS (`~/.pki/nssdb`); Darwin/Windows wrap the platform store. NSS backup bug [#142](https://github.com/adamdecaf/cert-manage/issues/142). |
-| **Partial** | Firefox | NSS profile `cert8.db` / `cert9.db`. Same NSS backup bug [#142](https://github.com/adamdecaf/cert-manage/issues/142). |
+| **Partial** | Chrome | Linux uses NSS (`~/.pki/nssdb`); Darwin/Windows wrap the platform store. |
+| **Partial** | Firefox | NSS profile `cert8.db` / `cert9.db`. |
 | **Stub** | OpenSSL | Add / rehash paths exist; list, backup, remove, and restore are no-ops |
 
-**Known issue — NSS backup ([#142](https://github.com/adamdecaf/cert-manage/issues/142)):** NSS backup currently joins the certdb directory with the wrong basename, so the real `cert9.db` / `cert8.db` may never be copied. Do not rely on NSS backups for Chrome or Firefox until that fix ships. Round-trip tests document this without changing production behavior yet.
 
 ## Safety
 
 Certificate-store edits can break HTTPS for browsers, package managers, and language runtimes. Treat every change as privileged.
 
 1. **Backup first.** Whitelisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any whitelist.
-2. **Do not restore against real system stores yet.** Linux restore currently deletes the live CA directory before copying the backup back. A failed copy can leave the machine with an empty CA dir. Until the temp-dir-then-swap fix merges, practice restore only on temp or container fixtures — never on `/etc` or `/usr` CA paths on a machine you care about.
-3. **Linux restore ignores `where` / `-file`.** The CLI accepts `-file`, but `linuxStore.Restore` always uses the latest backup under `~/.cert-manage/linux/`.
-4. **NSS backups are incomplete** until [#142](https://github.com/adamdecaf/cert-manage/issues/142) is fixed (see above).
-5. **`-dry-run` is not implemented yet**. Until then, use `list` and `connect` to inspect impact, and keep a known-good backup.
+2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
+3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `whitelist` accept `-dry-run` to print the plan without writing to any store.
+
+Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA directory intact, and `-file` / `where` is honored on Linux, Java, and NSS. NSS backups copy `cert9.db` / `cert8.db` and related profile files. Darwin restore still always uses the latest backup (`where` unused). Full detail: [Backup and restore](https://adamdecaf.github.io/cert-manage/backup-restore).
 
 ## Install
 
@@ -125,7 +124,7 @@ cert-manage add -file cert.pem -app java
 cert-manage backup
 cert-manage whitelist -file urls.yaml
 cert-manage restore                 # latest backup
-cert-manage restore -file <path>    # note: Linux currently ignores -file
+cert-manage restore -file <path>    # explicit backup path
 
 # Generate a whitelist
 cert-manage gen-whitelist -out whitelist.json -from firefox
