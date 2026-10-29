@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/adamdecaf/trustprune/pkg/file"
 )
@@ -32,7 +33,9 @@ var (
 	gzipHeader = []byte{0x1f, 0x8b}
 )
 
-// FromFile reads a text file and grabs urls separated by newlines
+// FromFile reads a text file and grabs urls separated by newlines.
+// Lines may be full URLs, or Tranco/Alexa/Cisco-style "rank,domain" CSV rows
+// (https:// is prefixed onto the domain). Gzip-compressed files are accepted.
 func FromFile(path string) ([]*url.URL, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -47,6 +50,7 @@ func FromFile(path string) ([]*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = fd.Close() }()
 	var res []*url.URL
 	rdr := bufio.NewScanner(decodeIfGzipped(fd))
 
@@ -54,6 +58,9 @@ func FromFile(path string) ([]*url.URL, error) {
 		if u := findURLInLine(rdr.Text()); u != nil {
 			res = append(res, u)
 		}
+	}
+	if err := rdr.Err(); err != nil {
+		return nil, err
 	}
 	return res, nil
 }
@@ -78,25 +85,59 @@ func decodeIfGzipped(r io.Reader) io.Reader {
 }
 
 // findURLInLine attempts to find the first url embedded in a line
-// of plain text
+// of plain text.
 //
-// This would be from a file just containing URLS or a "top n domains"
-// from a service like alexa or cisco.
+// Supported forms:
+//   - full URLs (https://example.com)
+//   - Tranco/Alexa/Cisco "rank,domain" CSV rows (1,google.com)
 //
-// e.g. 1,google.com
+// Bare domains without a scheme are not accepted outside the CSV form.
 func findURLInLine(line string) *url.URL {
-	// Split on , -- usually from the "top n domains" files
-	parts := strings.Split(line, ",")
-	for i := range parts {
-		parts[i] = strings.TrimSpace(parts[i])
-		if parts[i] == "" {
-			continue
-		}
-		// return whatever parses as a URL
-		u, err := url.Parse(parts[i])
-		if err == nil {
-			return u
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, "#") {
+		return nil
+	}
+
+	if domain, ok := parseRankDomain(line); ok {
+		return httpsURL(domain)
+	}
+
+	u, err := url.Parse(line)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil
+	}
+	return u
+}
+
+// parseRankDomain recognizes "rank,domain" rows used by Tranco, Alexa, and Cisco.
+// The rank must be a positive integer; the domain is the remainder after the first comma.
+func parseRankDomain(line string) (domain string, ok bool) {
+	rank, domain, found := strings.Cut(line, ",")
+	if !found {
+		return "", false
+	}
+	rank = strings.TrimSpace(rank)
+	domain = strings.TrimSpace(domain)
+	if rank == "" || domain == "" {
+		return "", false
+	}
+	for _, r := range rank {
+		if !unicode.IsDigit(r) {
+			return "", false
 		}
 	}
-	return nil
+	// Reject domains that already look like a URL with a scheme; those belong
+	// on their own line as full URLs.
+	if strings.Contains(domain, "://") {
+		return "", false
+	}
+	return domain, true
+}
+
+func httpsURL(domain string) *url.URL {
+	u, err := url.Parse("https://" + domain)
+	if err != nil || u.Host == "" {
+		return nil
+	}
+	return u
 }

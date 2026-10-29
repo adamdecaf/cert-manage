@@ -107,11 +107,11 @@ fingerprints:
 
 ##### CSV files
 
-There are several services which offer "Top N Domains" lists, such as the [Tranco list](https://tranco-list.eu/). These are usually `rank,domain` CSV files, which `cert-manage` doesn't parse directly. Convert one to a file with one `https://` URL per line first, keeping only the top N domains you want to scan. The resulting file may also be gzip-compressed.
+There are several services which offer "Top N Domains" lists, such as the [Tranco list](https://tranco-list.eu/). These are usually `rank,domain` CSV files. `gen-allowlist -file` reads that format directly and prefixes `https://` onto each domain. Keep only the top N rows you want to scan (for example with `head`). The file may also be gzip-compressed. One `https://` URL per line still works.
 
 ```
-$ unzip -p tranco.zip | head -n 1000 | cut -d, -f2 | sed 's|^|https://|' > top-sites.txt
-$ cert-manage gen-allowlist -out wh.yaml -file top-sites.txt
+$ unzip -p tranco.zip | head -n 1000 > top-sites.csv
+$ trustprune gen-allowlist -out wh.yaml -file top-sites.csv
 CA                             Fingerprint      Count Example DNSNames
 DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
 Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com

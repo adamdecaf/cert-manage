@@ -275,19 +275,20 @@ APPS
 			}
 			return cmd.GenerateAllowlist(*flagOutFile, *flagFrom, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage gen-allowlist -out <where> [-file <file>] [-from <type>]
+		help: fmt.Sprintf(`Usage: trustprune gen-allowlist -out <where> [-file <file>] [-from <type>]
 
   Generate an allowlist and write it to the filesystem. (At wherever -out points to.)
   The -out extension chooses the format: .json writes JSON; .yaml or .yml writes YAML.
 
-  Also, you can pass -file to read a newline delimited file of URL's.
-    cert-manage gen-allowlist -file <path> -out allowlist.yaml
+  Also, you can pass -file to read newline-delimited https URLs, or a Tranco-style
+  rank,domain CSV (https:// is prefixed onto each domain). Gzip files are accepted.
+    trustprune gen-allowlist -file <path> -out allowlist.yaml
 
   Generate an allowlist from browser history
-    cert-manage gen-allowlist -from firefox -out allowlist.json
+    trustprune gen-allowlist -from firefox -out allowlist.json
 
   Generate an allowlist from all browsers on a computer
-    cert-manage gen-allowlist -from browsers -out allowlist.yaml
+    trustprune gen-allowlist -from browsers -out allowlist.yaml
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
