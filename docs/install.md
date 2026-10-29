@@ -1,0 +1,45 @@
+---
+layout: default
+title: Install
+---
+
+# Install
+
+Module version on `master` is `0.1.1-dev`. Tagged releases start at `0.1.0`. Building requires **Go 1.27**.
+
+## Release binaries
+
+Download a pre-built binary from the [latest release](https://github.com/adamdecaf/cert-manage/releases).
+
+Cross-compile locally with Make (outputs under `bin/`):
+
+```bash
+make linux    # bin/cert-manage-linux-$(GOARCH)
+make osx      # bin/cert-manage-osx-$(GOARCH)
+make win      # bin/cert-manage-$(GOARCH).exe
+make dist     # all three
+```
+
+## go install
+
+```bash
+go install github.com/adamdecaf/cert-manage@latest
+```
+
+## Build from source
+
+```bash
+git clone https://github.com/adamdecaf/cert-manage.git
+cd cert-manage
+make build          # vet + unit tests + ./cert-manage
+```
+
+Useful test targets:
+
+```bash
+make check                 # vet + unit tests under ./pkg and .
+make test                  # check + Docker-backed integration when available
+MOCKED=true make test      # skip Docker-backed tests
+```
+
+[← Home](index.md)

@@ -1,0 +1,160 @@
+---
+layout: default
+title: Usage
+---
+
+# Usage
+
+Global flags work with the subcommands that accept them. There is **no `-dry-run` flag** on `master` yet (planned). Until it exists, inspect with `list` and `connect`, and keep a known-good backup.
+
+Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
+
+## list
+
+Show trusted certificates from the platform store, an app store, a local file, or a remote URL.
+
+```bash
+cert-manage list
+cert-manage list -count
+cert-manage list -app java
+cert-manage list -file example.crt
+cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-app <name>` | List from an application store |
+| `-file <path>` | List certificates from a local file (PEM or similar) |
+| `-url <endpoint>` | Download and list (PEM or Mozilla `certdata.txt`) |
+| `-count` | Print only the number of certificates |
+| `-format <fmt>` | Output format: `short` (default), `table`, `openssl`, `observatory` |
+| `-ui <type>` | Presentation: `cli` (default) or `web` (local page) |
+
+## backup
+
+Capture the current trust store so you can restore later. Whitelisting refuses to run without a prior backup for that store.
+
+```bash
+cert-manage backup
+cert-manage backup -app java
+cert-manage backup -app chrome
+cert-manage backup -app firefox
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-app <name>` | Back up that application's store instead of the platform |
+
+See [Backup and restore](backup-restore.md) for where files land.
+
+## restore
+
+Revert to a backup. With no `-file`, uses the latest backup for that store. With `-file`, passes that path into the store's `Restore` (honored on Linux, Java, and NSS; Darwin currently ignores it — see platforms).
+
+```bash
+cert-manage restore
+cert-manage restore -file /path/to/backup
+cert-manage restore -app java
+cert-manage restore -app java -file /path/to/cacerts.bck
+cert-manage restore -app chrome
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-app <name>` | Restore that application's store |
+| `-file <path>` | Explicit backup path (directory or file, depending on the store) |
+
+## whitelist
+
+Distrust certificates that are **not** on the allowlist. Requires `-file` and a prior backup. Always applies Chromium's certificate blacklist so known-bad CAs are never kept (cannot be disabled).
+
+Whitelist files are YAML or JSON with optional `fingerprints` (SHA-256) and `countries` (ISO 3166-1 alpha-2).
+
+```bash
+cert-manage whitelist -file whitelist.yaml
+cert-manage whitelist -file whitelist.json -app java
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-file <path>` | **Required.** Path to the whitelist |
+| `-app <name>` | Apply against an application store |
+
+Example YAML:
+
+```yaml
+fingerprints:
+  - "050cf9fa95e40e9bddedaeda6961f6168c1279c4660172479cdd51ab03cea62c"
+countries:
+  - "US"
+  - "JP"
+```
+
+## gen-whitelist
+
+Build a whitelist from browser history and/or a URL list file.
+
+```bash
+cert-manage gen-whitelist -out whitelist.json -from firefox
+cert-manage gen-whitelist -out whitelist.json -from browsers
+cert-manage gen-whitelist -out whitelist.json -from chrome,firefox
+cert-manage gen-whitelist -out whitelist.json -file urls.txt
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-out <path>` | **Required.** Where to write the whitelist |
+| `-from <types>` | Comma-separated sources: `browser` / `browsers`, `chrome`, `firefox`, `safari`, `file` |
+| `-file <path>` | Newline- or comma-delimited URLs (plain text or gzip CSV-style “top N” lists) |
+
+## add
+
+Add certificate(s) from a file into the platform or an app store.
+
+```bash
+cert-manage add -file cert.pem
+cert-manage add -file cert.pem -app java
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-file <path>` | **Required.** Certificate file to import |
+| `-app <name>` | Target an application store |
+
+## connect
+
+Attempt an HTTPS connection using the platform store or an app store. Useful after whitelist or restore.
+
+```bash
+cert-manage connect https://example.com
+cert-manage connect -app java https://example.com
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-app <name>` | Use that application's certificates for the TLS handshake |
+
+The URL must use the `https` scheme.
+
+## version
+
+```bash
+cert-manage version
+```
+
+Prints the tool version and Go runtime version.
+
+## Debugging
+
+Environment variables (not CLI flags):
+
+| Variable | Effect |
+|----------|--------|
+| `DEBUG=1` | Debug logging (`GODEBUG=x509roots=1` also enables Go root debugging) |
+| `TRACE=<path>` | Write a binary execution trace to `<path>` |
+
+## Coming soon
+
+- **`-dry-run`** — not implemented on `master`. Planned so destructive commands can show what would change without writing.
+
+[← Home](index.md)
