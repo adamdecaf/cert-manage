@@ -58,7 +58,17 @@ NSS backups for Chrome (Linux) and Firefox copy whichever members of the profile
 | `cert9.db` present | `cert9.db`, `key4.db`, `pkcs11.txt` |
 | else `cert8.db` | `cert8.db`, `key3.db`, `secmod.db` |
 
-Restore from a **directory** copies that same set back into the live profile. Restore from a **legacy single file** copies onto `cert9.db` (or `cert8.db` if the backup basename contains `cert8`). Explicit `-file` / `where` is honored.
+### Temp-dir swap and rollback
+
+`nssStore.Restore` does **not** copy profile files straight onto the live paths. It:
+
+1. Stages the backup set into a sibling temp directory (`<profile>.restore-tmp`).
+2. Moves each existing live file aside under `<profile>.restore-old/` (and prints that path).
+3. Renames each staged file into the live profile.
+4. On any staging or swap failure, rolls live files back from the aside directory and removes the temp dirs.
+5. On success, removes the temp and aside directories.
+
+A failed stage leaves the live profile files untouched. Restore from a **legacy single file** uses the same stage-then-swap path onto `cert9.db` (or `cert8.db` if the backup basename contains `cert8`). Explicit `-file` / `where` is honored.
 
 ## Java
 
