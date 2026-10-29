@@ -1,6 +1,6 @@
 # cert-manage
 
-[![CI](https://github.com/adamdecaf/cert-manage/actions/workflows/ci.yml/badge.svg)](https://github.com/adamdecaf/cert-manage/actions/workflows/ci.yml)
+[![CI](https://github.com/adamdecaf/trustprune/actions/workflows/ci.yml/badge.svg)](https://github.com/adamdecaf/trustprune/actions/workflows/ci.yml)
 
 **Your machine trusts hundreds of Certificate Authorities by default. Most of them you have never heard of. One bad CA is enough to break HTTPS for everyone who trusts it.**
 
@@ -82,11 +82,11 @@ Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA d
 
 ## Install
 
-Download a binary from the [latest release](https://github.com/adamdecaf/cert-manage/releases) (tagged `0.1.0`; module version is `0.1.1-dev`), or build from source (Go **1.27** required):
+Download a binary from the [latest release](https://github.com/adamdecaf/trustprune/releases) (tagged `0.1.0`; module version is `0.1.1-dev`), or build from source (Go **1.27** required):
 
 ```bash
-git clone https://github.com/adamdecaf/cert-manage.git
-cd cert-manage
+git clone https://github.com/adamdecaf/trustprune.git
+cd trustprune
 make build          # produces ./cert-manage
 # or cross-compile:
 make dist           # linux / osx / windows binaries under bin/
@@ -95,8 +95,10 @@ make dist           # linux / osx / windows binaries under bin/
 You can also install with the Go toolchain:
 
 ```bash
-go install github.com/adamdecaf/cert-manage@latest
+go install github.com/adamdecaf/trustprune@latest
 ```
+
+That installs a binary named `trustprune` (Go uses the last path element). Until the binary rename in #251, prefer `make build` above if you want the `cert-manage` command name.
 
 ### Usage examples
 

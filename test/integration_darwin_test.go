@@ -28,9 +28,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/file"
-	"github.com/adamdecaf/cert-manage/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/file"
+	"github.com/adamdecaf/trustprune/pkg/store"
 )
 
 var (

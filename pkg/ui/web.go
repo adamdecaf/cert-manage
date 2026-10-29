@@ -23,8 +23,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/ui/server"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/ui/server"
 )
 
 const (

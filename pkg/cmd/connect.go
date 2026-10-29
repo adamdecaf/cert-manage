@@ -20,8 +20,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/adamdecaf/cert-manage/pkg/httputil"
-	"github.com/adamdecaf/cert-manage/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/httputil"
+	"github.com/adamdecaf/trustprune/pkg/store"
 )
 
 func ConnectWithPlatformStore(uri *url.URL) error {

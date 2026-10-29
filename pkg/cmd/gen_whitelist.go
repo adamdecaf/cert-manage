@@ -26,10 +26,10 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
-	"github.com/adamdecaf/cert-manage/pkg/store"
-	"github.com/adamdecaf/cert-manage/pkg/whitelist"
-	"github.com/adamdecaf/cert-manage/pkg/whitelist/gen"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/whitelist"
+	"github.com/adamdecaf/trustprune/pkg/whitelist/gen"
 )
 
 var (

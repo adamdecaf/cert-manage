@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/adamdecaf/cert-manage/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/store"
 )
 
 // ListApps prints every supported app store plus the platform store, and

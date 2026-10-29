@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/adamdecaf/cert-manage/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/store"
 )
 
 func TestPrintAppsTerse(t *testing.T) {

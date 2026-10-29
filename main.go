@@ -23,9 +23,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/adamdecaf/cert-manage/pkg/cmd"
-	"github.com/adamdecaf/cert-manage/pkg/store"
-	"github.com/adamdecaf/cert-manage/pkg/ui"
+	"github.com/adamdecaf/trustprune/pkg/cmd"
+	"github.com/adamdecaf/trustprune/pkg/store"
+	"github.com/adamdecaf/trustprune/pkg/ui"
 )
 
 const Version = "0.1.1-dev"

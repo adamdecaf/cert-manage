@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adamdecaf/cert-manage/pkg/certutil"
+	"github.com/adamdecaf/trustprune/pkg/certutil"
 )
 
 func TestGen__caSigns(t *testing.T) {
