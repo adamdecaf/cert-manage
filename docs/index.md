@@ -43,6 +43,7 @@ cert-manage restore -app java
 | [Basics](basics.md) | Command walkthrough (list, add, backup/restore, connect) |
 | [Whitelists](whitelists.md) | Allowlist format and generating from browser history |
 | [Why this matters](why.md) | Research and CA incidents that motivate the tool |
+| [Blog](blog.md) | Posts |
 | [Papers](papers/) | Related research PDFs |
 
 ## Source
