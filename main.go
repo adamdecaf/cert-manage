@@ -110,7 +110,7 @@ DEBUGGING
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
 			getVersion(),
-			strings.Join(store.GetApps(), ", "),
+			store.FormatAppsHelpLine(),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
 			ui.DefaultFormat(),
@@ -201,7 +201,7 @@ func main() {
     cert-manage add -file <path> -app <name>
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	commands["apps"] = &command{
 		fn: func() error {
@@ -238,7 +238,7 @@ APPS
   Backup a certificate store. This can be done for the platform or a given app.
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	commands["connect"] = &command{
 		fn: func() error {
@@ -261,7 +261,7 @@ Attempt an HTTP connect to <url> with the given certificate store. If -app is pr
 the certificates for that application are loaded and used for the connection.
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	genAllowlistCmd := &command{
 		fn: func() error {
@@ -285,7 +285,7 @@ APPS
     cert-manage gen-allowlist -from browsers -out allowlist.yaml
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	commands["gen-allowlist"] = genAllowlistCmd
 	commands["gen-whitelist"] = genAllowlistCmd // hidden alias
@@ -334,7 +334,7 @@ APPS
 			strings.Join(ui.GetFormats(), ", "),
 			ui.DefaultUI(),
 			strings.Join(ui.GetUIs(), ", "),
-			strings.Join(store.GetApps(), ", ")),
+			store.FormatAppsHelpLine()),
 	}
 	commands["restore"] = &command{
 		fn: func() error {
@@ -355,7 +355,7 @@ APPS
     cert-manage restore -app java
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	allowlistCmd := &command{
 		fn: func() error {
@@ -381,7 +381,7 @@ APPS
     cert-manage allowlist -file allowlist.json -app java
 
 APPS
-  Supported apps: %s`, strings.Join(store.GetApps(), ", ")),
+  Supported apps: %s`, store.FormatAppsHelpLine()),
 	}
 	commands["allowlist"] = allowlistCmd
 	commands["whitelist"] = allowlistCmd // hidden alias

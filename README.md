@@ -33,7 +33,7 @@ cert-manage restore -app java
 
 Allowlist files are YAML or JSON. See [docs/allowlists.md](docs/allowlists.md) for fingerprints, country filters, and generating an allowlist from browser history.
 
-> **Safety first:** Prefer experimenting against temp or container stores when learning. Back up first, every time. See [Safety](#safety) and the [docs site](https://adamdecaf.github.io/cert-manage/).
+> **Safety first:** Prefer experimenting against temp or container stores when learning. Back up first, every time. See [Safety](#safety) and the [docs site](https://trustprune.com/).
 
 ## Features
 
@@ -45,6 +45,8 @@ Allowlist files are YAML or JSON. See [docs/allowlists.md](docs/allowlists.md) f
 | [add](docs/basics.md#add) | Add certificates to a store |
 | [connect](docs/basics.md#connect) | Probe a remote HTTPS host using a chosen store |
 | [gen-allowlist](docs/allowlists.md#generating-allowlists) | Build an allowlist from browser history or URL lists |
+| [apps](docs/usage.md#apps) | List supported app and platform stores with detection status and paths |
+| [version](docs/usage.md#version) | Print the version |
 
 Allowlisting also applies Chromium's certificate blocklist so known-bad CAs are never kept. That behavior cannot be disabled today.
 
@@ -56,7 +58,7 @@ Honest status as of late October 2026. Levels match what the code does today.
 
 | Level | Platform | Notes |
 |-------|----------|--------|
-| **Supported** | Linux (Alpine, Debian, Ubuntu) | System CA dir list, add, allowlist, backup, restore (see Safety) |
+| **Supported** | Linux (Alpine, Debian, Ubuntu, Fedora/RHEL `/etc/pki/ca-trust`) | System CA dir list, add, allowlist, backup, restore (see Safety) |
 | **Partial** | Darwin / macOS | Keychain-backed list/add/allowlist/backup/restore; system roots are SIP-protected; restore `where` support is incomplete |
 | **List-only** | Windows | `list` works (PowerShell export of machine stores); add, backup, allowlist, and restore are not implemented yet |
 
@@ -78,7 +80,7 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
 3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `allowlist` accept `-dry-run` to print the plan without writing to any store.
 
-Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA directory intact, and `-file` / `where` is honored on Linux, Java, and NSS. NSS backups copy `cert9.db` / `cert8.db` and related profile files. Darwin restore still always uses the latest backup (`where` unused). Full detail: [Backup and restore](https://adamdecaf.github.io/cert-manage/backup-restore).
+Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA directory intact, and `-file` / `where` is honored on Linux, Java, and NSS. NSS backups copy `cert9.db` / `cert8.db` and related profile files. Darwin restore still always uses the latest backup (`where` unused). Full detail: [Backup and restore](https://trustprune.com/backup-restore).
 
 ## Install
 
