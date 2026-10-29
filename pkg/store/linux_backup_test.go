@@ -387,6 +387,9 @@ func TestLinuxRestore_LogsAsidePath(t *testing.T) {
 }
 
 func TestLinuxRestore_LogsAsidePathWhenKept(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses directory mode 0555; rollback cannot be blocked by permissions")
+	}
 	// When refresh fails and rollback cannot move live aside, *.restore-old
 	// is kept and must be printed for the operator.
 	s := linuxTestStore(t)
@@ -397,10 +400,11 @@ func TestLinuxRestore_LogsAsidePathWhenKept(t *testing.T) {
 	parent := filepath.Dir(s.ca.dir)
 
 	script := filepath.Join(t.TempDir(), "refresh-fail.sh")
-	body := "#!/bin/sh\nchmod 555 " + parent + "\nexit 1\n"
+	body := "#!/bin/sh\nchmod 555 \"$PARENT\"\nexit 1\n"
 	if err := os.WriteFile(script, []byte(body), 0755); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("PARENT", parent)
 	s.ca.refresh = script
 	t.Cleanup(func() { _ = os.Chmod(parent, 0755) })
 

@@ -313,10 +313,13 @@ func (s linuxStore) Restore(where string) error {
 	}
 
 	if err := os.Rename(tmp, s.ca.dir); err != nil {
-		if liveExists {
-			_ = os.Rename(aside, s.ca.dir)
-		}
 		_ = os.RemoveAll(tmp)
+		if liveExists {
+			if rerr := os.Rename(aside, s.ca.dir); rerr != nil {
+				fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
+				return fmt.Errorf("%w (previous CA dir still at %s)", err, aside)
+			}
+		}
 		return err
 	}
 
@@ -342,7 +345,10 @@ func (s linuxStore) Restore(where string) error {
 	}
 
 	if liveExists {
-		_ = os.RemoveAll(aside)
+		if err := os.RemoveAll(aside); err != nil {
+			fmt.Printf("store/linux: previous CA directory moved aside to %s\n", aside)
+			return fmt.Errorf("linux restore applied, but cleanup failed: remove %s: %w", aside, err)
+		}
 	}
 	return nil
 }
