@@ -15,7 +15,10 @@
 package allowlist
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -272,5 +275,49 @@ func TestAllowlist_blocklistRejectsMatch(t *testing.T) {
 	al := Allowlist{Fingerprints: []string{fp}}
 	if al.Matches(certs[0]) {
 		t.Fatal("blocklisted fingerprint should not match even if it is on the allowlist")
+	}
+}
+
+
+func TestAllowlist_ToFileFormat(t *testing.T) {
+	al := Allowlist{Fingerprints: []string{"abc"}}
+	dir := t.TempDir()
+
+	jsonPath := filepath.Join(dir, "out.json")
+	if err := al.ToFile(jsonPath); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(jsonPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw[0] != '{' {
+		t.Fatalf("expected JSON object, got %q", raw)
+	}
+	var decoded Allowlist
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("json decode: %v\n%s", err, raw)
+	}
+	if len(decoded.Fingerprints) != 1 || decoded.Fingerprints[0] != "abc" {
+		t.Fatalf("decoded=%+v", decoded)
+	}
+
+	yamlPath := filepath.Join(dir, "out.yaml")
+	if err := al.ToFile(yamlPath); err != nil {
+		t.Fatal(err)
+	}
+	raw, err = os.ReadFile(yamlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("{")) {
+		t.Fatalf("expected YAML, got %q", raw)
+	}
+	al2, err := FromFile(yamlPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(al2.Fingerprints) != 1 {
+		t.Fatalf("yaml round-trip: %+v", al2)
 	}
 }
