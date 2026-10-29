@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Fingerprints are derived from Chromium's net/data/ssl/blacklist data,
+// Copyright The Chromium Authors, used under a BSD-style license. See NOTICE.
 // Generated on 2018-05-29T09:11:15Z by adam, any modifications will be overwritten
 package whitelist
 
