@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -69,7 +70,7 @@ var (
 
 func init() {
 	fs.Usage = func() {
-		fmt.Printf(`Usage of cert-manage version %s
+		fmt.Printf(`Usage of trustprune version %s
 SUB-COMMANDS
   add           Add certificate(s) to a store
 
@@ -87,7 +88,7 @@ SUB-COMMANDS
 
   restore       Revert the certificate trust back to, optionally takes -file <path>
 
-  version       Show the version of cert-manage
+  version       Show the version of trustprune
 
 APPS
   Supported apps: %s
@@ -107,7 +108,7 @@ OUTPUT
   -v      Show full fingerprints, serials, and paths in table output
 
 DEBUGGING
-  Alongside command line flags are two environment variables read by cert-manage:
+  Alongside command line flags are two environment variables read by trustprune:
   - DEBUG=1        Enables debug logging, GODEBUG=x509roots=1 also works and enables Go's debugging
   - TRACE=<where>  Saves a binary trace file at <where> of the execution
 `,
@@ -147,6 +148,7 @@ func trace() *cmd.Trace {
 }
 
 func main() {
+	maybePrintCertManageAliasNotice(os.Args[0])
 	t := trace()
 	defer func() {
 		err := t.Stop()
@@ -195,13 +197,13 @@ func main() {
 			}
 			return cmd.AddCertsToAppFromFile(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage add -file <path> [-app <name>] [-dry-run]
+		help: fmt.Sprintf(`Usage: trustprune add -file <path> [-app <name>] [-dry-run]
 
   Add a certificate to the platform store
-    cert-manage add -file <path>
+    trustprune add -file <path>
 
   Add a certificate to an application's store
-    cert-manage add -file <path> -app <name>
+    trustprune add -file <path> -app <name>
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
@@ -211,9 +213,9 @@ APPS
 			return cmd.ListApps(*flagFormat)
 		},
 		appfn: func(a string) error {
-			return fmt.Errorf("apps does not accept -app; remove -app %q and run: cert-manage apps", a)
+			return fmt.Errorf("apps does not accept -app; remove -app %q and run: trustprune apps", a)
 		},
-		help: `Usage: cert-manage apps [-format json]
+		help: `Usage: trustprune apps [-format json]
 
   List every supported application store plus the platform store, and show
   whether each was found on this machine along with its store path.
@@ -226,7 +228,7 @@ APPS
     platform  found      /etc/ssl/certs/ca-certificates.crt
 
   JSON output:
-    cert-manage apps -format json
+    trustprune apps -format json
 `,
 	}
 	commands["backup"] = &command{
@@ -236,7 +238,7 @@ APPS
 		appfn: func(a string) error {
 			return cmd.BackupForApp(a)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage backup [-app <name>] [-dry-run]
+		help: fmt.Sprintf(`Usage: trustprune backup [-app <name>] [-dry-run]
 
   Backup a certificate store. This can be done for the platform or a given app.
 
@@ -258,7 +260,7 @@ APPS
 			}
 			return cmd.ConnectWithAppStore(u, *flagApp)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage connect [-app <name>] (-url <url> | <url>)
+		help: fmt.Sprintf(`Usage: trustprune connect [-app <name>] (-url <url> | <url>)
 
 Attempt an HTTP connect to a URL with the given certificate store. Pass the URL as
 -url <url> or as a positional argument. If -app is provided then the certificates for
@@ -308,36 +310,36 @@ APPS
 		appfn: func(a string) error {
 			return cmd.ListCertsForApp(a, cfg)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage list [options]
+		help: fmt.Sprintf(`Usage: trustprune list [options]
 
   List certificates currently installed on the platform or application.
 
   List certificates from an application
-    cert-manage list -app firefox
+    trustprune list -app firefox
 
   List certificates from a file
-    cert-manage list -file <path>
+    trustprune list -file <path>
 
   List certificates from a URL
-    cert-manage list -url <endpoint>
+    trustprune list -url <endpoint>
 
 FORMATTING
 
   Change the output format (Default: %s, Options: %s)
-    cert-manage list -format openssl
-    cert-manage list -format json
-    cert-manage list -format table
+    trustprune list -format openssl
+    trustprune list -format json
+    trustprune list -format table
 
   Table output adds KEY and DAYS by default; -v adds full fingerprint, serial, and path
-    cert-manage list -format table -v
+    trustprune list -format table -v
 
   Only show the count of certificates found
-    cert-manage list -count
-    cert-manage list -app java -count
-    cert-manage list -file <path> -count
+    trustprune list -count
+    trustprune list -app java -count
+    trustprune list -file <path> -count
 
   Show the certificates on a local webpage (Default: %s, Options: %s)
-    cert-manage list -ui web
+    trustprune list -ui web
 
 APPS
   Supported apps: %s`,
@@ -354,16 +356,16 @@ APPS
 		appfn: func(a string) error {
 			return cmd.RestoreForApp(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage restore [-app <name>] [-file <path>] [-dry-run]
+		help: fmt.Sprintf(`Usage: trustprune restore [-app <name>] [-file <path>] [-dry-run]
 
   Restore certificates from the latest backup
-    cert-manage restore
+    trustprune restore
 
   Restore certificates for the platform from a file
-    cert-manage restore -file <path>
+    trustprune restore -file <path>
 
   Restore certificates for an application from the latest backup
-    cert-manage restore -app java
+    trustprune restore -app java
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
@@ -383,13 +385,13 @@ APPS
 			}
 			return cmd.AllowlistForApp(a, *flagFile)
 		},
-		help: fmt.Sprintf(`Usage: cert-manage allowlist [-app <name>] -file <path> [-dry-run]
+		help: fmt.Sprintf(`Usage: trustprune allowlist [-app <name>] -file <path> [-dry-run]
 
   Remove untrusted certificates from a store for the platform
-    cert-manage allowlist -file allowlist.json
+    trustprune allowlist -file allowlist.json
 
   Remove untrusted certificates in an app
-    cert-manage allowlist -file allowlist.json -app java
+    trustprune allowlist -file allowlist.json -app java
 
 APPS
   Supported apps: %s`, store.FormatAppsHelpLine()),
@@ -439,6 +441,50 @@ APPS
 		os.Exit(1)
 	}
 }
+
+// certManageAliasNotice is printed when the binary is invoked as cert-manage.
+// The cert-manage name remains a supported alias through the 0.2.x line.
+const certManageAliasNotice = "note: cert-manage was renamed to trustprune; the cert-manage command remains an alias through 0.2.x\n"
+
+func maybePrintCertManageAliasNotice(arg0 string) {
+	if !certManageAliasActive(Version) {
+		return
+	}
+	if !invokedAsCertManage(arg0) {
+		return
+	}
+	fmt.Fprint(os.Stderr, certManageAliasNotice)
+}
+
+func invokedAsCertManage(arg0 string) bool {
+	base := filepath.Base(arg0)
+	base = strings.TrimSuffix(base, ".exe")
+	return base == "cert-manage" || strings.HasPrefix(base, "cert-manage-")
+}
+
+// certManageAliasActive reports whether the cert-manage argv alias still prints
+// a rename notice. Kept through the 0.2.x release line (inclusive).
+func certManageAliasActive(version string) bool {
+	v := strings.TrimPrefix(strings.TrimSpace(version), "v")
+	if v == "" {
+		return false
+	}
+	// Take major.minor from versions like 0.2.0 or 0.1.1-dev.
+	parts := strings.SplitN(v, ".", 3)
+	if len(parts) < 2 {
+		return false
+	}
+	major, minor := parts[0], parts[1]
+	// Strip pre-release from minor if someone put it there; normally patch has -dev.
+	if i := strings.IndexAny(minor, "-+"); i >= 0 {
+		minor = minor[:i]
+	}
+	if major != "0" {
+		return false
+	}
+	return minor == "0" || minor == "1" || minor == "2"
+}
+
 
 func getVersion() string {
 	return fmt.Sprintf("%s (Go: %s)", Version, runtime.Version())

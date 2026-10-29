@@ -54,8 +54,8 @@ func Command(cmd string, args ...string) *Cmd {
 	}
 }
 
-// Quick wrapper around platform/arch specific call to cert-manage
-// which is located at ../bin/cert-manage-GOOS-GOARCH
+// Quick wrapper around platform/arch specific call to trustprune
+// which is located at ../bin/trustprune-GOOS-GOARCH
 func CertManage(args ...string) *Cmd {
 	render := func(tpl string) string {
 		return fmt.Sprintf(tpl, runtime.GOARCH)
@@ -63,11 +63,11 @@ func CertManage(args ...string) *Cmd {
 
 	switch runtime.GOOS {
 	case "darwin":
-		return Command(render(filepath.Join("..", "bin", "cert-manage-osx-%s")), args...)
+		return Command(render(filepath.Join("..", "bin", "trustprune-osx-%s")), args...)
 	case "linux":
-		return Command(render(filepath.Join("..", "bin", "cert-manage-linux-%s")), args...)
+		return Command(render(filepath.Join("..", "bin", "trustprune-linux-%s")), args...)
 	case "windows":
-		return Command(render(filepath.Join("..", "bin", "cert-manage-%s.exe")), args...)
+		return Command(render(filepath.Join("..", "bin", "trustprune-%s.exe")), args...)
 	}
 	return nil
 }

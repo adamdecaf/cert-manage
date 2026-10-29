@@ -58,7 +58,7 @@ type dockerfile struct {
 	// only run build, tag and run steps once
 	wg sync.WaitGroup
 
-	// used for cert-manage init
+	// used for trustprune init
 	sync.Once
 }
 
@@ -70,7 +70,7 @@ func Dockerfile(where string) *dockerfile {
 	// Grab the env name (e.g. envs/$env_name/Dockerfile). Stable tags let
 	// suite + java tests in the same process share one image build.
 	dir := filepath.Dir(where)
-	tag := fmt.Sprintf("cert-manage:%s", filepath.Base(dir))
+	tag := fmt.Sprintf("trustprune:%s", filepath.Base(dir))
 
 	return &dockerfile{
 		base: where,
@@ -113,9 +113,9 @@ func (d *dockerfile) OutputEquals(answer string) []string {
 
 func (d *dockerfile) CertManage(args ...string) {
 	d.Do(func() {
-		d.Run("chmod", "+x", "/bin/cert-manage")
+		d.Run("chmod", "+x", "/bin/trustprune")
 	})
-	d.Run("/bin/cert-manage", args...)
+	d.Run("/bin/trustprune", args...)
 }
 
 func (d *dockerfile) CertManageEQ(args, answer string) {
@@ -123,7 +123,7 @@ func (d *dockerfile) CertManageEQ(args, answer string) {
 }
 
 func linuxBinary() string {
-	return filepath.Join("..", "bin", fmt.Sprintf("cert-manage-linux-%s", runtime.GOARCH))
+	return filepath.Join("..", "bin", fmt.Sprintf("trustprune-linux-%s", runtime.GOARCH))
 }
 
 func (d *dockerfile) SuccessT(t *testing.T) {
@@ -150,7 +150,7 @@ func (d *dockerfile) build() {
 	defer d.wg.Done()
 
 	// Copy our original image's contents into the dst file.
-	// Image tags contain a colon (cert-manage:alpine); that must not appear
+	// Image tags contain a colon (trustprune:alpine); that must not appear
 	// in the host path or `docker run -v src:dst` treats the rest as a mode.
 	dir, err := os.MkdirTemp("", dockerTempPrefix(d.tag))
 	if err != nil {
@@ -268,7 +268,7 @@ func (d *dockerfile) run() {
 			d.err = err
 			return
 		}
-		args = append(args, bindMount(abs, "/bin/cert-manage")...)
+		args = append(args, bindMount(abs, "/bin/trustprune")...)
 	}
 	args = append(args, "-t", d.tag)
 

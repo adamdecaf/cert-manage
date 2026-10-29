@@ -1,8 +1,24 @@
 version: 2
 
-project_name: cert-manage
+project_name: trustprune
 
 builds:
+  - id: trustprune
+    main: .
+    binary: trustprune
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+
+  # cert-manage remains a same-binary alias through 0.2.x.
   - id: cert-manage
     main: .
     binary: cert-manage
@@ -19,7 +35,23 @@ builds:
       - -trimpath
 
 archives:
-  - formats: [binary]
+  - id: trustprune
+    builds: [trustprune]
+    formats: [binary]
+    name_template: >-
+      {{- if eq .Os "linux" -}}
+      trustprune-linux-{{ .Arch }}
+      {{- else if eq .Os "darwin" -}}
+      trustprune-osx-{{ .Arch }}
+      {{- else if eq .Os "windows" -}}
+      trustprune-{{ .Arch }}
+      {{- else -}}
+      trustprune-{{ .Os }}-{{ .Arch }}
+      {{- end -}}
+
+  - id: cert-manage
+    builds: [cert-manage]
+    formats: [binary]
     name_template: >-
       {{- if eq .Os "linux" -}}
       cert-manage-linux-{{ .Arch }}
