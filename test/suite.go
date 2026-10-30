@@ -24,19 +24,19 @@ func linuxSuite(t *testing.T, img *dockerfile) {
 		fmt.Println("Linux start")
 	}
 
-	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count); echo "$total" > /tmp/total; echo "linux certs=$total"; test "$total" -gt 10`)
+	img.Run("sh", "-c", `total=$(/bin/trustprune list -count); echo "$total" > /tmp/total; echo "linux certs=$total"; test "$total" -gt 10`)
 	img.CertManage("backup")
 	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/linux | wc -l | tr -d ' ')" -ge 1`)
 	img.CertManage("allowlist", "-file", "/allowlist.json")
-	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count); test "$after" -lt "$(cat /tmp/total)"`)
+	img.Run("sh", "-c", `after=$(/bin/trustprune list -count); test "$after" -lt "$(cat /tmp/total)"`)
 	// Probe TLS only. Do not use -f/-I: GitHub Actions IPs get HTTP 429 from
 	// large sites, which curl -f treats as failure even when TLS succeeded.
 	img.Run("sh", "-c", `set +e; curl -sS -o /dev/null --max-time 20 https://example.com/; code=$?; set -e; echo "allowlist_curl=$code"; test "$code" -ne 0`)
 	img.CertManage("restore")
-	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count)" -eq "$(cat /tmp/total)"`)
+	img.Run("sh", "-c", `test "$(/bin/trustprune list -count)" -eq "$(cat /tmp/total)"`)
 	img.Run("sh", "-c", `curl -sS -o /dev/null --max-time 20 https://example.com/`)
 	img.CertManage("add", "-file", "/localcert.pem")
-	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count)" -eq $(( $(cat /tmp/total) + 1 ))`)
+	img.Run("sh", "-c", `test "$(/bin/trustprune list -count)" -eq $(( $(cat /tmp/total) + 1 ))`)
 	img.SuccessT(t)
 
 	if debug {
@@ -49,17 +49,17 @@ func javaSuite(t *testing.T, img *dockerfile) {
 		fmt.Println("Java start")
 	}
 
-	img.Run("sh", "-c", `total=$(/bin/cert-manage list -count -app java); echo "$total" > /tmp/jtotal; echo "java certs=$total"; test "$total" -gt 10`)
+	img.Run("sh", "-c", `total=$(/bin/trustprune list -count -app java); echo "$total" > /tmp/jtotal; echo "java certs=$total"; test "$total" -gt 10`)
 	javaKeystoreByteRoundTrip(img)
 	img.RunSplit("cd / && java Download")
 	// Exercise the hidden whitelist alias against the Java store.
 	img.CertManage("whitelist", "-app", "java", "-file", "/allowlist.yaml")
-	img.Run("sh", "-c", `after=$(/bin/cert-manage list -count -app java); test "$after" -lt "$(cat /tmp/jtotal)"`)
+	img.Run("sh", "-c", `after=$(/bin/trustprune list -count -app java); test "$after" -lt "$(cat /tmp/jtotal)"`)
 	img.CertManage("restore", "-app", "java")
-	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count -app java)" -eq "$(cat /tmp/jtotal)"`)
+	img.Run("sh", "-c", `test "$(/bin/trustprune list -count -app java)" -eq "$(cat /tmp/jtotal)"`)
 	img.RunSplit("cd / && java Download")
 	img.CertManage("add", "-file", "/localcert.pem", "-app", "java")
-	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count -app java)" -eq $(( $(cat /tmp/jtotal) + 1 ))`)
+	img.Run("sh", "-c", `test "$(/bin/trustprune list -count -app java)" -eq $(( $(cat /tmp/jtotal) + 1 ))`)
 	img.SuccessT(t)
 
 	if debug {
@@ -78,7 +78,7 @@ func javaKeystoreByteRoundTrip(img *dockerfile) {
 	img.Run("sh", "-c", `printf %s MUTATED-JAVA-CACERTS > "$(cat /tmp/jcacerts)"; o=$(cksum < /tmp/java-cacerts.orig); n=$(cksum < "$(cat /tmp/jcacerts)"); echo "java cacerts orig=$o mutated=$n"; test "$o" != "$n"`)
 	img.CertManage("restore", "-app", "java")
 	img.Run("sh", "-c", `cmp /tmp/java-cacerts.orig "$(cat /tmp/jcacerts)"`)
-	img.Run("sh", "-c", `test "$(/bin/cert-manage list -count -app java)" -eq "$(cat /tmp/jtotal)"`)
+	img.Run("sh", "-c", `test "$(/bin/trustprune list -count -app java)" -eq "$(cat /tmp/jtotal)"`)
 }
 
 func firefoxSuite(t *testing.T, img *dockerfile, total, after string) {

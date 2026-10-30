@@ -1,7 +1,12 @@
 package test
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -9,13 +14,9 @@ import (
 func TestCertManage_help(t *testing.T) {
 	t.Parallel()
 
-	usage := "Usage of cert-manage version"
+	usage := "Usage of trustprune version"
 	subCmdUsage := func(name string) string {
-		bin := "cert-manage"
-		if name == "gen-allowlist" {
-			bin = "trustprune"
-		}
-		return fmt.Sprintf("Usage: %s %s ", bin, name)
+		return fmt.Sprintf("Usage: trustprune %s ", name)
 	}
 
 	// no args, fs.Usage()
@@ -120,11 +121,57 @@ func TestCertManage_help(t *testing.T) {
 	}
 }
 
-// accepts arguments to cert-manage and then returns the
+// accepts arguments to trustprune and then returns the
 // stdout/stderr response and error (or nil on success)
 func run(t *testing.T, args ...string) (string, error) {
 	t.Helper()
 
 	cmd := CertManage(args...)
 	return cmd.String(), cmd.Err()
+}
+
+func TestCertManage_aliasNotice(t *testing.T) {
+	src := CertManage().command
+	if src == "" {
+		t.Fatal("no trustprune binary path for this platform")
+	}
+	if _, err := os.Stat(src); err != nil {
+		t.Skipf("built binary missing at %s", src)
+	}
+
+	dir := t.TempDir()
+	alias := filepath.Join(dir, "cert-manage")
+	if runtime.GOOS == "windows" {
+		alias += ".exe"
+	}
+	// Write via a temp path then rename so the final path is never open for
+	// writing at exec time (avoids Linux ETXTBSY).
+	tmp := alias + ".tmp"
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(tmp, data, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(tmp, alias); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command(alias, "version")
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("run: %v\nstdout=%s\nstderr=%s", err, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "renamed to trustprune") {
+		t.Fatalf("stderr missing rename notice: %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "alias through 0.2.x") {
+		t.Fatalf("stderr missing alias window: %q", stderr.String())
+	}
+	if stdout.Len() == 0 {
+		t.Fatal("expected version on stdout")
+	}
 }

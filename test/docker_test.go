@@ -19,8 +19,8 @@ import (
 )
 
 func TestFormatScriptLine(t *testing.T) {
-	got := formatScriptLine(Command("sh", "-c", `total=$(/bin/cert-manage list -count); test "$total" -gt 10`))
-	want := `sh -c 'total=$(/bin/cert-manage list -count); test "$total" -gt 10'`
+	got := formatScriptLine(Command("sh", "-c", `total=$(/bin/trustprune list -count); test "$total" -gt 10`))
+	want := `sh -c 'total=$(/bin/trustprune list -count); test "$total" -gt 10'`
 	if got != want {
 		t.Fatalf("got %q want %q", got, want)
 	}
@@ -39,7 +39,7 @@ func TestFormatScriptLine(t *testing.T) {
 		t.Fatalf("quote=%q", posixQuote("it's"))
 	}
 
-	if got := dockerTempPrefix("cert-manage:alpine"); got != "cert-manage-alpine" {
+	if got := dockerTempPrefix("trustprune:alpine"); got != "trustprune-alpine" {
 		t.Fatalf("temp prefix=%q", got)
 	}
 

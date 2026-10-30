@@ -1,21 +1,20 @@
 SHELL := /bin/bash
-VERSION := $(shell grep -Eo '(\d\.\d\.\d)(-dev)?' main.go)
 GOARCH ?= $(shell go env GOARCH)
 
 .PHONY: build check test dist linux osx win lint
 
 linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-linux-$(GOARCH) github.com/adamdecaf/trustprune
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -trimpath -o bin/trustprune-linux-$(GOARCH) github.com/adamdecaf/trustprune
 linux_amd64:
 	$(MAKE) linux GOARCH=amd64
 
 osx:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-osx-$(GOARCH) github.com/adamdecaf/trustprune
+	CGO_ENABLED=0 GOOS=darwin GOARCH=$(GOARCH) go build -trimpath -o bin/trustprune-osx-$(GOARCH) github.com/adamdecaf/trustprune
 osx_amd64:
 	$(MAKE) osx GOARCH=amd64
 
 win:
-	CGO_ENABLED=0 GOOS=windows GOARCH=$(GOARCH) go build -trimpath -o bin/cert-manage-$(GOARCH).exe github.com/adamdecaf/trustprune
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(GOARCH) go build -trimpath -o bin/trustprune-$(GOARCH).exe github.com/adamdecaf/trustprune
 win_64:
 	$(MAKE) win GOARCH=amd64
 
@@ -57,13 +56,7 @@ test: check
 	go test -count=1 -timeout 5m $(GOTEST_FLAGS) ./test/
 
 build: check
-	go build -trimpath -o cert-manage github.com/adamdecaf/trustprune
-	@chmod +x cert-manage
+	go build -trimpath -o trustprune github.com/adamdecaf/trustprune
+	@chmod +x trustprune
+	@ln -sfn trustprune cert-manage
 
-mkrel: generate
-	gothub release -u adamdecaf -r cert-manage -t $(VERSION) --name $(VERSION) --pre-release
-
-upload:
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-linux" --file bin/cert-manage-linux-$(GOARCH)
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage-osx" --file bin/cert-manage-osx-$(GOARCH)
-	gothub upload -u adamdecaf -r cert-manage -t $(VERSION) --name "cert-manage.exe" --file bin/cert-manage-$(GOARCH).exe

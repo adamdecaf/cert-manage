@@ -8,6 +8,8 @@ bin/*-osx
 bin/*.exe
 cert-manage
 cert-manage-*
+trustprune
+trustprune-*
 build/*/allowlist.json
 build/*/allowlist.yaml
 build/*/whitelist.json
@@ -21,7 +23,6 @@ build/*/*.class
 
 *.yaml
 !testdata/*.yaml
-!.goreleaser.yaml
 !.coderabbit.yaml
 *.json
 !testdata/*.json

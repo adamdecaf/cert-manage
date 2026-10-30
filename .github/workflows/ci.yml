@@ -92,7 +92,7 @@ jobs:
           '
           for spec in $targets; do
             export GOOS=${spec%/*} GOARCH=${spec#*/} CGO_ENABLED=0
-            out="bin/cert-manage-${GOOS}-${GOARCH}"
+            out="bin/trustprune-${GOOS}-${GOARCH}"
             if [ "$GOOS" = windows ]; then
               out="${out}.exe"
             fi
@@ -149,9 +149,9 @@ jobs:
           mkdir -p bin
           arch=$(go env GOARCH)
           case "$(go env GOOS)" in
-            linux)   out="bin/cert-manage-linux-${arch}" ;;
-            darwin)  out="bin/cert-manage-osx-${arch}" ;;
-            windows) out="bin/cert-manage-${arch}.exe" ;;
+            linux)   out="bin/trustprune-linux-${arch}" ;;
+            darwin)  out="bin/trustprune-osx-${arch}" ;;
+            windows) out="bin/trustprune-${arch}.exe" ;;
           esac
           go build -trimpath -o "$out" .
       - name: CLI integration
@@ -197,7 +197,7 @@ jobs:
       - name: Build linux binary
         run: |
           mkdir -p bin
-          CGO_ENABLED=0 go build -trimpath -o "bin/cert-manage-linux-$(go env GOARCH)" .
-          chmod +x "bin/cert-manage-linux-$(go env GOARCH)"
+          CGO_ENABLED=0 go build -trimpath -o "bin/trustprune-linux-$(go env GOARCH)" .
+          chmod +x "bin/trustprune-linux-$(go env GOARCH)"
       - name: Distro tests
         run: go test -count=1 -timeout 15m ./test/ -run ${{ matrix.run }}

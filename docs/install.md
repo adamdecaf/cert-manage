@@ -14,9 +14,9 @@ Download a pre-built binary from the [latest release](https://github.com/adamdec
 Cross-compile locally with Make (outputs under `bin/`):
 
 ```bash
-make linux    # bin/cert-manage-linux-$(GOARCH)
-make osx      # bin/cert-manage-osx-$(GOARCH)
-make win      # bin/cert-manage-$(GOARCH).exe
+make linux    # bin/trustprune-linux-$(GOARCH)
+make osx      # bin/trustprune-osx-$(GOARCH)
+make win      # bin/trustprune-$(GOARCH).exe
 make dist     # all three
 ```
 
@@ -26,14 +26,14 @@ make dist     # all three
 go install github.com/adamdecaf/trustprune@latest
 ```
 
-That installs a binary named `trustprune` (Go uses the last path element). Until the binary rename in #251, prefer [Build from source](#build-from-source) below if you want the `cert-manage` command name.
+That installs a binary named `trustprune` (Go uses the last path element). `make build` also creates a local `cert-manage` symlink alias.
 
 ## Build from source
 
 ```bash
 git clone https://github.com/adamdecaf/trustprune.git
 cd trustprune
-make build          # vet + unit tests + ./cert-manage
+make build          # vet + unit tests + ./trustprune (+ cert-manage symlink)
 ```
 
 Useful test targets:

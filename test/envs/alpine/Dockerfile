@@ -11,5 +11,5 @@ COPY globalsign-whitelist.json /allowlist.json
 COPY us-whitelist.yaml /allowlist.yaml
 COPY localcert.pem /localcert.pem
 
-# cert-manage and script.sh are bind-mounted at run so suite/java share this image.
+# trustprune and script.sh are bind-mounted at run so suite/java share this image.
 CMD ["/bin/script.sh"]
