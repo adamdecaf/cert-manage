@@ -78,6 +78,7 @@ Honest status as of late October 2026. Levels match what the code does today.
 | **Partial** | Chrome | Linux uses NSS (`~/.pki/nssdb`); Darwin/Windows wrap the platform store. |
 | **Partial** | Firefox | NSS profile `cert8.db` / `cert9.db`. |
 | **Stub** | OpenSSL | Add / rehash paths exist; list, backup, remove, and restore are no-ops |
+| **Supported (Darwin)** | `ssl` (`/etc/ssl/cert.pem`) | list/add/allowlist/backup/restore for the CLI PEM bundle Apple keychain blocks do not cover; see [platforms](https://trustprune.com/platforms) |
 
 
 ## Safety

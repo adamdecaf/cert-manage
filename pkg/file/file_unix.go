@@ -19,6 +19,7 @@ package file
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,9 +29,22 @@ import (
 // execCopy checks if we are in need of dropping to an elevated shell in order to
 // perform a file copy. Otherwise, use the default CopyFile methodep
 func execCopy(src, dst string) error {
-	// Only escalate if the dst path exists and is owned by sudo then
+	// Only escalate if the dst path exists and is owned by root, or if the
+	// destination is missing (e.g. restoring /etc/ssl/cert.pem after deletion).
 	sdst, err := os.Stat(dst)
-	if err != nil && !os.IsNotExist(err) {
+	if os.IsNotExist(err) {
+		// Prefer a normal create when the parent dir is writable (tests, user
+		// paths). Escalate only for permission failures on root-owned parents
+		// like /etc/ssl; other errors (missing parent dir, etc.) return as-is.
+		if copyErr := CopyFile(src, dst); copyErr == nil {
+			return nil
+		} else if errors.Is(copyErr, os.ErrPermission) {
+			return execSudoCopy(src, dst)
+		} else {
+			return copyErr
+		}
+	}
+	if err != nil {
 		return err
 	}
 
