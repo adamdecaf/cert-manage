@@ -189,3 +189,142 @@ func TestStore__getLatestBackupAmong(t *testing.T) {
 		}
 	}
 }
+
+func TestBackupBasenameUnix(t *testing.T) {
+	cases := []struct {
+		name string
+		ts   int64
+		ok   bool
+	}{
+		{"1761780000", 1761780000, true},
+		{"cert8.db-1700000000", 1700000000, true},
+		{"cert.db-1700000000", 1700000000, true},
+		{"cacerts-1761780000.bck", 1761780000, true},
+		{"something-99.bck", 99, true},
+		{"zzzjalaj", 0, false},
+		{"cert8.db-", 0, false},
+		{"cert8.db-nope", 0, false},
+		{"cacerts.bck", 0, false},
+		{"", 0, false},
+	}
+	for _, tc := range cases {
+		ts, ok := backupBasenameUnix(tc.name)
+		if ok != tc.ok || ts != tc.ts {
+			t.Fatalf("%q: got ts=%d ok=%v want ts=%d ok=%v", tc.name, ts, ok, tc.ts, tc.ok)
+		}
+	}
+}
+
+func TestGetLatestBackupAmong_MixedNSSLayouts(t *testing.T) {
+	root := t.TempDir()
+	primary := filepath.Join(root, "primary")
+	legacy := filepath.Join(root, "legacy")
+	newerDir := filepath.Join(primary, "1761780000")
+	if err := os.MkdirAll(newerDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(newerDir, "cert9.db"), []byte("new\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Older legacy single-file backup whose basename sorts after the newer dir.
+	legacyFile := filepath.Join(primary, "cert8.db-1700000000")
+	if err := os.WriteFile(legacyFile, []byte("old\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(primary, "cert.db-1600000000"), []byte("older\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Unparseable noise must be ignored when timestamps are present.
+	if err := os.WriteFile(filepath.Join(primary, "readme.txt"), []byte("nope\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := getLatestBackupAmong(primary, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != newerDir {
+		t.Fatalf("got %s want %s (legacy cert8.db-* must not beat newer <unix>/)", got, newerDir)
+	}
+}
+
+func TestGetLatestBackupAmong_JavaBckAcrossTrees(t *testing.T) {
+	root := t.TempDir()
+	primary := filepath.Join(root, "primary")
+	legacy := filepath.Join(root, "legacy")
+	if err := os.MkdirAll(primary, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(legacy, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Lexicographic order would prefer cacerts-999.bck over cacerts-1000.bck.
+	older := filepath.Join(primary, "cacerts-1000.bck")
+	newer := filepath.Join(legacy, "cacerts-2000.bck")
+	lexBiggerOlder := filepath.Join(primary, "cacerts-999.bck")
+	for _, p := range []string{older, newer, lexBiggerOlder} {
+		if err := os.WriteFile(p, []byte(p+"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := getLatestBackupAmong(primary, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != newer {
+		t.Fatalf("got %s want %s", got, newer)
+	}
+
+	// Equal timestamps: primary wins.
+	tieLegacy := filepath.Join(legacy, "other-2000.bck")
+	if err := os.WriteFile(tieLegacy, []byte("tie\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	tiePrimary := filepath.Join(primary, "cacerts-2000.bck")
+	if err := os.WriteFile(tiePrimary, []byte("tie-primary\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	got, err = getLatestBackupAmong(primary, legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != tiePrimary {
+		t.Fatalf("equal ts: got %s want primary %s", got, tiePrimary)
+	}
+}
+
+func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	newer := filepath.Join(home, ".trustprune", "firefox", "1761780000")
+	if err := os.MkdirAll(newer, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(newer, "cert9.db"), []byte("new-cert9\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(newer, "key4.db"), []byte("new-key4\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	legacyFile := filepath.Join(home, ".trustprune", "firefox", "cert8.db-1700000000")
+	if err := os.WriteFile(legacyFile, []byte("old\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Also seed a still-older legacy tree entry that would win lexicographically.
+	if err := os.MkdirAll(filepath.Join(home, ".cert-manage", "firefox"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".cert-manage", "firefox", "cert.db-1650000000"), []byte("legacy-tree\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := getLatestStoreBackup("firefox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != newer {
+		t.Fatalf("got %s want %s", got, newer)
+	}
+}

@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/adamdecaf/trustprune/pkg/allowlist"
@@ -249,12 +250,79 @@ func getLatestStoreBackup(name string) (string, error) {
 	return getLatestBackupAmong(primary, legacy)
 }
 
-// getLatestBackup returns the "biggest" file or dir at a given path
+// backupBasenameUnix extracts a comparable unix timestamp from a backup
+// basename. Supported forms:
+//   - bare digits: "1761780000"
+//   - legacy NSS: "cert8.db-1700000000", "cert.db-1700000000"
+//   - Java: "cacerts-1761780000.bck" (any "<name>-<unix>.bck")
+// Unparseable names return ok=false and are skipped by latest-backup selection.
+func backupBasenameUnix(name string) (ts int64, ok bool) {
+	if name == "" {
+		return 0, false
+	}
+	if n, err := strconv.ParseInt(name, 10, 64); err == nil {
+		return n, true
+	}
+	for _, prefix := range []string{"cert8.db-", "cert.db-"} {
+		if strings.HasPrefix(name, prefix) {
+			rest := name[len(prefix):]
+			n, err := strconv.ParseInt(rest, 10, 64)
+			if err != nil {
+				return 0, false
+			}
+			return n, true
+		}
+	}
+	if strings.HasSuffix(name, ".bck") {
+		base := strings.TrimSuffix(name, ".bck")
+		i := strings.LastIndexByte(base, '-')
+		if i < 0 || i+1 >= len(base) {
+			return 0, false
+		}
+		n, err := strconv.ParseInt(base[i+1:], 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return n, true
+	}
+	return 0, false
+}
+
+// pickLatestBackupName chooses the backup basename with the greatest parsed
+// unix timestamp. When no name parses, it falls back to lexicographic SortNames
+// (last wins) for older non-timestamp layouts used in tests.
+func pickLatestBackupName(names []string) string {
+	if len(names) == 0 {
+		return ""
+	}
+	bestName := ""
+	var bestTS int64
+	found := false
+	for _, name := range names {
+		ts, ok := backupBasenameUnix(name)
+		if !ok {
+			continue
+		}
+		if !found || ts > bestTS {
+			bestName = name
+			bestTS = ts
+			found = true
+		}
+	}
+	if found {
+		return bestName
+	}
+	sorted := append([]string(nil), names...)
+	file.SortNames(sorted)
+	return sorted[len(sorted)-1]
+}
+
+// getLatestBackup returns the newest file or dir at a given path.
 //
-// This sorting is done by assuming filenames follow a pattern like
-// file-%d.ext where %d is a sortable timestamp and the filename follows
-// lexigraphical sorting. Results are sorted in descending order and the
-// first element (if exists) is returned
+// Newer backups use unix-timestamp basenames (bare digits, legacy NSS
+// cert8.db-<ts>/cert.db-<ts>, or Java <name>-<ts>.bck). Selection compares
+// those parsed timestamps. If nothing parses, names are sorted lexicographically
+// and the last entry is returned.
 func getLatestBackup(dir string) (string, error) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
@@ -268,16 +336,26 @@ func getLatestBackup(dir string) (string, error) {
 	for i := range ents {
 		names[i] = ents[i].Name()
 	}
-	file.SortNames(names)
-	return filepath.Join(dir, names[len(names)-1]), nil
+	best := pickLatestBackupName(names)
+	if best == "" {
+		return "", nil
+	}
+	return filepath.Join(dir, best), nil
 }
 
-// getLatestBackupAmong merges directory listings and returns the path whose
-// basename sorts last. primary is preferred for a given basename. A non-missing
-// read error on primary is returned immediately; legacy is only consulted when
-// primary is absent or readable. empty legacy is ignored.
+// getLatestBackupAmong merges directory listings and returns the path with the
+// greatest parsed backup timestamp. primary is preferred for a given basename
+// and on equal timestamps. A non-missing read error on primary is returned
+// immediately; legacy is only consulted when primary is absent or readable.
+// empty legacy is ignored. If no basename parses as a timestamp, falls back to
+// lexicographic SortNames (last wins), still preferring primary for ties on the
+// same basename.
 func getLatestBackupAmong(primary string, legacy string) (string, error) {
-	seen := make(map[string]string)
+	type cand struct {
+		path        string
+		fromPrimary bool
+	}
+	seen := make(map[string]cand)
 	var names []string
 
 	primaryEnts, primaryErr := os.ReadDir(primary)
@@ -285,7 +363,7 @@ func getLatestBackupAmong(primary string, legacy string) (string, error) {
 	case primaryErr == nil:
 		for _, ent := range primaryEnts {
 			name := ent.Name()
-			seen[name] = filepath.Join(primary, name)
+			seen[name] = cand{path: filepath.Join(primary, name), fromPrimary: true}
 			names = append(names, name)
 		}
 	case os.IsNotExist(primaryErr):
@@ -303,7 +381,7 @@ func getLatestBackupAmong(primary string, legacy string) (string, error) {
 				if _, ok := seen[name]; ok {
 					continue
 				}
-				seen[name] = filepath.Join(legacy, name)
+				seen[name] = cand{path: filepath.Join(legacy, name), fromPrimary: false}
 				names = append(names, name)
 			}
 		case os.IsNotExist(legacyErr):
@@ -319,6 +397,30 @@ func getLatestBackupAmong(primary string, legacy string) (string, error) {
 	if len(names) == 0 {
 		return "", nil
 	}
-	file.SortNames(names)
-	return seen[names[len(names)-1]], nil
+
+	bestName := ""
+	var bestTS int64
+	bestPrimary := false
+	found := false
+	for _, name := range names {
+		ts, ok := backupBasenameUnix(name)
+		if !ok {
+			continue
+		}
+		c := seen[name]
+		if !found || ts > bestTS || (ts == bestTS && c.fromPrimary && !bestPrimary) {
+			bestName = name
+			bestTS = ts
+			bestPrimary = c.fromPrimary
+			found = true
+		}
+	}
+	if found {
+		return seen[bestName].path, nil
+	}
+
+	// Nothing parsed: preserve prior lexicographic behavior.
+	sorted := append([]string(nil), names...)
+	file.SortNames(sorted)
+	return seen[sorted[len(sorted)-1]].path, nil
 }
