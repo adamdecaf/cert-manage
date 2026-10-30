@@ -17,6 +17,7 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -173,5 +174,18 @@ func TestStore__getLatestBackupAmong(t *testing.T) {
 	}
 	if got != filepath.Join(b, "200") {
 		t.Fatalf("got %s want %s", got, filepath.Join(b, "200"))
+	}
+
+	// A non-missing primary read error must be returned, not masked by legacy.
+	// Skip on Windows: ReadDir of a file can look like IsNotExist there.
+	if runtime.GOOS != "windows" {
+		notDir := filepath.Join(root, "file")
+		if err := os.WriteFile(notDir, []byte("x"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		got, err = getLatestBackupAmong(notDir, b)
+		if err == nil || got != "" {
+			t.Fatalf("expected primary read error, got %q, err=%v", got, err)
+		}
 	}
 }

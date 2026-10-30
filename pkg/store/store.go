@@ -309,8 +309,8 @@ func getLatestBackupAmong(primary string, legacy string) (string, error) {
 		case os.IsNotExist(legacyErr):
 			// No legacy backups.
 		default:
-			// If primary was missing and legacy fails to read, surface that.
-			if primaryErr != nil && os.IsNotExist(primaryErr) && len(names) == 0 {
+			// No usable primary entries and legacy is unreadable: surface that.
+			if len(names) == 0 {
 				return "", legacyErr
 			}
 		}
