@@ -130,7 +130,7 @@ func (s linuxStore) Backup() error {
 		if err != nil {
 			return err
 		}
-		details := []string{fmt.Sprintf("mirror %s into $HOME/.trustprune/%s/<timestamp>", s.ca.dir, linuxBackupDir)}
+		details := []string{fmt.Sprintf("mirror %s into %s/%s/<timestamp>", s.ca.dir, backupParentDisplay(), linuxBackupDir)}
 		for _, name := range names {
 			details = append(details, fmt.Sprintf("include %s", name))
 		}

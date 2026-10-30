@@ -243,11 +243,8 @@ func TestNSSDryRun_BackupMakesNoWrites(t *testing.T) {
 	}
 	for _, name := range []string{".cert-manage", ".trustprune"} {
 		cm := filepath.Join(home, name)
-		if st, err := os.Stat(cm); err == nil && st.IsDir() {
-			entries, _ := os.ReadDir(cm)
-			if len(entries) != 0 {
-				t.Fatalf("dry-run Backup created files under %s: %v", cm, entries)
-			}
+		if _, err := os.Stat(cm); !os.IsNotExist(err) {
+			t.Fatalf("dry-run Backup must not create %s (err=%v)", cm, err)
 		}
 	}
 	out := buf.String()

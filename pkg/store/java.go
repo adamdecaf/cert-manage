@@ -93,7 +93,7 @@ func (s javaStore) Backup() error {
 	if DryRun() {
 		_, filename := filepath.Split(kpath)
 		reportDryRun("backup", "java", kpath,
-			fmt.Sprintf("copy %s to $HOME/.trustprune/%s/%s-<timestamp>.bck", kpath, javaCertManageDir, filename))
+			fmt.Sprintf("copy %s to %s/%s/%s-<timestamp>.bck", kpath, backupParentDisplay(), javaCertManageDir, filename))
 		return nil
 	}
 	dir, err := getCertManageDir(javaCertManageDir)

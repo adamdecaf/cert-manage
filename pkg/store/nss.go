@@ -155,7 +155,7 @@ func (s nssStore) Backup() error {
 	}
 
 	if DryRun() {
-		details := []string{fmt.Sprintf("mirror profile set into $HOME/.trustprune/%s/<timestamp>", s.nssType)}
+		details := []string{fmt.Sprintf("mirror profile set into %s/%s/<timestamp>", backupParentDisplay(), s.nssType)}
 		for _, name := range names {
 			src := filepath.Join(s.foundCertdbLocation, name)
 			if file.Exists(src) {

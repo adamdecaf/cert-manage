@@ -145,7 +145,7 @@ func TestStore__getLatestBackupAmong(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := getLatestBackupAmong([]string{a, b})
+	got, err := getLatestBackupAmong(a, b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ func TestStore__getLatestBackupAmong(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(a, "300"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	got, err = getLatestBackupAmong([]string{a, b})
+	got, err = getLatestBackupAmong(a, b)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +167,7 @@ func TestStore__getLatestBackupAmong(t *testing.T) {
 	}
 
 	// Missing dirs are fine.
-	got, err = getLatestBackupAmong([]string{filepath.Join(root, "missing"), b})
+	got, err = getLatestBackupAmong(filepath.Join(root, "missing"), b)
 	if err != nil {
 		t.Fatal(err)
 	}

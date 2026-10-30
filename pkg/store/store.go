@@ -179,18 +179,31 @@ func getCertManageDir(name string) (string, error) {
 func getCertManageParentDir() (string, error) {
 	uhome := file.HomeDir()
 	if uhome == "" {
-		return "", nil
+		return "", fmt.Errorf("home directory is unavailable")
 	}
 	parent := primaryBackupParent(uhome)
+	if parent == "" {
+		return "", fmt.Errorf("unsupported platform for backups: %s", runtime.GOOS)
+	}
 
 	// Make parent dir and set ownership (skipped under dry-run).
-	if !DryRun() && parent != "" {
+	if !DryRun() {
 		err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
 		if err != nil {
 			return "", err
 		}
 	}
 	return parent, nil
+}
+
+// backupParentDisplay is a user-facing path for dry-run previews.
+func backupParentDisplay() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "~/Library/trustprune"
+	default:
+		return "$HOME/.trustprune"
+	}
 }
 
 // primaryBackupParent is where new backups are written.
@@ -225,16 +238,15 @@ func legacyBackupParent(uhome string) string {
 func getLatestStoreBackup(name string) (string, error) {
 	uhome := file.HomeDir()
 	if uhome == "" {
-		return "", nil
+		return "", fmt.Errorf("home directory is unavailable")
 	}
 
-	var dirs []string
 	primary := filepath.Join(primaryBackupParent(uhome), name)
-	dirs = append(dirs, primary)
-	if legacy := legacyBackupParent(uhome); legacy != "" {
-		dirs = append(dirs, filepath.Join(legacy, name))
+	legacy := ""
+	if lp := legacyBackupParent(uhome); lp != "" {
+		legacy = filepath.Join(lp, name)
 	}
-	return getLatestBackupAmong(dirs)
+	return getLatestBackupAmong(primary, legacy)
 }
 
 // getLatestBackup returns the "biggest" file or dir at a given path
@@ -261,43 +273,52 @@ func getLatestBackup(dir string) (string, error) {
 }
 
 // getLatestBackupAmong merges directory listings and returns the path whose
-// basename sorts last. dirs are searched in order; the first path for a given
-// basename wins (so callers should put the primary tree first).
-func getLatestBackupAmong(dirs []string) (string, error) {
+// basename sorts last. primary is preferred for a given basename. A non-missing
+// read error on primary is returned immediately; legacy is only consulted when
+// primary is absent or readable. empty legacy is ignored.
+func getLatestBackupAmong(primary string, legacy string) (string, error) {
 	seen := make(map[string]string)
 	var names []string
-	var readErr error
-	foundDir := false
 
-	for _, dir := range dirs {
-		ents, err := os.ReadDir(dir)
-		if err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			if readErr == nil {
-				readErr = err
-			}
-			continue
-		}
-		foundDir = true
-		for _, ent := range ents {
+	primaryEnts, primaryErr := os.ReadDir(primary)
+	switch {
+	case primaryErr == nil:
+		for _, ent := range primaryEnts {
 			name := ent.Name()
-			if _, ok := seen[name]; ok {
-				continue
-			}
-			seen[name] = filepath.Join(dir, name)
+			seen[name] = filepath.Join(primary, name)
 			names = append(names, name)
+		}
+	case os.IsNotExist(primaryErr):
+		// Fall through to legacy.
+	default:
+		return "", primaryErr
+	}
+
+	if legacy != "" {
+		legacyEnts, legacyErr := os.ReadDir(legacy)
+		switch {
+		case legacyErr == nil:
+			for _, ent := range legacyEnts {
+				name := ent.Name()
+				if _, ok := seen[name]; ok {
+					continue
+				}
+				seen[name] = filepath.Join(legacy, name)
+				names = append(names, name)
+			}
+		case os.IsNotExist(legacyErr):
+			// No legacy backups.
+		default:
+			// If primary was missing and legacy fails to read, surface that.
+			if primaryErr != nil && os.IsNotExist(primaryErr) && len(names) == 0 {
+				return "", legacyErr
+			}
 		}
 	}
 
 	if len(names) == 0 {
-		if !foundDir && readErr != nil {
-			return "", readErr
-		}
 		return "", nil
 	}
-
 	file.SortNames(names)
 	return seen[names[len(names)-1]], nil
 }
