@@ -360,8 +360,10 @@ func sslInstallFile(src, dst string) error {
 	aside := dst + ".restore-old"
 	staged := filepath.Join(tmpDir, filepath.Base(dst))
 
+	// Permission failures (e.g. a root-owned leftover staging dir) fall through
+	// to the privileged installer, which clears and recreates the staging path.
 	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("clear ssl restore staging dir %s: %w", tmpDir, err)
+		return sslSudoInstallAtomic(src, dst)
 	}
 	if err := os.Mkdir(tmpDir, backupDirPerms); err != nil {
 		return sslSudoInstallAtomic(src, dst)
@@ -428,7 +430,13 @@ if [ -e "$dst" ]; then
   rm -f "$aside"
   mv "$dst" "$aside"
 fi
-mv "$staged" "$dst"
+if ! mv "$staged" "$dst"; then
+  if [ -e "$aside" ]; then
+    mv "$aside" "$dst" || true
+  fi
+  rm -rf "$tmpDir"
+  exit 1
+fi
 rm -rf "$tmpDir"
 rm -f "$aside"
 `

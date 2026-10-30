@@ -465,19 +465,17 @@ func TestSSLStore_RestoreLeavesNoStagingDirs(t *testing.T) {
 }
 
 func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
-	s, path, _ := sslTestEnv(t)
+	_, path, _ := sslTestEnv(t)
 	before, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Point Restore at a sibling that looks like a staging path but is not a PEM.
-	garbage := filepath.Join(t.TempDir(), "garbage.pem")
-	if err := os.WriteFile(garbage, []byte("not-a-certificate\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
+	// Missing source fails inside sslInstallFile after local staging starts
+	// (Restore rejects invalid PEM before install, so call the installer directly).
+	missing := filepath.Join(t.TempDir(), "missing.pem")
 	SetDryRun(false)
-	if err := s.Restore(garbage); err == nil {
-		t.Fatal("expected restore failure")
+	if err := sslInstallFile(missing, path); err == nil {
+		t.Fatal("expected install failure")
 	}
 	after, err := os.ReadFile(path)
 	if err != nil {
