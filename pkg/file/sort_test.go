@@ -54,6 +54,7 @@ func TestFile__sortFileInfos(t *testing.T) {
 		"file.go",
 		"file_test.go",
 		"file_unix.go",
+		"file_unix_test.go",
 		"file_windows.go",
 		"home.go",
 		"home_test.go",
