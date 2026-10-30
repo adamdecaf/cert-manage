@@ -296,9 +296,19 @@ func TestGetLatestBackupAmong_JavaBckAcrossTrees(t *testing.T) {
 
 func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	if runtime.GOOS == "windows" {
+		t.Setenv("USERPROFILE", home)
+	} else {
+		t.Setenv("HOME", home)
+	}
 
-	newer := filepath.Join(home, ".trustprune", "firefox", "1761780000")
+	primaryRoot := primaryBackupParent(home)
+	legacyRoot := legacyBackupParent(home)
+	if primaryRoot == "" || legacyRoot == "" {
+		t.Fatalf("unsupported GOOS %s for backup parents", runtime.GOOS)
+	}
+
+	newer := filepath.Join(primaryRoot, "firefox", "1761780000")
 	if err := os.MkdirAll(newer, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -308,15 +318,15 @@ func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(newer, "key4.db"), []byte("new-key4\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	legacyFile := filepath.Join(home, ".trustprune", "firefox", "cert8.db-1700000000")
+	legacyFile := filepath.Join(primaryRoot, "firefox", "cert8.db-1700000000")
 	if err := os.WriteFile(legacyFile, []byte("old\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 	// Also seed a still-older legacy tree entry that would win lexicographically.
-	if err := os.MkdirAll(filepath.Join(home, ".cert-manage", "firefox"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(legacyRoot, "firefox"), 0755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".cert-manage", "firefox", "cert.db-1650000000"), []byte("legacy-tree\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(legacyRoot, "firefox", "cert.db-1650000000"), []byte("legacy-tree\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
