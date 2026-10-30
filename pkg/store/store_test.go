@@ -296,16 +296,13 @@ func TestGetLatestBackupAmong_JavaBckAcrossTrees(t *testing.T) {
 
 func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
 	home := t.TempDir()
-	if runtime.GOOS == "windows" {
-		t.Setenv("USERPROFILE", home)
-	} else {
-		t.Setenv("HOME", home)
-	}
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
 	primaryRoot := primaryBackupParent(home)
 	legacyRoot := legacyBackupParent(home)
 	if primaryRoot == "" || legacyRoot == "" {
-		t.Fatalf("unsupported GOOS %s for backup parents", runtime.GOOS)
+		t.Skipf("unsupported GOOS %s for backup parents", runtime.GOOS)
 	}
 
 	newer := filepath.Join(primaryRoot, "firefox", "1761780000")
