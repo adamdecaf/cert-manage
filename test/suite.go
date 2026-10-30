@@ -26,7 +26,7 @@ func linuxSuite(t *testing.T, img *dockerfile) {
 
 	img.Run("sh", "-c", `total=$(/bin/trustprune list -count); echo "$total" > /tmp/total; echo "linux certs=$total"; test "$total" -gt 10`)
 	img.CertManage("backup")
-	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/linux | wc -l | tr -d ' ')" -ge 1`)
+	img.Run("sh", "-c", `test "$(ls -1 ~/.trustprune/linux | wc -l | tr -d ' ')" -ge 1`)
 	img.CertManage("allowlist", "-file", "/allowlist.json")
 	img.Run("sh", "-c", `after=$(/bin/trustprune list -count); test "$after" -lt "$(cat /tmp/total)"`)
 	// Probe TLS only. Do not use -f/-I: GitHub Actions IPs get HTTP 429 from
@@ -74,7 +74,7 @@ func javaSuite(t *testing.T, img *dockerfile) {
 func javaKeystoreByteRoundTrip(img *dockerfile) {
 	img.Run("sh", "-c", `test -n "$JAVA_HOME"; if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/lib/security/cacerts"; elif [ -f "$JAVA_HOME/jre/lib/security/cacerts" ]; then cacerts="$JAVA_HOME/jre/lib/security/cacerts"; else echo "java cacerts not found under JAVA_HOME=$JAVA_HOME (tried lib/security/cacerts and jre/lib/security/cacerts)" >&2; exit 1; fi; echo "$cacerts" > /tmp/jcacerts; echo "java cacerts=$cacerts"; test -s "$cacerts"; cp "$cacerts" /tmp/java-cacerts.orig; test -s /tmp/java-cacerts.orig`)
 	img.CertManage("backup", "-app", "java")
-	img.Run("sh", "-c", `test "$(ls -1 ~/.cert-manage/java | wc -l | tr -d ' ')" -ge 1; bck=$(ls -1 ~/.cert-manage/java | sort | tail -1); test -n "$bck"; test -f ~/.cert-manage/java/"$bck"; cmp /tmp/java-cacerts.orig ~/.cert-manage/java/"$bck"`)
+	img.Run("sh", "-c", `test "$(ls -1 ~/.trustprune/java | wc -l | tr -d ' ')" -ge 1; bck=$(ls -1 ~/.trustprune/java | sort | tail -1); test -n "$bck"; test -f ~/.trustprune/java/"$bck"; cmp /tmp/java-cacerts.orig ~/.trustprune/java/"$bck"`)
 	img.Run("sh", "-c", `printf %s MUTATED-JAVA-CACERTS > "$(cat /tmp/jcacerts)"; o=$(cksum < /tmp/java-cacerts.orig); n=$(cksum < "$(cat /tmp/jcacerts)"); echo "java cacerts orig=$o mutated=$n"; test "$o" != "$n"`)
 	img.CertManage("restore", "-app", "java")
 	img.Run("sh", "-c", `cmp /tmp/java-cacerts.orig "$(cat /tmp/jcacerts)"`)

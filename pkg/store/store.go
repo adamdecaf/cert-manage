@@ -137,7 +137,9 @@ func ForApp(app string) (Store, error) {
 }
 
 // getCertManageDir returns the fs location (always creating first) where a specific
-// store can save files into. This path is recommended for backups
+// store can save files into. New backups are written under ~/.trustprune
+// (or ~/Library/trustprune on Darwin). The legacy ~/.cert-manage tree is never
+// created or modified here.
 //
 // If `name` is an absolute fs reference then just ensure that directory is created
 // and has permissions setup properly.
@@ -176,27 +178,75 @@ func getCertManageDir(name string) (string, error) {
 
 func getCertManageParentDir() (string, error) {
 	uhome := file.HomeDir()
-	if uhome != "" {
-		parent := ""
-
-		// Setup parent dir
-		if runtime.GOOS == "darwin" {
-			parent = filepath.Join(uhome, "/Library/cert-manage")
-		}
-		if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
-			parent = filepath.Join(uhome, ".cert-manage")
-		}
-
-		// Make parent dir and set ownership (skipped under dry-run).
-		if !DryRun() {
-			err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
-			if err != nil {
-				return "", err
-			}
-		}
-		return parent, nil
+	if uhome == "" {
+		return "", fmt.Errorf("home directory is unavailable")
 	}
-	return "", nil
+	parent := primaryBackupParent(uhome)
+	if parent == "" {
+		return "", fmt.Errorf("unsupported platform for backups: %s", runtime.GOOS)
+	}
+
+	// Make parent dir and set ownership (skipped under dry-run).
+	if !DryRun() {
+		err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
+		if err != nil {
+			return "", err
+		}
+	}
+	return parent, nil
+}
+
+// backupParentDisplay is a user-facing path for dry-run previews.
+func backupParentDisplay() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "~/Library/trustprune"
+	default:
+		return "$HOME/.trustprune"
+	}
+}
+
+// primaryBackupParent is where new backups are written.
+func primaryBackupParent(uhome string) string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(uhome, "Library", "trustprune")
+	case "linux", "windows":
+		return filepath.Join(uhome, ".trustprune")
+	default:
+		return ""
+	}
+}
+
+// legacyBackupParent is the pre-rename backup tree. It is read-only: callers
+// must never create, move, rename, or delete anything under it.
+func legacyBackupParent(uhome string) string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(uhome, "Library", "cert-manage")
+	case "linux", "windows":
+		return filepath.Join(uhome, ".cert-manage")
+	default:
+		return ""
+	}
+}
+
+// getLatestStoreBackup returns the newest backup entry for a store-relative
+// path (for example "linux" or "java"), considering both the primary
+// ~/.trustprune tree and the legacy ~/.cert-manage tree. When the same
+// basename exists in both, the primary path wins. Legacy is never created.
+func getLatestStoreBackup(name string) (string, error) {
+	uhome := file.HomeDir()
+	if uhome == "" {
+		return "", fmt.Errorf("home directory is unavailable")
+	}
+
+	primary := filepath.Join(primaryBackupParent(uhome), name)
+	legacy := ""
+	if lp := legacyBackupParent(uhome); lp != "" {
+		legacy = filepath.Join(lp, name)
+	}
+	return getLatestBackupAmong(primary, legacy)
 }
 
 // getLatestBackup returns the "biggest" file or dir at a given path
@@ -214,11 +264,61 @@ func getLatestBackup(dir string) (string, error) {
 		return "", nil
 	}
 
-	// get largest name (case-insensitive), matching previous FileInfo sort
 	names := make([]string, len(ents))
 	for i := range ents {
 		names[i] = ents[i].Name()
 	}
 	file.SortNames(names)
 	return filepath.Join(dir, names[len(names)-1]), nil
+}
+
+// getLatestBackupAmong merges directory listings and returns the path whose
+// basename sorts last. primary is preferred for a given basename. A non-missing
+// read error on primary is returned immediately; legacy is only consulted when
+// primary is absent or readable. empty legacy is ignored.
+func getLatestBackupAmong(primary string, legacy string) (string, error) {
+	seen := make(map[string]string)
+	var names []string
+
+	primaryEnts, primaryErr := os.ReadDir(primary)
+	switch {
+	case primaryErr == nil:
+		for _, ent := range primaryEnts {
+			name := ent.Name()
+			seen[name] = filepath.Join(primary, name)
+			names = append(names, name)
+		}
+	case os.IsNotExist(primaryErr):
+		// Fall through to legacy.
+	default:
+		return "", primaryErr
+	}
+
+	if legacy != "" {
+		legacyEnts, legacyErr := os.ReadDir(legacy)
+		switch {
+		case legacyErr == nil:
+			for _, ent := range legacyEnts {
+				name := ent.Name()
+				if _, ok := seen[name]; ok {
+					continue
+				}
+				seen[name] = filepath.Join(legacy, name)
+				names = append(names, name)
+			}
+		case os.IsNotExist(legacyErr):
+			// No legacy backups.
+		default:
+			// No usable primary entries and legacy is unreadable: surface that.
+			if len(names) == 0 {
+				return "", legacyErr
+			}
+		}
+	}
+
+	if len(names) == 0 {
+		return "", nil
+	}
+	file.SortNames(names)
+	return seen[names[len(names)-1]], nil
 }
