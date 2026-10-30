@@ -52,9 +52,23 @@ func detectApp(name string) Status {
 		return detectJava()
 	case "openssl":
 		return detectOpenSSL()
+	case "ssl":
+		return detectSSL()
 	default:
 		return Status{Name: name}
 	}
+}
+
+func detectSSL() Status {
+	s := Status{Name: "ssl"}
+	if runtime.GOOS != "darwin" {
+		return s
+	}
+	if file.Exists(defaultDarwinSSLCertPEM) {
+		s.Found = true
+		s.Path = defaultDarwinSSLCertPEM
+	}
+	return s
 }
 
 func detectChrome() Status {

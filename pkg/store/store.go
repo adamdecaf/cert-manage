@@ -39,6 +39,7 @@ var (
 		"firefox": FirefoxStore(),
 		"java":    JavaStore(),
 		"openssl": OpenSSLStore(),
+		"ssl":     SSLStore(),
 	}
 
 	// ErrNoBackupMade is returned if no backup of a certificate store can be found

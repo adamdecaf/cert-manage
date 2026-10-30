@@ -50,6 +50,7 @@ func TestFormatAppsHelpLineFreshCache(t *testing.T) {
 		{Name: "firefox", Found: false},
 		{Name: "java", Found: true, Path: "/tmp/java"},
 		{Name: "openssl", Found: false},
+		{Name: "ssl", Found: false},
 		{Name: "platform", Found: true, Path: "/tmp/platform"},
 	}
 	if err := SaveAppStatusesCache(statuses); err != nil {
@@ -63,6 +64,7 @@ func TestFormatAppsHelpLineFreshCache(t *testing.T) {
 		"firefox (not found)",
 		"java (found)",
 		"openssl (not found)",
+		"ssl (not found)",
 	} {
 		if !strings.Contains(got, part) {
 			t.Errorf("help line missing %q; got %q", part, got)
@@ -82,7 +84,8 @@ func TestFormatAppsHelpLineStaleCache(t *testing.T) {
 			{Name: "chrome", Found: true, Path: "/tmp/chrome"},
 			{Name: "firefox", Found: true, Path: "/tmp/ff"},
 			{Name: "java", Found: true, Path: "/tmp/java"},
-			{Name: "openssl", Found: true, Path: "/tmp/ssl"},
+			{Name: "openssl", Found: true, Path: "/tmp/openssl"},
+			{Name: "ssl", Found: true, Path: "/tmp/ssl"},
 		},
 	})
 	if err != nil {

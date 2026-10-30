@@ -7,7 +7,7 @@ title: Usage
 
 Global flags work with the subcommands that accept them. Add `-dry-run` to `add`, `backup`, `restore`, or `allowlist` to print the planned changes (files, certificates by subject and SHA-256, refresh commands) without writing to any store.
 
-Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
+Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`, `ssl` (Darwin `/etc/ssl/cert.pem`).
 
 
 ## apps
@@ -30,6 +30,7 @@ chrome    found      /home/you/.pki/nssdb
 firefox   not-found  -
 java      not-found  -
 openssl   found      /etc/ssl/certs/ca-certificates.crt
+ssl       found      /etc/ssl/cert.pem
 platform  found      /etc/ssl/certs/ca-certificates.crt
 ```
 
@@ -74,7 +75,7 @@ See [Backup and restore](backup-restore.md) for where files land.
 
 ## restore
 
-Revert to a backup. With no `-file`, uses the latest backup for that store. With `-file`, passes that path into the store's `Restore` (honored on Linux, Java, and NSS; Darwin currently ignores it — see platforms).
+Revert to a backup. With no `-file`, uses the latest backup for that store. With `-file`, passes that path into the store's `Restore` (honored on Linux, Java, NSS, and `-app ssl`; Darwin keychain platform restore currently ignores it — see platforms).
 
 ```bash
 trustprune restore
@@ -90,6 +91,23 @@ trustprune restore -app java -dry-run
 | `-app <name>` | Restore that application's store |
 | `-file <path>` | Explicit backup path (directory or file, depending on the store) |
 | `-dry-run` | Print the plan without writing |
+
+
+## Darwin `/etc/ssl/cert.pem` (`-app ssl`)
+
+On macOS, CLI tools (curl, git, python3, …) trust `/etc/ssl/cert.pem` and ignore Apple keychain blocks. Manage that bundle with `-app ssl`:
+
+```bash
+trustprune list -app ssl
+trustprune backup -app ssl
+trustprune allowlist -app ssl -file allowlist.yaml -dry-run
+trustprune allowlist -app ssl -file allowlist.yaml
+trustprune restore -app ssl
+trustprune restore -app ssl -file ~/Library/trustprune/ssl/<timestamp>/cert.pem
+```
+
+Writes stage a temp PEM then install it (sudo when needed). An empty allowlist result is refused. After a successful write, trustprune records a content hash; if a later macOS update restores Apple's copy, `list -app ssl` prints a one-line warning. Re-apply with `backup -app ssl` then `allowlist -app ssl -file …`, or `restore -app ssl` to put back your pruned backup.
+
 
 ## allowlist
 
