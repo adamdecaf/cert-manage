@@ -130,7 +130,7 @@ func (s linuxStore) Backup() error {
 		if err != nil {
 			return err
 		}
-		details := []string{fmt.Sprintf("mirror %s into $HOME/.cert-manage/%s/<timestamp>", s.ca.dir, linuxBackupDir)}
+		details := []string{fmt.Sprintf("mirror %s into $HOME/.trustprune/%s/<timestamp>", s.ca.dir, linuxBackupDir)}
 		for _, name := range names {
 			details = append(details, fmt.Sprintf("include %s", name))
 		}
@@ -145,11 +145,11 @@ func (s linuxStore) Backup() error {
 }
 
 func (s linuxStore) GetLatestBackup() (string, error) {
-	dir, err := getCertManageDir(linuxBackupDir)
+	dir, err := getLatestStoreBackup(linuxBackupDir)
 	if err != nil {
 		return "", fmt.Errorf("getLatestBackup: error getting linux backup directory, err=%w", err)
 	}
-	return getLatestBackup(dir)
+	return dir, nil
 }
 
 func (s linuxStore) uname(args ...string) string {

@@ -28,7 +28,7 @@ import (
 
 // linuxTestStore builds a linuxStore whose CA paths and backup destination
 // all live under t.TempDir(). HOME is pointed at a separate temp dir so
-// backups land in $HOME/.cert-manage/linux/... rather than the real home.
+// backups land in $HOME/.trustprune/linux/... rather than the real home.
 //
 // Restore always runs rebundleCerts, which prefixes the refresh command with
 // sudo unless the process is already root. Tests install a PATH-shadowing

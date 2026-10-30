@@ -126,3 +126,52 @@ func TestStore__getLatestBackup(t *testing.T) {
 		t.Errorf("got other backup dir, dir=%s", dir)
 	}
 }
+
+func TestStore__getLatestBackupAmong(t *testing.T) {
+	root := t.TempDir()
+	a := filepath.Join(root, "a")
+	b := filepath.Join(root, "b")
+	if err := os.MkdirAll(filepath.Join(a, "100"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(b, "200"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Same basename in both: primary (a) wins for that name, but 200 is newer overall.
+	if err := os.MkdirAll(filepath.Join(a, "150"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(b, "150"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := getLatestBackupAmong([]string{a, b})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(b, "200")
+	if got != want {
+		t.Fatalf("got %s want %s", got, want)
+	}
+
+	// Prefer primary when the newest basename exists only there.
+	if err := os.MkdirAll(filepath.Join(a, "300"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	got, err = getLatestBackupAmong([]string{a, b})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != filepath.Join(a, "300") {
+		t.Fatalf("got %s want primary 300", got)
+	}
+
+	// Missing dirs are fine.
+	got, err = getLatestBackupAmong([]string{filepath.Join(root, "missing"), b})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != filepath.Join(b, "200") {
+		t.Fatalf("got %s want %s", got, filepath.Join(b, "200"))
+	}
+}

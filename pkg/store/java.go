@@ -93,7 +93,7 @@ func (s javaStore) Backup() error {
 	if DryRun() {
 		_, filename := filepath.Split(kpath)
 		reportDryRun("backup", "java", kpath,
-			fmt.Sprintf("copy %s to $HOME/.cert-manage/%s/%s-<timestamp>.bck", kpath, javaCertManageDir, filename))
+			fmt.Sprintf("copy %s to $HOME/.trustprune/%s/%s-<timestamp>.bck", kpath, javaCertManageDir, filename))
 		return nil
 	}
 	dir, err := getCertManageDir(javaCertManageDir)
@@ -109,11 +109,11 @@ func (s javaStore) Backup() error {
 }
 
 func (s javaStore) GetLatestBackup() (string, error) {
-	dir, err := getCertManageDir(javaCertManageDir)
+	dir, err := getLatestStoreBackup(javaCertManageDir)
 	if err != nil {
 		return "", fmt.Errorf("getLatestBackup: error reading java backup directory, err=%w", err)
 	}
-	return getLatestBackup(dir)
+	return dir, nil
 }
 
 func (s javaStore) GetInfo() *Info {

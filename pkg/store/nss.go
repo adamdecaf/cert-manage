@@ -155,7 +155,7 @@ func (s nssStore) Backup() error {
 	}
 
 	if DryRun() {
-		details := []string{fmt.Sprintf("mirror profile set into $HOME/.cert-manage/%s/<timestamp>", s.nssType)}
+		details := []string{fmt.Sprintf("mirror profile set into $HOME/.trustprune/%s/<timestamp>", s.nssType)}
 		for _, name := range names {
 			src := filepath.Join(s.foundCertdbLocation, name)
 			if file.Exists(src) {
@@ -207,11 +207,11 @@ func nssProfileFilesToBackup(profileDir string) ([]string, error) {
 }
 
 func (s nssStore) GetLatestBackup() (string, error) {
-	dir, err := getCertManageDir(s.nssType)
+	dir, err := getLatestStoreBackup(s.nssType)
 	if err != nil {
 		return "", fmt.Errorf("getLatestBackup: error getting %s backup directory err=%w", s.nssType, err)
 	}
-	return getLatestBackup(dir)
+	return dir, nil
 }
 
 func (s nssStore) GetInfo() *Info {

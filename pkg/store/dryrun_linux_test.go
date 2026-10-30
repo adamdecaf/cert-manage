@@ -163,11 +163,13 @@ func TestLinuxDryRun_BackupMakesNoWrites(t *testing.T) {
 		t.Fatal("dry-run Backup mutated store")
 	}
 	// Prefer no writes at all: no backup tree under HOME.
-	cm := filepath.Join(home, ".cert-manage")
-	if st, err := os.Stat(cm); err == nil && st.IsDir() {
-		entries, _ := os.ReadDir(cm)
-		if len(entries) != 0 {
-			t.Fatalf("dry-run Backup created files under %s: %v", cm, entries)
+	for _, name := range []string{".cert-manage", ".trustprune"} {
+		cm := filepath.Join(home, name)
+		if st, err := os.Stat(cm); err == nil && st.IsDir() {
+			entries, _ := os.ReadDir(cm)
+			if len(entries) != 0 {
+				t.Fatalf("dry-run Backup created files under %s: %v", cm, entries)
+			}
 		}
 	}
 	out := buf.String()

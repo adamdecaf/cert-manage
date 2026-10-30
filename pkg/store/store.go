@@ -137,7 +137,9 @@ func ForApp(app string) (Store, error) {
 }
 
 // getCertManageDir returns the fs location (always creating first) where a specific
-// store can save files into. This path is recommended for backups
+// store can save files into. New backups are written under ~/.trustprune
+// (or ~/Library/trustprune on Darwin). The legacy ~/.cert-manage tree is never
+// created or modified here.
 //
 // If `name` is an absolute fs reference then just ensure that directory is created
 // and has permissions setup properly.
@@ -176,27 +178,63 @@ func getCertManageDir(name string) (string, error) {
 
 func getCertManageParentDir() (string, error) {
 	uhome := file.HomeDir()
-	if uhome != "" {
-		parent := ""
-
-		// Setup parent dir
-		if runtime.GOOS == "darwin" {
-			parent = filepath.Join(uhome, "/Library/cert-manage")
-		}
-		if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
-			parent = filepath.Join(uhome, ".cert-manage")
-		}
-
-		// Make parent dir and set ownership (skipped under dry-run).
-		if !DryRun() {
-			err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
-			if err != nil {
-				return "", err
-			}
-		}
-		return parent, nil
+	if uhome == "" {
+		return "", nil
 	}
-	return "", nil
+	parent := primaryBackupParent(uhome)
+
+	// Make parent dir and set ownership (skipped under dry-run).
+	if !DryRun() && parent != "" {
+		err := os.MkdirAll(parent, os.ModeDir|backupDirPerms)
+		if err != nil {
+			return "", err
+		}
+	}
+	return parent, nil
+}
+
+// primaryBackupParent is where new backups are written.
+func primaryBackupParent(uhome string) string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(uhome, "Library", "trustprune")
+	case "linux", "windows":
+		return filepath.Join(uhome, ".trustprune")
+	default:
+		return ""
+	}
+}
+
+// legacyBackupParent is the pre-rename backup tree. It is read-only: callers
+// must never create, move, rename, or delete anything under it.
+func legacyBackupParent(uhome string) string {
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(uhome, "Library", "cert-manage")
+	case "linux", "windows":
+		return filepath.Join(uhome, ".cert-manage")
+	default:
+		return ""
+	}
+}
+
+// getLatestStoreBackup returns the newest backup entry for a store-relative
+// path (for example "linux" or "java"), considering both the primary
+// ~/.trustprune tree and the legacy ~/.cert-manage tree. When the same
+// basename exists in both, the primary path wins. Legacy is never created.
+func getLatestStoreBackup(name string) (string, error) {
+	uhome := file.HomeDir()
+	if uhome == "" {
+		return "", nil
+	}
+
+	var dirs []string
+	primary := filepath.Join(primaryBackupParent(uhome), name)
+	dirs = append(dirs, primary)
+	if legacy := legacyBackupParent(uhome); legacy != "" {
+		dirs = append(dirs, filepath.Join(legacy, name))
+	}
+	return getLatestBackupAmong(dirs)
 }
 
 // getLatestBackup returns the "biggest" file or dir at a given path
@@ -214,11 +252,52 @@ func getLatestBackup(dir string) (string, error) {
 		return "", nil
 	}
 
-	// get largest name (case-insensitive), matching previous FileInfo sort
 	names := make([]string, len(ents))
 	for i := range ents {
 		names[i] = ents[i].Name()
 	}
 	file.SortNames(names)
 	return filepath.Join(dir, names[len(names)-1]), nil
+}
+
+// getLatestBackupAmong merges directory listings and returns the path whose
+// basename sorts last. dirs are searched in order; the first path for a given
+// basename wins (so callers should put the primary tree first).
+func getLatestBackupAmong(dirs []string) (string, error) {
+	seen := make(map[string]string)
+	var names []string
+	var readErr error
+	foundDir := false
+
+	for _, dir := range dirs {
+		ents, err := os.ReadDir(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			if readErr == nil {
+				readErr = err
+			}
+			continue
+		}
+		foundDir = true
+		for _, ent := range ents {
+			name := ent.Name()
+			if _, ok := seen[name]; ok {
+				continue
+			}
+			seen[name] = filepath.Join(dir, name)
+			names = append(names, name)
+		}
+	}
+
+	if len(names) == 0 {
+		if !foundDir && readErr != nil {
+			return "", readErr
+		}
+		return "", nil
+	}
+
+	file.SortNames(names)
+	return seen[names[len(names)-1]], nil
 }

@@ -54,7 +54,7 @@ var (
 	// Sierra+ stores the login keychain as login.keychain-db. The security CLI
 	// still accepts 'login.keychain' as an alias, but os.Stat does not.
 
-	// Folder under ~/Library/cert-manage/ to put backups
+	// Folder under ~/Library/trustprune/ to put backups
 	darwinBackupDir = "darwin"
 )
 
@@ -115,7 +115,7 @@ func (s darwinStore) Add(certs []*x509.Certificate) error {
 func (s darwinStore) Backup() error {
 	if DryRun() {
 		reportDryRun("backup", "darwin", loginKeychainFile(),
-			"export trusted certificates from the login keychain into ~/Library/cert-manage/darwin/<timestamp>/")
+			"export trusted certificates from the login keychain into ~/Library/trustprune/darwin/<timestamp>/")
 		return nil
 	}
 
@@ -161,11 +161,11 @@ func (s darwinStore) Backup() error {
 }
 
 func (s darwinStore) GetLatestBackup() (string, error) {
-	dir, err := getCertManageDir(darwinBackupDir)
+	dir, err := getLatestStoreBackup(darwinBackupDir)
 	if err != nil {
 		return "", fmt.Errorf("restore: error reading backup dir, err=%w", err)
 	}
-	return getLatestBackup(dir)
+	return dir, nil
 }
 
 func (s darwinStore) GetInfo() *Info {
