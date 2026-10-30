@@ -26,48 +26,48 @@ Hand-editing a system PEM bundle is workable as an emergency one-liner. As an op
 
 **There is no audit trail.** Success is "the command shows nothing." You do not get a before/after list of SHA-256 fingerprints, a backup directory you can restore from, or a recorded plan of what would change.
 
-That pattern—treating a PEM or CA directory as a text file to edit under stress—is why trustprune exists. trustprune (CLI binary currently named `cert-manage`) runs these operations on the platform and application stores that support them. The Windows platform store supports listing only, though the Java store works on Windows when `JAVA_HOME` is set. OpenSSL supports adding certificates only. It is not a magic fix for Apple's PEM gap on Darwin today: the macOS platform store works through Keychain paths and does not rewrite `/etc/ssl/cert.pem`. Managing that file directly is tracked in [issue #257](https://github.com/adamdecaf/trustprune/issues/257). The point is the workflow you should demand of any trust-store change, including the next incident that lands on Linux, Java, or a browser profile.
+That pattern—treating a PEM or CA directory as a text file to edit under stress—is why trustprune exists. It runs these operations on the platform and application stores that support them. The Windows platform store supports listing only, though the Java store works on Windows when `JAVA_HOME` is set. OpenSSL supports adding certificates only. It is not a magic fix for Apple's PEM gap on Darwin today: the macOS platform store works through Keychain paths and does not rewrite `/etc/ssl/cert.pem`. Managing that file directly is tracked in [issue #257](https://github.com/adamdecaf/trustprune/issues/257). The point is the workflow you should demand of any trust-store change, including the next incident that lands on Linux, Java, or a browser profile.
 
 See which stores are actually on the machine:
 
 ```bash
-cert-manage apps
-cert-manage apps -format json
+trustprune apps
+trustprune apps -format json
 ```
 
 Preview before writing. `-dry-run` works on `add`, `backup`, `restore`, and `allowlist`:
 
 ```bash
-cert-manage backup -dry-run
-cert-manage allowlist -file allowlist.yaml -dry-run
-cert-manage restore -dry-run
+trustprune backup -dry-run
+trustprune allowlist -file allowlist.yaml -dry-run
+trustprune restore -dry-run
 ```
 
 Take a real backup first. Allowlisting refuses to run without one for that store:
 
 ```bash
-cert-manage backup
-cert-manage backup -app java
-cert-manage backup -app firefox
+trustprune backup
+trustprune backup -app java
+trustprune backup -app firefox
 ```
 
 Remove trust for CAs that are not on your allowlist (Chromium's certificate blocklist is always applied as well):
 
 ```bash
-cert-manage allowlist -file allowlist.yaml
-cert-manage allowlist -file allowlist.yaml -app java
+trustprune allowlist -file allowlist.yaml
+trustprune allowlist -file allowlist.yaml -app java
 ```
 
 Roll back if HTTPS breaks for a tool you need:
 
 ```bash
-cert-manage restore
-cert-manage restore -app java
-cert-manage list
-cert-manage connect https://example.com
+trustprune restore
+trustprune restore -app java
+trustprune list
+trustprune connect https://example.com
 ```
 
-On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and allowlist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Stores that support backups write timestamped entries under `~/.cert-manage/` or `~/Library/cert-manage/` that you can restore from.
+On Linux, that path covers the platform CA directory and refresh tools. On Darwin, it covers Keychain-oriented platform operations and app stores such as Java and Firefox when they are present. Across machines, the same commands and allowlist file are repeatable only for the operations each store supports. The Windows platform store and OpenSSL do not support every operation. Stores that support backups write timestamped entries under `~/.trustprune/` or `~/Library/trustprune/` that you can restore from (older `~/.cert-manage/` / `~/Library/cert-manage/` backups remain readable). On Darwin, platform restore still always uses the latest backup (`-file` / `where` is incomplete), and login-keychain restore from those exports is not reliable today.
 
 Apple's PEM recipe is an honest interim for a real hole in macOS CLI trust. It also shows what "just edit the bundle" costs: silent reverts, brittle scripts, and no plan you can review before you write. Prefer a tool that dry-runs, backs up, restores, and applies the same policy on every store you actually use. That is safer than hand-editing a PEM under pressure—not a guarantee that nothing will break.
 

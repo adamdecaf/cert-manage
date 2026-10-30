@@ -1,11 +1,11 @@
 ## Add
 
-`cert-manage` can add certificates into a given trust store with the `add` sub command.
+`trustprune` can add certificates into a given trust store with the `add` sub command.
 
 ```
-$ cert-manage add -file cert.pem
+$ trustprune add -file cert.pem
 
-$ cert-manage add -file cert.pem -app java
+$ trustprune add -file cert.pem -app java
 ```
 
 ## Connect
@@ -13,10 +13,10 @@ $ cert-manage add -file cert.pem -app java
 The `connect` command allows you to verify connectivity with a remote host using the certificates from a given store. This allows you to quickly verify if applying an allowlist (or restoring) worked.
 
 ```
-$ ./cert-manage connect https://google.com
+$ ./trustprune connect https://google.com
 Connection to https://google.com passed!
 
-$ ./cert-manage connect -app java https://google.com
+$ ./trustprune connect -app java https://google.com
 Connection to https://google.com passed!
 ```
 
@@ -27,7 +27,7 @@ The cli sub-command `list` will output a list of certificates installed (and tru
 Show certificates installed in the platform:
 
 ```
-$ cert-manage list
+$ trustprune list
 Certificate
   SHA256 Fingerprint - 1a5174980a294a528a110726d5855650266c48d9883bea692b67b6d726da98c5
   SerialNumber: 26471149583208131559647911801012699958
@@ -43,7 +43,7 @@ Certificate
 Show certificates installed for an application
 
 ```
-$ cert-manage list -app firefox
+$ trustprune list -app firefox
 Certificate
   SHA256 Fingerprint - 1a5174980a294a528a110726d5855650266c48d9883bea692b67b6d726da98c5
   SerialNumber: 26471149583208131559647911801012699958
@@ -59,7 +59,7 @@ Certificate
 Note: You can specify `-format table` to output all details of each certificate, but the result won't be in a table layout.
 
 ```
-$ cert-manage list -app firefox -format table
+$ trustprune list -app firefox -format table
 Subject                                             Issuer                                                       Public Key Algorithm SHA256 Fingerprint Not Before Not After
 AlphaSSL CA - SHA256 - G2                           GlobalSign Root CA                                           RSA                  ee793643199474ed   2014-02-20 2024-02-20
 Amazon                                              Amazon Root CA 1                                             RSA                  f55f9ffcb83c7345   2015-10-22 2025-10-19
@@ -70,7 +70,7 @@ Amazon Root CA 1                                    Starfield Services Root Cert
 If openssl is installed you can output certificates in that format (via `-format openssl`).
 
 ```
-$ cert-manage list -app firefox -format openssl
+$ trustprune list -app firefox -format openssl
 Certificate:
     Data:
         Version: 3 (0x2)
@@ -119,10 +119,10 @@ Certificate:
 
 ### URL
 
-`cert-manage` can list certificates from a given URL. Supported formats are PEM and [certdata.txt](https://wiki.mozilla.org/CA/Included_Certificates)
+`trustprune` can list certificates from a given URL. Supported formats are PEM and [certdata.txt](https://wiki.mozilla.org/CA/Included_Certificates)
 
 ```
-$ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+$ trustprune list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 Certificate
   SHA256 Fingerprint - ebd41040e4bb3ec742c9e381d31ef2a41a48b6685c96e7cef3c1df6cd4331c99
   SerialNumber: 4835703278459707669005204
@@ -135,10 +135,10 @@ Certificate
 
 ### TLS obsvervatory
 
-`cert-manage` supports `-format observatory` which outputs certificates in a format supported by [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory).
+`trustprune` supports `-format observatory` which outputs certificates in a format supported by [nabla-c0d3/trust_stores_observatory](https://github.com/nabla-c0d3/trust_stores_observatory).
 
 ```
-$ cert-manage list -format observatory -app chrome
+$ trustprune list -format observatory -app chrome
 platform: Darwin (OSX)
 version: 10.13.3
 url: ""
@@ -152,10 +152,10 @@ trusted_certificates:
 
 ### Web
 
-`cert-manage` can present certificates on a local web page with `-ui web` passed to any command.
+`trustprune` can present certificates on a local web page with `-ui web` passed to any command.
 
 ```
-$ cert-manage list -app java -ui web
+$ trustprune list -app java -ui web
 ```
 
 <img src="./images/web.png" />
@@ -167,10 +167,10 @@ It's important to be able to rollback changes to your certificate store. These c
 To capture a backup:
 
 ```
-$ cert-manage backup
+$ trustprune backup
 Backup completed successfully
 
-$ cert-manage backup -app java
+$ trustprune backup -app java
 Backup completed successfully
 ```
 
@@ -178,5 +178,5 @@ Backups can be used as restore points.
 
 ```
 # Restore from the latest backup
-$ cert-manage restore -app chrome
+$ trustprune restore -app chrome
 ```

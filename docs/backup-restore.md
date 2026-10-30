@@ -9,9 +9,9 @@ Certificate-store edits can break HTTPS for browsers, package managers, and lang
 
 ## Best practices
 
-1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any allowlist.
+1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `trustprune backup` (and `-app …` when targeting an app) before any allowlist.
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
-3. **Verify after changes** with `cert-manage list` and `cert-manage connect https://…`.
+3. **Verify after changes** with `trustprune list` and `trustprune connect https://…`.
 4. **Keep a known-good backup** until you confirm the machine still reaches the sites and tools you need.
 
 Add `-dry-run` to `backup` or `restore` to see exactly which files would be written or copied, without touching the store.
@@ -22,8 +22,8 @@ Parent directory (created as needed):
 
 | OS | Path |
 |----|------|
-| Linux, Windows | `~/.cert-manage/` |
-| Darwin | `~/Library/cert-manage/` |
+| Linux, Windows | `~/.trustprune/` (legacy read-only fallback: `~/.cert-manage/`) |
+| Darwin | `~/Library/trustprune/` (legacy read-only fallback: `~/Library/cert-manage/`) |
 
 | Store | Layout under the parent |
 |-------|-------------------------|
@@ -47,7 +47,7 @@ Parent directory (created as needed):
 
 If the swap rename itself fails after the live tree was moved aside, the previous directory is renamed back. A failed mirror leaves the live directory untouched.
 
-`Restore` honors an explicit path (`cert-manage restore -file …` / the store `where` argument). Empty `where` uses the latest backup under `~/.cert-manage/linux/`.
+`Restore` honors an explicit path (`trustprune restore -file …` / the store `where` argument). Empty `where` uses the latest backup under `~/.trustprune/linux/` or the legacy `~/.cert-manage/linux/`; the primary path wins for duplicate basenames.
 
 ## NSS: full file set
 
@@ -72,7 +72,7 @@ A failed stage leaves the live profile files untouched. Restore from a **legacy 
 
 ## Java
 
-Backup copies the live `cacerts` file into `~/.cert-manage/java/` (or `~/Library/cert-manage/java/` on Darwin). Restore copies the chosen backup over the live keystore (`SudoCopyFile` when permissions require it). Explicit `-file` is honored.
+Backup copies the live `cacerts` file into `~/.trustprune/java/` (or `~/Library/trustprune/java/` on Darwin). Restore copies the chosen backup over the live keystore (`SudoCopyFile` when permissions require it). Explicit `-file` is honored.
 
 ## Darwin notes
 

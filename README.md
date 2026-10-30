@@ -1,4 +1,4 @@
-# cert-manage
+# trustprune
 
 [![CI](https://github.com/adamdecaf/trustprune/actions/workflows/ci.yml/badge.svg)](https://github.com/adamdecaf/trustprune/actions/workflows/ci.yml)
 
@@ -6,29 +6,37 @@
 
 In October 2026, the private keys of eight [eMudhra](https://emudhra.com/en/post/certificate-security-incident) intermediate CAs were compromised. Six of them could issue TLS certificates for any website. [Apple blocked](https://support.apple.com/en-us/149555) those certificates in Safari and system frameworks starting 19 October 2026, and later blocked the emSign ECC Root CA - G3. Command-line tools that still read `/etc/ssl/cert.pem` (git, curl, python3, and others) kept trusting the compromised chains until users removed the roots by hand — and a subsequent macOS update can restore Apple's copy of that file. The pattern is old: DigiNotar, Symantec, WoSign, and many others. The CA system still ships with more trust than most people need, and removing it is still harder than it should be.
 
-`cert-manage` gives you a single CLI to **list**, **backup**, **allowlist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
+`trustprune` gives you a single CLI to **list**, **backup**, **allowlist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
 
 Trust should be earned, not defaulted.
+
+
+## Renamed from cert-manage
+
+This project was renamed from **cert-manage** to **trustprune**. The repository is now at [github.com/adamdecaf/trustprune](https://github.com/adamdecaf/trustprune) (old GitHub URLs redirect).
+
+- The primary CLI binary is `trustprune`. A `cert-manage` alias remains through **0.2.x** and prints a short rename notice on stderr when invoked under that name.
+- New backups are written under `~/.trustprune/` (or `~/Library/trustprune/` on Darwin). Existing backups under `~/.cert-manage/` or `~/Library/cert-manage/` are still discovered read-only for restore; nothing is moved, renamed, or deleted from the old tree. When both trees have entries, the newest basename wins (primary path preferred on ties). Prefer an explicit `restore -file` path if you mix legacy NSS filename layouts.
 
 ## 30-second quickstart
 
 ```bash
 # 1. See what you currently trust
-cert-manage list
-cert-manage list -count
-cert-manage list -app java
+trustprune list
+trustprune list -count
+trustprune list -app java
 
 # 2. Always take a backup before changing trust
-cert-manage backup
-cert-manage backup -app java
+trustprune backup
+trustprune backup -app java
 
 # 3. Allowlist: keep only the CAs you want (requires a prior backup)
-cert-manage allowlist -file urls.yaml
-cert-manage allowlist -app java -file urls.yaml
+trustprune allowlist -file urls.yaml
+trustprune allowlist -app java -file urls.yaml
 
 # 4. Roll back if something breaks
-cert-manage restore
-cert-manage restore -app java
+trustprune restore
+trustprune restore -app java
 ```
 
 Allowlist files are YAML or JSON. See [docs/allowlists.md](docs/allowlists.md) for fingerprints, country filters, and generating an allowlist from browser history.
@@ -76,7 +84,7 @@ Honest status as of late October 2026. Levels match what the code does today.
 
 Certificate-store edits can break HTTPS for browsers, package managers, and language runtimes. Treat every change as privileged.
 
-1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `cert-manage backup` (and `-app …` when targeting an app) before any allowlist.
+1. **Backup first.** Allowlisting without a prior backup fails on purpose. Run `trustprune backup` (and `-app …` when targeting an app) before any allowlist.
 2. **Prefer temp or container stores** when experimenting. Do not point destructive tests at real `/etc` or `/usr` CA paths.
 3. **Preview with `-dry-run`.** `add`, `backup`, `restore`, and `allowlist` accept `-dry-run` to print the plan without writing to any store.
 
@@ -84,12 +92,12 @@ Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA d
 
 ## Install
 
-Download a binary from the [latest release](https://github.com/adamdecaf/trustprune/releases) (tagged `0.1.0`; module version is `0.1.1-dev`), or build from source (Go **1.27** required):
+Download a binary from the [latest release](https://github.com/adamdecaf/trustprune/releases) (tagged `0.1.0` still ships `cert-manage` and predates `allowlist` / `apps` / `-dry-run`; module version on `master` is `0.1.1-dev`), or build from source (Go **1.27** required) for current commands:
 
 ```bash
 git clone https://github.com/adamdecaf/trustprune.git
 cd trustprune
-make build          # produces ./cert-manage
+make build          # produces ./trustprune (+ cert-manage symlink)
 # or cross-compile:
 make dist           # linux / osx / windows binaries under bin/
 ```
@@ -97,49 +105,49 @@ make dist           # linux / osx / windows binaries under bin/
 You can also install with the Go toolchain:
 
 ```bash
-go install github.com/adamdecaf/trustprune@latest
+go install github.com/adamdecaf/trustprune@master
 ```
 
-That installs a binary named `trustprune` (Go uses the last path element). Until the binary rename in #251, prefer `make build` above if you want the `cert-manage` command name.
+`@master` tracks current docs/commands (tagged `@latest` / `0.1.0` is still the pre-rename `cert-manage` release). That installs a binary named `trustprune` (Go uses the last path element). `make build` also creates a local `cert-manage` symlink alias (supported through 0.2.x).
 
 ### Usage examples
 
 ```bash
 # Platform store
-cert-manage list
-cert-manage list -format table       # short (default), table, openssl, observatory
-cert-manage list -format openssl
-cert-manage list -ui web             # cli (default) or web
+trustprune list
+trustprune list -format table       # short (default), table, openssl, observatory
+trustprune list -format openssl
+trustprune list -ui web             # cli (default) or web
 
 # Apps
-cert-manage list -app java
-cert-manage list -app chrome
-cert-manage list -app firefox
+trustprune list -app java
+trustprune list -app chrome
+trustprune list -app firefox
 
 # From a file or Mozilla certdata URL
-cert-manage list -file example.crt
-cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+trustprune list -file example.crt
+trustprune list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 
 # Add
-cert-manage add -file cert.pem
-cert-manage add -file cert.pem -app java
+trustprune add -file cert.pem
+trustprune add -file cert.pem -app java
 
 # Allowlist, backup, restore
-cert-manage backup
-cert-manage allowlist -file urls.yaml
-cert-manage restore                 # latest backup
-cert-manage restore -file <path>    # explicit backup path
+trustprune backup
+trustprune allowlist -file urls.yaml
+trustprune restore                 # latest backup
+trustprune restore -file <path>    # explicit backup path
 
 # Generate an allowlist
-cert-manage gen-allowlist -out allowlist.yaml -from firefox
-cert-manage gen-allowlist -out allowlist.yaml -from browsers
-cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
+trustprune gen-allowlist -out allowlist.yaml -from firefox
+trustprune gen-allowlist -out allowlist.yaml -from browsers
+trustprune gen-allowlist -out allowlist.yaml -file urls.txt
 
 # Verify connectivity after a change
-cert-manage connect https://example.com
-cert-manage connect -app java https://example.com
+trustprune connect https://example.com
+trustprune connect -app java https://example.com
 
-cert-manage version
+trustprune version
 ```
 
 More detail: [docs/basics.md](docs/basics.md), [docs/allowlists.md](docs/allowlists.md).
@@ -201,7 +209,7 @@ Incidents keep showing that "trusted by default" is not the same as "trustworthy
 - StartCom ([StartEncrypt](https://www.computest.nl/blog/startencrypt-considered-harmful-today/)), GlobalSign cross-signing mistakes, vendor-installed roots (e.g. [DYMO](https://github.com/njh/dymo-root-ca-security-risk), [Savitech](https://www.kb.cert.org/vuls/id/446847))
 - See Mozilla's [CA Incident Dashboard](https://wiki.mozilla.org/CA/Incident_Dashboard) and [dev-security-policy](https://groups.google.com/forum/#!forum/mozilla.dev.security.policy)
 
-Vendors and browsers react after the fact. `cert-manage` is for putting that control on your own machine before the next incident.
+Vendors and browsers react after the fact. `trustprune` is for putting that control on your own machine before the next incident.
 
 ## Related projects
 
