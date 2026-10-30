@@ -27,27 +27,18 @@ import (
 func TestSudoCopyFile_MissingDestination(t *testing.T) {
 	dir := t.TempDir()
 	src := filepath.Join(dir, "src")
-	dst := filepath.Join(dir, "missing", "dst")
 	if err := os.WriteFile(src, []byte("payload\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Parent of dst does not exist: elevated cp may still fail, but must not panic.
-	err := SudoCopyFile(src, dst)
-	if err == nil {
-		// If somehow created (unlikely without parent), verify contents.
-		got, readErr := os.ReadFile(dst)
-		if readErr != nil {
-			t.Fatal(readErr)
-		}
-		if !bytes.Equal(got, []byte("payload\n")) {
-			t.Fatalf("got %q", got)
-		}
-		return
+
+	// Missing parent: must return an error without prompting for sudo.
+	missingParent := filepath.Join(dir, "no-such-dir", "dst")
+	if err := SudoCopyFile(src, missingParent); err == nil {
+		t.Fatal("expected error when parent directory is missing")
 	}
-	// Create parent and retry: destination missing but parent writable.
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		t.Fatal(err)
-	}
+
+	// Missing dest, writable parent: creates the file.
+	dst := filepath.Join(dir, "missing-dest")
 	if err := SudoCopyFile(src, dst); err != nil {
 		t.Fatalf("SudoCopyFile missing dest: %v", err)
 	}

@@ -386,3 +386,26 @@ func TestSSLStore_LastAppliedOutsideBackupDir(t *testing.T) {
 	}
 	_ = certs
 }
+
+func TestSSLStore_InstallPreservesReadableMode(t *testing.T) {
+	s, path, certs := sslTestEnv(t)
+	if err := os.Chmod(path, 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	if err := s.Backup(); err != nil {
+		t.Fatal(err)
+	}
+	keep := allowlist.FromCertificates([]*x509.Certificate{certs[0]})
+	if err := s.Remove(keep); err != nil {
+		t.Fatal(err)
+	}
+	st, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	perm := st.Mode().Perm()
+	if perm&0044 == 0 {
+		t.Fatalf("installed bundle mode %o is not world/group-readable", perm)
+	}
+}

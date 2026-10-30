@@ -348,6 +348,10 @@ func sslInstallFile(src, dst string) error {
 			_ = os.Remove(tmpName)
 			return copyErr
 		}
+		if chErr := sslChmodInstalled(tmpName, dst); chErr != nil {
+			_ = os.Remove(tmpName)
+			return chErr
+		}
 		if renErr := os.Rename(tmpName, dst); renErr != nil {
 			_ = os.Remove(tmpName)
 			// Fall through to privileged install.
@@ -356,6 +360,14 @@ func sslInstallFile(src, dst string) error {
 		}
 	}
 	return sslSudoInstallAtomic(src, dst)
+}
+
+func sslChmodInstalled(tmpName, dst string) error {
+	mode := os.FileMode(0o644)
+	if st, err := os.Stat(dst); err == nil {
+		mode = st.Mode().Perm()
+	}
+	return os.Chmod(tmpName, mode)
 }
 
 func sslSudoInstallAtomic(src, dst string) error {
@@ -367,6 +379,11 @@ dir=$(dirname "$dst")
 tmp=$(mktemp "$dir/.trustprune-ssl.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
 cp "$src" "$tmp"
+mode=644
+if [ -e "$dst" ]; then
+  mode=$(stat -f %OLp "$dst" 2>/dev/null || stat -c %a "$dst" 2>/dev/null || echo 644)
+fi
+chmod "$mode" "$tmp"
 mv "$tmp" "$dst"
 trap - EXIT
 `

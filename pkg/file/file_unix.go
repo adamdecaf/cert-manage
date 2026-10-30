@@ -19,6 +19,7 @@ package file
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -33,11 +34,15 @@ func execCopy(src, dst string) error {
 	sdst, err := os.Stat(dst)
 	if os.IsNotExist(err) {
 		// Prefer a normal create when the parent dir is writable (tests, user
-		// paths). Fall back to elevated cp for root-owned parents like /etc/ssl.
+		// paths). Escalate only for permission failures on root-owned parents
+		// like /etc/ssl; other errors (missing parent dir, etc.) return as-is.
 		if copyErr := CopyFile(src, dst); copyErr == nil {
 			return nil
+		} else if errors.Is(copyErr, os.ErrPermission) {
+			return execSudoCopy(src, dst)
+		} else {
+			return copyErr
 		}
-		return execSudoCopy(src, dst)
 	}
 	if err != nil {
 		return err
