@@ -294,7 +294,7 @@ func TestGetLatestBackupAmong_JavaBckAcrossTrees(t *testing.T) {
 	}
 }
 
-func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
+func TestGetLatestBackup_NSSMixedUnderTempHome(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -327,7 +327,8 @@ func TestGetLatestStoreBackup_NSSMixedUnderTempHome(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := getLatestStoreBackup("firefox")
+	s := NssStore("firefox", "0", "")
+	got, err := s.GetLatestBackup()
 	if err != nil {
 		t.Fatal(err)
 	}
