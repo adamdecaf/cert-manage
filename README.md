@@ -16,7 +16,7 @@ Trust should be earned, not defaulted.
 This project was renamed from **cert-manage** to **trustprune**. The repository is now at [github.com/adamdecaf/trustprune](https://github.com/adamdecaf/trustprune) (old GitHub URLs redirect).
 
 - The primary CLI binary is `trustprune`. A `cert-manage` alias remains through **0.2.x** and prints a short rename notice on stderr when invoked under that name.
-- New backups are written under `~/.trustprune/` (or `~/Library/trustprune/` on Darwin). Existing backups under `~/.cert-manage/` or `~/Library/cert-manage/` are still discovered read-only for restore; nothing is moved, renamed, or deleted from the old tree.
+- New backups are written under `~/.trustprune/` (or `~/Library/trustprune/` on Darwin). Existing backups under `~/.cert-manage/` or `~/Library/cert-manage/` are still discovered read-only for restore; nothing is moved, renamed, or deleted from the old tree. When both trees have entries, the newest basename wins (primary path preferred on ties). Prefer an explicit `restore -file` path if you mix legacy NSS filename layouts.
 
 ## 30-second quickstart
 
@@ -92,7 +92,7 @@ Linux restore uses a temp-dir-then-swap so a failed restore leaves the live CA d
 
 ## Install
 
-Download a binary from the [latest release](https://github.com/adamdecaf/trustprune/releases) (tagged `0.1.0`; module version is `0.1.1-dev`), or build from source (Go **1.27** required):
+Download a binary from the [latest release](https://github.com/adamdecaf/trustprune/releases) (tagged `0.1.0` still ships `cert-manage` and predates `allowlist` / `apps` / `-dry-run`; module version on `master` is `0.1.1-dev`), or build from source (Go **1.27** required) for current commands:
 
 ```bash
 git clone https://github.com/adamdecaf/trustprune.git

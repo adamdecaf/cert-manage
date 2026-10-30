@@ -47,7 +47,7 @@ Parent directory (created as needed):
 
 If the swap rename itself fails after the live tree was moved aside, the previous directory is renamed back. A failed mirror leaves the live directory untouched.
 
-`Restore` honors an explicit path (`trustprune restore -file …` / the store `where` argument). Empty `where` uses the latest backup under `~/.trustprune/linux/`.
+`Restore` honors an explicit path (`trustprune restore -file …` / the store `where` argument). Empty `where` uses the latest backup under `~/.trustprune/linux/` or the legacy `~/.cert-manage/linux/`; the primary path wins for duplicate basenames.
 
 ## NSS: full file set
 
