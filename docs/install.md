@@ -30,10 +30,10 @@ make dist     # all three
 ## go install
 
 ```bash
-go install github.com/adamdecaf/trustprune@latest
+go install github.com/adamdecaf/trustprune@master
 ```
 
-That installs a binary named `trustprune` (Go uses the last path element). `make build` also creates a local `cert-manage` symlink alias.
+Use `@master` for the current command set (`allowlist`, `apps`, `-dry-run`, …). `go install …@latest` resolves to tagged **0.1.0**, which still ships `cert-manage` only. That installs a binary named `trustprune` (Go uses the last path element). `make build` also creates a local `cert-manage` symlink alias.
 
 ## Build from source
 
