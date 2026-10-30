@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -222,7 +223,7 @@ func (s sslStore) Restore(where string) error {
 			fmt.Sprintf("copy %s -> %s", srcFile, path))
 		return nil
 	}
-	if err := file.SudoCopyFile(srcFile, path); err != nil {
+	if err := sslInstallFile(srcFile, path); err != nil {
 		return fmt.Errorf("restore %s from %s: %w; re-run with permission to write that path (often sudo)", path, srcFile, err)
 	}
 	return s.recordLastAppliedFromFile(srcFile)
@@ -250,7 +251,7 @@ func (s sslStore) replaceBundle(certs []*x509.Certificate) error {
 	if err := certutil.ToFile(tmpName, certs); err != nil {
 		return fmt.Errorf("stage ssl bundle: %w", err)
 	}
-	if err := file.SudoCopyFile(tmpName, path); err != nil {
+	if err := sslInstallFile(tmpName, path); err != nil {
 		return fmt.Errorf("write %s: %w; re-run with permission to write that path (often sudo)", path, err)
 	}
 	return s.recordLastAppliedFromFile(tmpName)
@@ -331,6 +332,59 @@ func (s sslStore) warnIfDrifted(w io.Writer) {
 	}
 	fmt.Fprintf(w, "ssl: %s differs from the last trustprune write (SHA256 %s -> %s); a macOS update may have restored Apple's copy. Re-apply: trustprune backup -app ssl && trustprune allowlist -app ssl -file <allowlist>, or trustprune restore -app ssl\n",
 		path, shortSHA(want), shortSHA(got))
+}
+
+
+// sslInstallFile replaces dst with the contents of src using a same-directory
+// temp file and rename when possible (atomic on the same filesystem). If the
+// destination directory is not writable, it stages and renames via sudo.
+func sslInstallFile(src, dst string) error {
+	dir := filepath.Dir(dst)
+	tmp, err := os.CreateTemp(dir, ".trustprune-ssl-*.tmp")
+	if err == nil {
+		tmpName := tmp.Name()
+		_ = tmp.Close()
+		if copyErr := file.CopyFile(src, tmpName); copyErr != nil {
+			_ = os.Remove(tmpName)
+			return copyErr
+		}
+		if renErr := os.Rename(tmpName, dst); renErr != nil {
+			_ = os.Remove(tmpName)
+			// Fall through to privileged install.
+		} else {
+			return nil
+		}
+	}
+	return sslSudoInstallAtomic(src, dst)
+}
+
+func sslSudoInstallAtomic(src, dst string) error {
+	// Create a temp file beside dst and rename over it under elevated privileges.
+	script := `set -e
+src=$1
+dst=$2
+dir=$(dirname "$dst")
+tmp=$(mktemp "$dir/.trustprune-ssl.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+cp "$src" "$tmp"
+mv "$tmp" "$dst"
+trap - EXIT
+`
+	var cmd *exec.Cmd
+	if os.Getuid() == 0 {
+		cmd = exec.Command("sh", "-c", script, "ssl-install", src, dst)
+	} else {
+		cmd = exec.Command("sudo", "sh", "-c", script, "ssl-install", src, dst)
+	}
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(out))
+		if msg != "" {
+			return fmt.Errorf("atomic install %s -> %s: %w (%s)", src, dst, err, msg)
+		}
+		return fmt.Errorf("atomic install %s -> %s: %w", src, dst, err)
+	}
+	return nil
 }
 
 func fileSHA256Sum(path string) (string, error) {
