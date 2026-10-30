@@ -291,3 +291,98 @@ func TestDetectSSL(t *testing.T) {
 		t.Fatalf("path=%q want %s", st.Path, defaultDarwinSSLCertPEM)
 	}
 }
+
+func TestSSLStore_RemoveDryRunRejectsEmpty(t *testing.T) {
+	s, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(true)
+	defer SetDryRun(false)
+	empty := allowlist.FromCertificates(nil)
+	err = s.Remove(empty)
+	if err == nil {
+		t.Fatal("dry-run should reject empty allowlist result")
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Fatalf("got %v", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("dry-run empty remove mutated PEM")
+	}
+}
+
+func TestSSLStore_RestoreRejectsGarbageWhere(t *testing.T) {
+	s, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	garbage := filepath.Join(t.TempDir(), "not-a-pem")
+	if err := os.WriteFile(garbage, []byte("not-pem-at-all\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	err = s.Restore(garbage)
+	if err == nil {
+		t.Fatal("expected restore to reject garbage source")
+	}
+	if !strings.Contains(err.Error(), "valid PEM") && !strings.Contains(err.Error(), "no certificates") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed restore overwrote live PEM")
+	}
+}
+
+func TestSSLStore_LastAppliedOutsideBackupDir(t *testing.T) {
+	s, path, certs := sslTestEnv(t)
+	SetDryRun(false)
+	// Add without Backup: records last-applied but creates no timestamp backup.
+	extra, err := certutil.FromFile(filepath.Join("..", "..", "testdata", "example.crt"))
+	if err != nil || len(extra) == 0 {
+		t.Fatalf("example.crt: %v", err)
+	}
+	if err := s.Add(extra); err != nil {
+		t.Fatal(err)
+	}
+	statePath, err := s.lastAppliedPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(statePath, sslStateDirName) {
+		t.Fatalf("last-applied path should be under %s: %s", sslStateDirName, statePath)
+	}
+	if strings.Contains(filepath.Dir(statePath), string(filepath.Separator)+sslBackupDir) ||
+		strings.HasSuffix(filepath.Dir(statePath), sslBackupDir) {
+		// Dir should be .../ssl-state, not .../ssl
+		if filepath.Base(filepath.Dir(statePath)) == sslBackupDir {
+			t.Fatalf("last-applied must not live under backup dir: %s", statePath)
+		}
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = s.Restore("")
+	if err == nil {
+		t.Fatal("Restore with no backup should error, not use last-applied")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("Restore without backup mutated live PEM")
+	}
+	_ = certs
+}

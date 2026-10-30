@@ -39,6 +39,7 @@ const (
 	defaultDarwinSSLCertPEM = "/etc/ssl/cert.pem"
 
 	sslBackupDir       = "ssl"
+	sslStateDirName    = "ssl-state"
 	sslBackupFilename  = "cert.pem"
 	sslLastAppliedName = "last-applied.sha256"
 )
@@ -178,13 +179,13 @@ func (s sslStore) Remove(al allowlist.Allowlist) error {
 		}
 	}
 
+	if len(kept) == 0 {
+		return fmt.Errorf("allowlist would leave %s empty; refusing to write an empty bundle. Adjust the allowlist or restore from backup", path)
+	}
 	if DryRun() {
 		details := reportDryRunCerts("remove", removed)
 		reportDryRun("remove certificates from", "ssl", path, details...)
 		return nil
-	}
-	if len(kept) == 0 {
-		return fmt.Errorf("allowlist would leave %s empty; refusing to write an empty bundle. Adjust the allowlist or restore from backup", path)
 	}
 	return s.replaceBundle(kept)
 }
@@ -207,6 +208,13 @@ func (s sslStore) Restore(where string) error {
 	srcFile, err := sslBackupFile(src)
 	if err != nil {
 		return err
+	}
+	certs, err := certutil.FromFile(srcFile)
+	if err != nil {
+		return fmt.Errorf("restore source %s is not a valid PEM bundle: %w; pass -file to a cert.pem backup", srcFile, err)
+	}
+	if len(certs) == 0 {
+		return fmt.Errorf("restore source %s contains no certificates; refusing to overwrite %s", srcFile, path)
 	}
 	if DryRun() {
 		reportDryRun("restore", "ssl", path,
@@ -272,7 +280,7 @@ func (s sslStore) lastAppliedPath() (string, error) {
 	if parent == "" {
 		return "", fmt.Errorf("unsupported platform for ssl state: %s", runtime.GOOS)
 	}
-	return filepath.Join(parent, sslBackupDir, sslLastAppliedName), nil
+	return filepath.Join(parent, sslStateDirName, sslLastAppliedName), nil
 }
 
 func (s sslStore) recordLastAppliedFromFile(path string) error {
