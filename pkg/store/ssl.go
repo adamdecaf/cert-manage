@@ -351,6 +351,9 @@ func (s sslStore) warnIfDrifted(w io.Writer) {
 }
 
 
+// sslRename is os.Rename; tests swap it to force a mid-swap failure.
+var sslRename = os.Rename
+
 // sslInstallFile replaces dst with the contents of src by staging into a
 // sibling temp directory (dst.restore-tmp), then renaming into place. A failed
 // stage leaves the live file untouched. If the parent directory is not
@@ -380,17 +383,21 @@ func sslInstallFile(src, dst string) error {
 	liveExists := file.Exists(dst)
 	if liveExists {
 		_ = os.Remove(aside)
-		if err := os.Rename(dst, aside); err != nil {
+		if err := sslRename(dst, aside); err != nil {
 			_ = os.RemoveAll(tmpDir)
 			return sslSudoInstallAtomic(src, dst)
 		}
 	}
-	if err := os.Rename(staged, dst); err != nil {
+	if err := sslRename(staged, dst); err != nil {
 		if liveExists {
-			if rerr := os.Rename(aside, dst); rerr != nil {
+			if rerr := sslRename(aside, dst); rerr != nil {
 				_ = os.RemoveAll(tmpDir)
 				return fmt.Errorf("install %s failed and could not restore previous file from %s: %w", dst, aside, errors.Join(err, rerr))
 			}
+			_ = os.RemoveAll(tmpDir)
+			// Aside swap proved the parent is writable; do not escalate to sudo
+			// after rolling back — that would risk rewriting the restored live file.
+			return fmt.Errorf("install %s: %w", dst, err)
 		}
 		_ = os.RemoveAll(tmpDir)
 		return sslSudoInstallAtomic(src, dst)

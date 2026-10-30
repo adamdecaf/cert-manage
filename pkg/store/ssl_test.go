@@ -16,6 +16,7 @@ package store
 
 import (
 	"bytes"
+	"fmt"
 	"crypto/x509"
 	"os"
 	"path/filepath"
@@ -470,10 +471,11 @@ func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	SetDryRun(false)
+
 	// Missing source fails inside sslInstallFile after local staging starts
 	// (Restore rejects invalid PEM before install, so call the installer directly).
 	missing := filepath.Join(t.TempDir(), "missing.pem")
-	SetDryRun(false)
 	if err := sslInstallFile(missing, path); err == nil {
 		t.Fatal("expected install failure")
 	}
@@ -487,6 +489,47 @@ func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
 	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
 		if st, err := os.Stat(leftover); err == nil {
 			t.Fatalf("failed restore left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
+
+func TestSSLStore_FailedSwapRollsBackAside(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Fail the staged->live rename after live has been moved aside; rollback
+	// must put the original bytes back (same idea as nss mid-swap tests).
+	var calls int
+	orig := sslRename
+	sslRename = func(oldpath, newpath string) error {
+		calls++
+		if calls == 2 {
+			return fmt.Errorf("forced rename failure")
+		}
+		return orig(oldpath, newpath)
+	}
+	t.Cleanup(func() { sslRename = orig })
+
+	SetDryRun(false)
+	if err := sslInstallFile(src, path); err == nil {
+		t.Fatal("expected install failure after forced rename")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed swap did not restore live PEM from aside")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed swap left staging path %s (mode %v)", leftover, st.Mode())
 		}
 	}
 }
