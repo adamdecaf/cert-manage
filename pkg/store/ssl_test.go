@@ -16,8 +16,8 @@ package store
 
 import (
 	"bytes"
-	"fmt"
 	"crypto/x509"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -493,7 +493,7 @@ func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
 	}
 }
 
-func TestSSLStore_FailedSwapRollsBackAside(t *testing.T) {
+func TestSSLStore_FailedSwapKeepsLiveIntact(t *testing.T) {
 	_, path, _ := sslTestEnv(t)
 	before, err := os.ReadFile(path)
 	if err != nil {
@@ -503,16 +503,11 @@ func TestSSLStore_FailedSwapRollsBackAside(t *testing.T) {
 	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Fail the staged->live rename after live has been moved aside; rollback
-	// must put the original bytes back (same idea as nss mid-swap tests).
-	var calls int
+	// Live is copied to .restore-old, then staged renames over dst. Force that
+	// rename to fail: dst must still hold the original bytes (never moved).
 	orig := sslRename
 	sslRename = func(oldpath, newpath string) error {
-		calls++
-		if calls == 2 {
-			return fmt.Errorf("forced rename failure")
-		}
-		return orig(oldpath, newpath)
+		return fmt.Errorf("forced rename failure")
 	}
 	t.Cleanup(func() { sslRename = orig })
 
@@ -525,11 +520,95 @@ func TestSSLStore_FailedSwapRollsBackAside(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(before, after) {
-		t.Fatal("failed swap did not restore live PEM from aside")
+		t.Fatal("failed swap mutated live PEM")
 	}
 	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
 		if st, err := os.Stat(leftover); err == nil {
 			t.Fatalf("failed swap left staging path %s (mode %v)", leftover, st.Mode())
 		}
+	}
+}
+
+func TestSSLStore_LeftoverRestoreOldRefused(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aside := path + ".restore-old"
+	leftover := []byte("previous-aside-contents\n")
+	if err := os.WriteFile(aside, leftover, 0644); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, before, 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	if err == nil {
+		t.Fatal("expected refusal when .restore-old already exists")
+	}
+	if !strings.Contains(err.Error(), aside) || !strings.Contains(err.Error(), "previous restore left") {
+		t.Fatalf("error should name leftover aside path, got %v", err)
+	}
+	gotAside, err := os.ReadFile(aside)
+	if err != nil {
+		t.Fatalf("leftover .restore-old was removed: %v", err)
+	}
+	if !bytes.Equal(gotAside, leftover) {
+		t.Fatalf("leftover .restore-old contents changed")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("refused install mutated live PEM")
+	}
+}
+
+func TestSSLStore_AsideCleanupFailureWarns(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	src := filepath.Join(t.TempDir(), "new.pem")
+	live, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, live, 0644); err != nil {
+		t.Fatal(err)
+	}
+	aside := path + ".restore-old"
+	orig := sslRemove
+	sslRemove = func(name string) error {
+		if name == aside {
+			return fmt.Errorf("forced remove failure")
+		}
+		return orig(name)
+	}
+	t.Cleanup(func() { sslRemove = orig })
+
+	var buf bytes.Buffer
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	_ = w.Close()
+	os.Stdout = stdout
+	_, _ = buf.ReadFrom(r)
+	_ = r.Close()
+	if err != nil {
+		t.Fatalf("install should succeed despite aside cleanup failure: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "warning") || !strings.Contains(out, aside) {
+		t.Fatalf("expected warning naming kept aside %s, got %q", aside, out)
+	}
+	if _, err := os.Stat(aside); err != nil {
+		t.Fatalf("aside should remain when cleanup fails: %v", err)
 	}
 }

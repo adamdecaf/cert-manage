@@ -350,18 +350,25 @@ func (s sslStore) warnIfDrifted(w io.Writer) {
 		path, shortSHA(want), shortSHA(got))
 }
 
-
 // sslRename is os.Rename; tests swap it to force a mid-swap failure.
 var sslRename = os.Rename
 
+// sslRemove is os.Remove; tests swap it to simulate aside cleanup failures.
+var sslRemove = os.Remove
+
 // sslInstallFile replaces dst with the contents of src by staging into a
-// sibling temp directory (dst.restore-tmp), then renaming into place. A failed
-// stage leaves the live file untouched. If the parent directory is not
-// writable, staging and swap run under elevated privileges.
+// sibling temp directory (dst.restore-tmp), copying the live file to
+// dst.restore-old, then renaming the staged file over dst so the live path is
+// never missing. A failed stage leaves the live file untouched. If the parent
+// directory is not writable, staging and swap run under elevated privileges.
 func sslInstallFile(src, dst string) error {
 	tmpDir := dst + ".restore-tmp"
 	aside := dst + ".restore-old"
 	staged := filepath.Join(tmpDir, filepath.Base(dst))
+
+	if file.Exists(aside) {
+		return fmt.Errorf("previous restore left %s; inspect it and remove it, then rerun", aside)
+	}
 
 	// Permission failures (e.g. a root-owned leftover staging dir) fall through
 	// to the privileged installer, which clears and recreates the staging path.
@@ -382,29 +389,35 @@ func sslInstallFile(src, dst string) error {
 
 	liveExists := file.Exists(dst)
 	if liveExists {
-		_ = os.Remove(aside)
-		if err := sslRename(dst, aside); err != nil {
+		// Copy (do not move) so dst stays readable until the staged rename lands.
+		if err := file.CopyFile(dst, aside); err != nil {
 			_ = os.RemoveAll(tmpDir)
+			_ = os.Remove(aside)
 			return sslSudoInstallAtomic(src, dst)
 		}
 	}
 	if err := sslRename(staged, dst); err != nil {
-		if liveExists {
-			if rerr := sslRename(aside, dst); rerr != nil {
+		if liveExists && !file.Exists(dst) {
+			// Live path vanished somehow; put the copy back.
+			if rerr := file.CopyFile(aside, dst); rerr != nil {
 				_ = os.RemoveAll(tmpDir)
 				return fmt.Errorf("install %s failed and could not restore previous file from %s: %w", dst, aside, errors.Join(err, rerr))
 			}
-			_ = os.RemoveAll(tmpDir)
-			// Aside swap proved the parent is writable; do not escalate to sudo
-			// after rolling back — that would risk rewriting the restored live file.
-			return fmt.Errorf("install %s: %w", dst, err)
 		}
 		_ = os.RemoveAll(tmpDir)
+		if liveExists {
+			_ = os.Remove(aside)
+			// Parent was writable enough to stage and copy; do not escalate to
+			// sudo after rolling back — that would risk rewriting the live file.
+			return fmt.Errorf("install %s: %w", dst, err)
+		}
 		return sslSudoInstallAtomic(src, dst)
 	}
 	_ = os.RemoveAll(tmpDir)
 	if liveExists {
-		_ = os.Remove(aside)
+		if err := sslRemove(aside); err != nil {
+			fmt.Printf("store/ssl: warning: could not remove %s after restore: %v\n", aside, err)
+		}
 	}
 	return nil
 }
@@ -418,12 +431,16 @@ func sslChmodInstalled(tmpName, dst string) error {
 }
 
 func sslSudoInstallAtomic(src, dst string) error {
-	// Stage into a sibling temp directory, then rename over dst under elevated privileges.
+	// Stage into a sibling temp directory, copy live aside, then rename over dst.
 	script := `set -e
 src=$1
 dst=$2
 tmpDir="${dst}.restore-tmp"
 aside="${dst}.restore-old"
+if [ -e "$aside" ]; then
+  echo "previous restore left $aside; inspect it and remove it, then rerun" >&2
+  exit 1
+fi
 rm -rf "$tmpDir"
 mkdir "$tmpDir"
 staged="$tmpDir/$(basename "$dst")"
@@ -434,18 +451,22 @@ if [ -e "$dst" ]; then
 fi
 chmod "$mode" "$staged"
 if [ -e "$dst" ]; then
-  rm -f "$aside"
-  mv "$dst" "$aside"
+  cp "$dst" "$aside"
 fi
 if ! mv "$staged" "$dst"; then
-  if [ -e "$aside" ]; then
-    mv "$aside" "$dst" || true
+  if [ ! -e "$dst" ] && [ -e "$aside" ]; then
+    cp "$aside" "$dst" || true
   fi
   rm -rf "$tmpDir"
+  rm -f "$aside"
   exit 1
 fi
 rm -rf "$tmpDir"
-rm -f "$aside"
+if [ -e "$aside" ]; then
+  if ! rm -f "$aside"; then
+    echo "store/ssl: warning: could not remove $aside after restore" >&2
+  fi
+fi
 `
 	var cmd *exec.Cmd
 	if os.Getuid() == 0 {
