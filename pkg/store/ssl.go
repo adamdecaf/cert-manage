@@ -139,9 +139,25 @@ func (s sslStore) Backup() error {
 		return nil
 	}
 	s.warnIfDrifted(os.Stderr)
-	dir, err := getCertManageDir(fmt.Sprintf("%s/%d", sslBackupDir, time.Now().Unix()))
+	parent, err := getCertManageDir(sslBackupDir)
 	if err != nil {
 		return err
+	}
+	// Exclusive Mkdir so two backups in the same second never share a dir
+	// (CopyFile would truncate the earlier cert.pem). Keep unix-second names
+	// so latest-backup comparison stays compatible with other stores.
+	var dir string
+	for ts := time.Now().Unix(); ; ts++ {
+		candidate := filepath.Join(parent, fmt.Sprintf("%d", ts))
+		err := os.Mkdir(candidate, os.ModeDir|backupDirPerms)
+		if err == nil {
+			dir = candidate
+			break
+		}
+		if os.IsExist(err) {
+			continue
+		}
+		return fmt.Errorf("create ssl backup dir %s: %w", candidate, err)
 	}
 	dst := filepath.Join(dir, sslBackupFilename)
 	if err := file.CopyFile(path, dst); err != nil {
@@ -220,7 +236,7 @@ func (s sslStore) Restore(where string) error {
 	if DryRun() {
 		reportDryRun("restore", "ssl", path,
 			fmt.Sprintf("source %s", srcFile),
-			fmt.Sprintf("copy %s -> %s", srcFile, path))
+			fmt.Sprintf("stage into %s.restore-tmp then swap over %s", path, path))
 		return nil
 	}
 	if err := sslInstallFile(srcFile, path); err != nil {
@@ -229,9 +245,9 @@ func (s sslStore) Restore(where string) error {
 	return s.recordLastAppliedFromFile(srcFile)
 }
 
-// replaceBundle writes certs to a temp PEM then installs it at the store path
-// with an atomic-enough sudo copy. The live file is left untouched until the
-// temp write succeeds.
+// replaceBundle writes certs to a staging PEM then installs via a sibling
+// temp directory + rename swap. The live file is left untouched until the
+// swap succeeds.
 func (s sslStore) replaceBundle(certs []*x509.Certificate) error {
 	path, err := s.certPath()
 	if err != nil {
@@ -335,31 +351,53 @@ func (s sslStore) warnIfDrifted(w io.Writer) {
 }
 
 
-// sslInstallFile replaces dst with the contents of src using a same-directory
-// temp file and rename when possible (atomic on the same filesystem). If the
-// destination directory is not writable, it stages and renames via sudo.
+// sslInstallFile replaces dst with the contents of src by staging into a
+// sibling temp directory (dst.restore-tmp), then renaming into place. A failed
+// stage leaves the live file untouched. If the parent directory is not
+// writable, staging and swap run under elevated privileges.
 func sslInstallFile(src, dst string) error {
-	dir := filepath.Dir(dst)
-	tmp, err := os.CreateTemp(dir, ".trustprune-ssl-*.tmp")
-	if err == nil {
-		tmpName := tmp.Name()
-		_ = tmp.Close()
-		if copyErr := file.CopyFile(src, tmpName); copyErr != nil {
-			_ = os.Remove(tmpName)
-			return copyErr
-		}
-		if chErr := sslChmodInstalled(tmpName, dst); chErr != nil {
-			_ = os.Remove(tmpName)
-			return chErr
-		}
-		if renErr := os.Rename(tmpName, dst); renErr != nil {
-			_ = os.Remove(tmpName)
-			// Fall through to privileged install.
-		} else {
-			return nil
+	tmpDir := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	staged := filepath.Join(tmpDir, filepath.Base(dst))
+
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return fmt.Errorf("clear ssl restore staging dir %s: %w", tmpDir, err)
+	}
+	if err := os.Mkdir(tmpDir, backupDirPerms); err != nil {
+		return sslSudoInstallAtomic(src, dst)
+	}
+	if err := file.CopyFile(src, staged); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return err
+	}
+	if err := sslChmodInstalled(staged, dst); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return err
+	}
+
+	liveExists := file.Exists(dst)
+	if liveExists {
+		_ = os.Remove(aside)
+		if err := os.Rename(dst, aside); err != nil {
+			_ = os.RemoveAll(tmpDir)
+			return sslSudoInstallAtomic(src, dst)
 		}
 	}
-	return sslSudoInstallAtomic(src, dst)
+	if err := os.Rename(staged, dst); err != nil {
+		if liveExists {
+			if rerr := os.Rename(aside, dst); rerr != nil {
+				_ = os.RemoveAll(tmpDir)
+				return fmt.Errorf("install %s failed and could not restore previous file from %s: %w", dst, aside, errors.Join(err, rerr))
+			}
+		}
+		_ = os.RemoveAll(tmpDir)
+		return sslSudoInstallAtomic(src, dst)
+	}
+	_ = os.RemoveAll(tmpDir)
+	if liveExists {
+		_ = os.Remove(aside)
+	}
+	return nil
 }
 
 func sslChmodInstalled(tmpName, dst string) error {
@@ -371,21 +409,28 @@ func sslChmodInstalled(tmpName, dst string) error {
 }
 
 func sslSudoInstallAtomic(src, dst string) error {
-	// Create a temp file beside dst and rename over it under elevated privileges.
+	// Stage into a sibling temp directory, then rename over dst under elevated privileges.
 	script := `set -e
 src=$1
 dst=$2
-dir=$(dirname "$dst")
-tmp=$(mktemp "$dir/.trustprune-ssl.XXXXXX")
-trap 'rm -f "$tmp"' EXIT
-cp "$src" "$tmp"
+tmpDir="${dst}.restore-tmp"
+aside="${dst}.restore-old"
+rm -rf "$tmpDir"
+mkdir "$tmpDir"
+staged="$tmpDir/$(basename "$dst")"
+cp "$src" "$staged"
 mode=644
 if [ -e "$dst" ]; then
   mode=$(stat -f %OLp "$dst" 2>/dev/null || stat -c %a "$dst" 2>/dev/null || echo 644)
 fi
-chmod "$mode" "$tmp"
-mv "$tmp" "$dst"
-trap - EXIT
+chmod "$mode" "$staged"
+if [ -e "$dst" ]; then
+  rm -f "$aside"
+  mv "$dst" "$aside"
+fi
+mv "$staged" "$dst"
+rm -rf "$tmpDir"
+rm -f "$aside"
 `
 	var cmd *exec.Cmd
 	if os.Getuid() == 0 {

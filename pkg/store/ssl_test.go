@@ -409,3 +409,86 @@ func TestSSLStore_InstallPreservesReadableMode(t *testing.T) {
 		t.Fatalf("installed bundle mode %o is not world/group-readable", perm)
 	}
 }
+
+func TestSSLStore_BackupUniqueDirsSameSecond(t *testing.T) {
+	s, _, _ := sslTestEnv(t)
+	SetDryRun(false)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup 1: %v", err)
+	}
+	first, err := s.GetLatestBackup()
+	if err != nil || first == "" {
+		t.Fatalf("GetLatestBackup after 1: %q err=%v", first, err)
+	}
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup 2: %v", err)
+	}
+	second, err := s.GetLatestBackup()
+	if err != nil || second == "" {
+		t.Fatalf("GetLatestBackup after 2: %q err=%v", second, err)
+	}
+	if first == second {
+		t.Fatalf("two backups reused directory %s", first)
+	}
+	if _, err := os.Stat(filepath.Join(first, sslBackupFilename)); err != nil {
+		t.Fatalf("first backup missing cert.pem: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(second, sslBackupFilename)); err != nil {
+		t.Fatalf("second backup missing cert.pem: %v", err)
+	}
+}
+
+func TestSSLStore_RestoreLeavesNoStagingDirs(t *testing.T) {
+	s, path, want := sslTestEnv(t)
+	SetDryRun(false)
+	if err := s.Backup(); err != nil {
+		t.Fatal(err)
+	}
+	if err := certutil.ToFile(path, want[:1]); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Restore(""); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if _, err := os.Stat(leftover); !os.IsNotExist(err) {
+			t.Fatalf("leftover staging path %s still present after successful restore: %v", leftover, err)
+		}
+	}
+	got, err := certutil.FromFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("after restore len=%d want %d", len(got), len(want))
+	}
+}
+
+func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
+	s, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Point Restore at a sibling that looks like a staging path but is not a PEM.
+	garbage := filepath.Join(t.TempDir(), "garbage.pem")
+	if err := os.WriteFile(garbage, []byte("not-a-certificate\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	if err := s.Restore(garbage); err == nil {
+		t.Fatal("expected restore failure")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed restore mutated live PEM")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed restore left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
