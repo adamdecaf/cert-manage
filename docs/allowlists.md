@@ -41,14 +41,14 @@ countries:
 To apply an allowlist against a platform:
 
 ```
-$ cert-manage allowlist -file wh.json
+$ trustprune allowlist -file wh.json
 Allowlist completed successfully
 ```
 
 You can also apply an allowlist against an application's certificate store:
 
 ```
-$ cert-manage allowlist -file wh.json -app java
+$ trustprune allowlist -file wh.json -app java
 Allowlist completed successfully
 ```
 
@@ -57,15 +57,15 @@ The older `whitelist` command name remains as a hidden alias.
 
 ## Generating allowlists
 
-`cert-manage` supports generating allowlists from browser history. Either all browsers `-from browser` or specific browsers `-from chrome`.
+`trustprune` supports generating allowlists from browser history. Either all browsers `-from browser` or specific browsers `-from chrome`.
 
 ```
-$ cert-manage gen-allowlist -from browser -out wh.yaml
+$ trustprune gen-allowlist -from browser -out wh.yaml
 CA                                             Fingerprint      Count Example DNSNames
 GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
 ...
 
-$ cert-manage gen-allowlist -from chrome -out wh.yaml
+$ trustprune gen-allowlist -from chrome -out wh.yaml
 CA                                             Fingerprint      Count Example DNSNames
 GeoTrust Inc.                                  ff856a2d251dcd88 13    plus.google.com, accounts.google.com, hangouts.google.com
 ...
@@ -75,13 +75,13 @@ The older `gen-whitelist` command name remains as a hidden alias.
 
 ### Blocklisted certificates
 
-`cert-manage` includes the [Chromium certificate blocklist](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/blocklist/) to never allowlist certificates which are generally regarded by the industry as untrusted.
+`trustprune` includes the [Chromium certificate blocklist](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/blocklist/) to never allowlist certificates which are generally regarded by the industry as untrusted.
 
 There is currently no way to disable this behavior.
 
 ### Files
 
-`cert-manage` can also generate allowlists from a given file. This could be a text file with a url on each line, or a comma separated file with urls in one column per row.
+`trustprune` can also generate allowlists from a given file. This could be a text file with a url on each line, or a comma separated file with urls in one column per row.
 
 ##### Plain text files
 
@@ -91,7 +91,7 @@ https://google.com
 https://yahoo.com
 https://bing.com
 
-$ cert-manage gen-allowlist -out wh.yaml -file urls.txt
+$ trustprune gen-allowlist -out wh.yaml -file urls.txt
 CA                             Fingerprint      Count Example DNSNames
 DigiCert Inc, www.digicert.com 7431e5f4c3c1ce46 1     yahoo.com
 Baltimore, CyberTrust          16af57a9f676b0ab 1     bing.com

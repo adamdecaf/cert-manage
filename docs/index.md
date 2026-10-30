@@ -1,35 +1,39 @@
 ---
 layout: default
-title: cert-manage
+title: trustprune
 ---
 
-# cert-manage
+# trustprune
 
 **Your machine trusts hundreds of Certificate Authorities by default. Most of them you have never heard of. One bad CA is enough to break HTTPS for everyone who trusts it.**
 
-`cert-manage` is a single CLI to **list**, **backup**, **allowlist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
+`trustprune` is a single CLI to **list**, **backup**, **allowlist** (distrust), and **restore** the CA trust stores on your platform and in apps such as Java, Chrome, and Firefox.
 
 Trust should be earned, not defaulted.
+
+## Renamed from cert-manage
+
+Formerly **cert-manage**. The repo lives at [github.com/adamdecaf/trustprune](https://github.com/adamdecaf/trustprune). The `cert-manage` binary name remains an alias through 0.2.x. New backups go to `~/.trustprune/` (`~/Library/trustprune/` on Darwin); older `~/.cert-manage/` / `~/Library/cert-manage/` backups stay readable and are never moved or deleted.
 
 ## Quick start
 
 ```bash
 # See what you currently trust
-cert-manage list
-cert-manage list -count
-cert-manage list -app java
+trustprune list
+trustprune list -count
+trustprune list -app java
 
 # Always take a backup before changing trust
-cert-manage backup
-cert-manage backup -app java
+trustprune backup
+trustprune backup -app java
 
 # Keep only the CAs you want (requires a prior backup)
-cert-manage allowlist -file urls.yaml
-cert-manage allowlist -app java -file urls.yaml
+trustprune allowlist -file urls.yaml
+trustprune allowlist -app java -file urls.yaml
 
 # Roll back if something breaks
-cert-manage restore
-cert-manage restore -app java
+trustprune restore
+trustprune restore -app java
 ```
 
 ## Pages

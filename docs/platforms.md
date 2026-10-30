@@ -16,7 +16,7 @@ Status matches what the code on `master` does today.
 | **Partial** | Darwin / macOS | System roots `/System/Library/Keychains/SystemRootCertificates.keychain` (SIP-protected); system keychain `/Library/Keychains/System.keychain`; login `~/Library/Keychains/login.keychain` (or `login.keychain-db`) | list, add, allowlist, backup, restore; system roots are not rewritten; restore `-file` / `where` is incomplete (always uses latest backup) |
 | **List-only** | Windows | Machine stores via PowerShell: `Cert:\LocalMachine\My`, `Root`, `Trust`, `CA`, `AuthRoot` | `list` only; Add, Backup, Remove (allowlist), and Restore are no-ops |
 
-Linux picks the first `cadir` whose bundle file exists. Backups of the Linux CA **directory** go under `~/.cert-manage/linux/<unix-timestamp>/`.
+Linux picks the first `cadir` whose bundle file exists. Backups of the Linux CA **directory** go under `~/.trustprune/linux/<unix-timestamp>/`.
 
 ## Applications
 
@@ -42,8 +42,8 @@ NSS modifications use Mozilla `certutil`: Darwin probes `/usr/local/opt/nss/bin/
 
 | OS | Parent directory |
 |----|------------------|
-| Linux / Windows | `~/.cert-manage/` |
-| Darwin | `~/Library/cert-manage/` |
+| Linux / Windows | `~/.trustprune/` (read-only fallback `~/.cert-manage/`) |
+| Darwin | `~/Library/trustprune/` (read-only fallback `~/Library/cert-manage/`) |
 
 Per-store subfolders include `linux/`, `darwin/`, `java/`, `chrome/`, `firefox/`.
 

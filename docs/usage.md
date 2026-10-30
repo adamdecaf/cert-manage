@@ -15,8 +15,8 @@ Supported `-app` values: `chrome`, `firefox`, `java`, `openssl`.
 List every supported application store plus the platform store. For each one, show whether it was found on this machine and the store path. Detection is read-only. Running `apps` also refreshes a 24-hour cache under the user cache directory so `-help` can list which apps were found without probing again.
 
 ```bash
-cert-manage apps
-cert-manage apps -format json
+trustprune apps
+trustprune apps -format json
 ```
 
 | Flag | Meaning |
@@ -38,11 +38,11 @@ platform  found      /etc/ssl/certs/ca-certificates.crt
 Show trusted certificates from the platform store, an app store, a local file, or a remote URL.
 
 ```bash
-cert-manage list
-cert-manage list -count
-cert-manage list -app java
-cert-manage list -file example.crt
-cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
+trustprune list
+trustprune list -count
+trustprune list -app java
+trustprune list -file example.crt
+trustprune list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 ```
 
 | Flag | Meaning |
@@ -59,10 +59,10 @@ cert-manage list -url https://hg.mozilla.org/mozilla-central/raw-file/tip/securi
 Capture the current trust store so you can restore later. Allowlisting refuses to run without a prior backup for that store.
 
 ```bash
-cert-manage backup
-cert-manage backup -app java
-cert-manage backup -app chrome
-cert-manage backup -app firefox
+trustprune backup
+trustprune backup -app java
+trustprune backup -app chrome
+trustprune backup -app firefox
 ```
 
 | Flag | Meaning |
@@ -77,12 +77,12 @@ See [Backup and restore](backup-restore.md) for where files land.
 Revert to a backup. With no `-file`, uses the latest backup for that store. With `-file`, passes that path into the store's `Restore` (honored on Linux, Java, and NSS; Darwin currently ignores it — see platforms).
 
 ```bash
-cert-manage restore
-cert-manage restore -file /path/to/backup
-cert-manage restore -app java
-cert-manage restore -app java -file /path/to/cacerts.bck
-cert-manage restore -app chrome
-cert-manage restore -app java -dry-run
+trustprune restore
+trustprune restore -file /path/to/backup
+trustprune restore -app java
+trustprune restore -app java -file /path/to/cacerts.bck
+trustprune restore -app chrome
+trustprune restore -app java -dry-run
 ```
 
 | Flag | Meaning |
@@ -98,9 +98,9 @@ Distrust certificates that are **not** on the allowlist. Requires `-file` and a 
 Allowlist files are YAML or JSON with optional `fingerprints` (SHA-256) and `countries` (ISO 3166-1 alpha-2).
 
 ```bash
-cert-manage allowlist -file allowlist.yaml
-cert-manage allowlist -file allowlist.json -app java
-cert-manage allowlist -file allowlist.yaml -dry-run
+trustprune allowlist -file allowlist.yaml
+trustprune allowlist -file allowlist.json -app java
+trustprune allowlist -file allowlist.yaml -dry-run
 ```
 
 | Flag | Meaning |
@@ -124,10 +124,10 @@ countries:
 Build an allowlist from browser history and/or a URL list file. The older `gen-whitelist` name remains as a hidden alias.
 
 ```bash
-cert-manage gen-allowlist -out allowlist.yaml -from firefox
-cert-manage gen-allowlist -out allowlist.yaml -from browsers
-cert-manage gen-allowlist -out allowlist.yaml -from chrome,firefox
-cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
+trustprune gen-allowlist -out allowlist.yaml -from firefox
+trustprune gen-allowlist -out allowlist.yaml -from browsers
+trustprune gen-allowlist -out allowlist.yaml -from chrome,firefox
+trustprune gen-allowlist -out allowlist.yaml -file urls.txt
 ```
 
 | Flag | Meaning |
@@ -141,8 +141,8 @@ cert-manage gen-allowlist -out allowlist.yaml -file urls.txt
 Add certificate(s) from a file into the platform or an app store.
 
 ```bash
-cert-manage add -file cert.pem
-cert-manage add -file cert.pem -app java
+trustprune add -file cert.pem
+trustprune add -file cert.pem -app java
 ```
 
 | Flag | Meaning |
@@ -156,8 +156,8 @@ cert-manage add -file cert.pem -app java
 Attempt an HTTPS connection using the platform store or an app store. Useful after allowlist or restore.
 
 ```bash
-cert-manage connect https://example.com
-cert-manage connect -app java https://example.com
+trustprune connect https://example.com
+trustprune connect -app java https://example.com
 ```
 
 | Flag | Meaning |
@@ -169,7 +169,7 @@ The URL must use the `https` scheme.
 ## version
 
 ```bash
-cert-manage version
+trustprune version
 ```
 
 Prints the tool version and Go runtime version.
