@@ -161,6 +161,7 @@ func (s sslStore) Backup() error {
 	}
 	dst := filepath.Join(dir, sslBackupFilename)
 	if err := file.CopyFile(path, dst); err != nil {
+		_ = os.RemoveAll(dir)
 		return fmt.Errorf("backup %s to %s: %w", path, dst, err)
 	}
 	return nil

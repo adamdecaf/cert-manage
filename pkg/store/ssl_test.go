@@ -533,6 +533,46 @@ func TestSSLStore_FailedSwapKeepsLiveIntact(t *testing.T) {
 	}
 }
 
+func TestSSLStore_FailedSwapRestoresMissingLive(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a vanished live path during the staged rename so rollback
+	// restores from .restore-old.
+	orig := sslRename
+	sslRename = func(oldpath, newpath string) error {
+		if newpath == path {
+			_ = os.Remove(path)
+			return fmt.Errorf("forced rename failure")
+		}
+		return orig(oldpath, newpath)
+	}
+	t.Cleanup(func() { sslRename = orig })
+
+	SetDryRun(false)
+	if err := sslInstallFile(src, path); err == nil {
+		t.Fatal("expected install failure after forced rename")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("rollback did not restore live PEM from aside")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed swap left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
+
 func TestSSLStore_LeftoverRestoreOldRefused(t *testing.T) {
 	_, path, _ := sslTestEnv(t)
 	before, err := os.ReadFile(path)
