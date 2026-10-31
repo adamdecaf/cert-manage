@@ -11,10 +11,6 @@ title: trustprune
 
 Trust should be earned, not defaulted.
 
-## Renamed from cert-manage
-
-Formerly **cert-manage**. The repo lives at [github.com/adamdecaf/trustprune](https://github.com/adamdecaf/trustprune). The `cert-manage` binary name remains an alias through 0.2.x. New backups go to `~/.trustprune/` (`~/Library/trustprune/` on Darwin); older `~/.cert-manage/` / `~/Library/cert-manage/` backups stay readable and are never moved or deleted.
-
 ## Quick start
 
 ```bash
@@ -24,6 +20,7 @@ trustprune list -count
 trustprune list -app java
 
 # Always take a backup before changing trust
+# Backups stored at `~/.trustprune/` or `~/Library/trustprune/` on Darwin
 trustprune backup
 trustprune backup -app java
 
