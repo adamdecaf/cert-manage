@@ -498,6 +498,9 @@ fi
 		}
 		return fmt.Errorf("atomic install %s -> %s: %w", src, dst, err)
 	}
+	if msg := strings.TrimSpace(string(out)); msg != "" {
+		fmt.Fprintln(os.Stderr, msg)
+	}
 	return nil
 }
 
