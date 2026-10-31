@@ -391,10 +391,15 @@ func sslInstallFile(src, dst string) error {
 
 	liveExists := file.Exists(dst)
 	if liveExists {
-		// Copy (do not move) so dst stays readable until the staged rename lands.
-		if err := file.CopyFile(dst, aside); err != nil {
+		// Copy into the staging dir first, then rename to .restore-old so a
+		// failed copy never leaves the guarded aside path behind.
+		asideStaged := filepath.Join(tmpDir, filepath.Base(dst)+".aside")
+		if err := file.CopyFile(dst, asideStaged); err != nil {
 			_ = os.RemoveAll(tmpDir)
-			_ = os.Remove(aside)
+			return sslSudoInstallAtomic(src, dst)
+		}
+		if err := sslRename(asideStaged, aside); err != nil {
+			_ = os.RemoveAll(tmpDir)
 			return sslSudoInstallAtomic(src, dst)
 		}
 	}
@@ -455,11 +460,13 @@ if [ -e "$dst" ]; then
 fi
 chmod "$mode" "$staged"
 if [ -e "$dst" ]; then
-  if ! cp "$dst" "$aside"; then
+  asideStaged="$tmpDir/$(basename "$dst").aside"
+  if ! cp "$dst" "$asideStaged"; then
     rm -rf "$tmpDir"
-    if [ -e "$dst" ]; then
-      rm -f "$aside"
-    fi
+    exit 1
+  fi
+  if ! mv "$asideStaged" "$aside"; then
+    rm -rf "$tmpDir"
     exit 1
   fi
 fi
