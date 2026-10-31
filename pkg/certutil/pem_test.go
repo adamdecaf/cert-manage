@@ -77,10 +77,11 @@ func TestParsePEM_skipsNegativeSerial(t *testing.T) {
 	pemParseWarn = &warn
 	t.Cleanup(func() { pemParseWarn = old })
 
-	certs, err := ParsePEM(blob)
-	if err != nil {
-		t.Fatalf("ParsePEM: %v", err)
+	parsed := ParsePEMResult(blob)
+	if parsed.Skipped != 1 {
+		t.Fatalf("ParsePEMResult.Skipped=%d, want 1", parsed.Skipped)
 	}
+	certs := parsed.Certs
 	if len(certs) != len(want) {
 		t.Fatalf("got %d certs, want %d good certs (negative serial skipped)", len(certs), len(want))
 	}
@@ -111,9 +112,19 @@ func TestFromFile_skipsNegativeSerial(t *testing.T) {
 	if err := os.WriteFile(path, blob, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	parsed, err := FromFileResult(path)
+	if err != nil {
+		t.Fatalf("FromFileResult: %v", err)
+	}
+	if parsed.Skipped != 1 {
+		t.Fatalf("FromFileResult.Skipped=%d, want 1", parsed.Skipped)
+	}
 	certs, err := FromFile(path)
 	if err != nil {
 		t.Fatalf("FromFile: %v", err)
+	}
+	if len(certs) != len(parsed.Certs) {
+		t.Fatalf("FromFile len=%d, FromFileResult len=%d", len(certs), len(parsed.Certs))
 	}
 	if len(certs) != len(want) {
 		t.Fatalf("got %d certs, want %d good certs (negative serial skipped)", len(certs), len(want))
