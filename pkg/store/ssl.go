@@ -366,8 +366,10 @@ func sslInstallFile(src, dst string) error {
 	aside := dst + ".restore-old"
 	staged := filepath.Join(tmpDir, filepath.Base(dst))
 
-	if file.Exists(aside) {
+	if _, err := os.Lstat(aside); err == nil {
 		return fmt.Errorf("previous restore left %s; inspect it and remove it, then rerun", aside)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("stat %s: %w", aside, err)
 	}
 
 	// Permission failures (e.g. a root-owned leftover staging dir) fall through
@@ -437,7 +439,7 @@ src=$1
 dst=$2
 tmpDir="${dst}.restore-tmp"
 aside="${dst}.restore-old"
-if [ -e "$aside" ]; then
+if [ -e "$aside" ] || [ -L "$aside" ]; then
   echo "previous restore left $aside; inspect it and remove it, then rerun" >&2
   exit 1
 fi
@@ -451,18 +453,28 @@ if [ -e "$dst" ]; then
 fi
 chmod "$mode" "$staged"
 if [ -e "$dst" ]; then
-  cp "$dst" "$aside"
+  if ! cp "$dst" "$aside"; then
+    rm -rf "$tmpDir"
+    if [ -e "$dst" ]; then
+      rm -f "$aside"
+    fi
+    exit 1
+  fi
 fi
 if ! mv "$staged" "$dst"; then
   if [ ! -e "$dst" ] && [ -e "$aside" ]; then
-    cp "$aside" "$dst" || true
+    if ! cp "$aside" "$dst"; then
+      echo "could not restore $dst; previous file kept at $aside" >&2
+      rm -rf "$tmpDir"
+      exit 1
+    fi
   fi
   rm -rf "$tmpDir"
   rm -f "$aside"
   exit 1
 fi
 rm -rf "$tmpDir"
-if [ -e "$aside" ]; then
+if [ -e "$aside" ] || [ -L "$aside" ]; then
   if ! rm -f "$aside"; then
     echo "store/ssl: warning: could not remove $aside after restore" >&2
   fi

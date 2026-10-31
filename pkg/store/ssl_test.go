@@ -568,6 +568,34 @@ func TestSSLStore_LeftoverRestoreOldRefused(t *testing.T) {
 	}
 }
 
+func TestSSLStore_LeftoverRestoreOldSymlinkRefused(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	aside := path + ".restore-old"
+	// Dangling symlink must still be treated as a leftover aside.
+	if err := os.Symlink(filepath.Join(t.TempDir(), "missing-target"), aside); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	live, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, live, 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	if err == nil {
+		t.Fatal("expected refusal for dangling .restore-old symlink")
+	}
+	if !strings.Contains(err.Error(), aside) {
+		t.Fatalf("error should name leftover aside, got %v", err)
+	}
+	if _, err := os.Lstat(aside); err != nil {
+		t.Fatalf("dangling symlink aside was removed: %v", err)
+	}
+}
+
 func TestSSLStore_AsideCleanupFailureWarns(t *testing.T) {
 	_, path, _ := sslTestEnv(t)
 	src := filepath.Join(t.TempDir(), "new.pem")
