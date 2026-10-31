@@ -415,7 +415,9 @@ func sslInstallFile(src, dst string) error {
 		}
 		return sslSudoInstallAtomic(src, dst)
 	}
-	_ = os.RemoveAll(tmpDir)
+	if err := os.RemoveAll(tmpDir); err != nil {
+		fmt.Printf("store/ssl: warning: could not remove %s after restore: %v\n", tmpDir, err)
+	}
 	if liveExists {
 		if err := sslRemove(aside); err != nil {
 			fmt.Printf("store/ssl: warning: could not remove %s after restore: %v\n", aside, err)
@@ -473,7 +475,9 @@ if ! mv "$staged" "$dst"; then
   rm -f "$aside"
   exit 1
 fi
-rm -rf "$tmpDir"
+if ! rm -rf "$tmpDir"; then
+  echo "store/ssl: warning: could not remove $tmpDir after restore" >&2
+fi
 if [ -e "$aside" ] || [ -L "$aside" ]; then
   if ! rm -f "$aside"; then
     echo "store/ssl: warning: could not remove $aside after restore" >&2
