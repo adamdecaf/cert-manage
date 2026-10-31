@@ -467,12 +467,16 @@ if ! mv "$staged" "$dst"; then
   if [ ! -e "$dst" ] && [ -e "$aside" ]; then
     if ! cp "$aside" "$dst"; then
       echo "could not restore $dst; previous file kept at $aside" >&2
-      rm -rf "$tmpDir"
+      rm -rf "$tmpDir" || true
       exit 1
     fi
   fi
-  rm -rf "$tmpDir"
-  rm -f "$aside"
+  if ! rm -rf "$tmpDir"; then
+    echo "store/ssl: warning: could not remove $tmpDir after failed restore" >&2
+  fi
+  if ! rm -f "$aside"; then
+    echo "store/ssl: warning: could not remove $aside after failed restore" >&2
+  fi
   exit 1
 fi
 if ! rm -rf "$tmpDir"; then
