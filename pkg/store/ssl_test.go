@@ -503,11 +503,15 @@ func TestSSLStore_FailedSwapKeepsLiveIntact(t *testing.T) {
 	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	// Live is copied to .restore-old, then staged renames over dst. Force that
-	// rename to fail: dst must still hold the original bytes (never moved).
+	// Live is copied to .restore-old (via tmp staging), then staged renames
+	// over dst. Force only the live-path rename to fail: dst must still hold
+	// the original bytes (never missing).
 	orig := sslRename
 	sslRename = func(oldpath, newpath string) error {
-		return fmt.Errorf("forced rename failure")
+		if newpath == path {
+			return fmt.Errorf("forced rename failure")
+		}
+		return orig(oldpath, newpath)
 	}
 	t.Cleanup(func() { sslRename = orig })
 
