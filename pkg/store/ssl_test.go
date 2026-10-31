@@ -17,6 +17,7 @@ package store
 import (
 	"bytes"
 	"crypto/x509"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -407,5 +408,279 @@ func TestSSLStore_InstallPreservesReadableMode(t *testing.T) {
 	perm := st.Mode().Perm()
 	if perm&0044 == 0 {
 		t.Fatalf("installed bundle mode %o is not world/group-readable", perm)
+	}
+}
+
+func TestSSLStore_BackupUniqueDirsSameSecond(t *testing.T) {
+	s, _, _ := sslTestEnv(t)
+	SetDryRun(false)
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup 1: %v", err)
+	}
+	first, err := s.GetLatestBackup()
+	if err != nil || first == "" {
+		t.Fatalf("GetLatestBackup after 1: %q err=%v", first, err)
+	}
+	if err := s.Backup(); err != nil {
+		t.Fatalf("Backup 2: %v", err)
+	}
+	second, err := s.GetLatestBackup()
+	if err != nil || second == "" {
+		t.Fatalf("GetLatestBackup after 2: %q err=%v", second, err)
+	}
+	if first == second {
+		t.Fatalf("two backups reused directory %s", first)
+	}
+	if _, err := os.Stat(filepath.Join(first, sslBackupFilename)); err != nil {
+		t.Fatalf("first backup missing cert.pem: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(second, sslBackupFilename)); err != nil {
+		t.Fatalf("second backup missing cert.pem: %v", err)
+	}
+}
+
+func TestSSLStore_RestoreLeavesNoStagingDirs(t *testing.T) {
+	s, path, want := sslTestEnv(t)
+	SetDryRun(false)
+	if err := s.Backup(); err != nil {
+		t.Fatal(err)
+	}
+	if err := certutil.ToFile(path, want[:1]); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Restore(""); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if _, err := os.Stat(leftover); !os.IsNotExist(err) {
+			t.Fatalf("leftover staging path %s still present after successful restore: %v", leftover, err)
+		}
+	}
+	got, err := certutil.FromFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("after restore len=%d want %d", len(got), len(want))
+	}
+}
+
+func TestSSLStore_FailedRestoreLeavesLiveIntact(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+
+	// Missing source fails inside sslInstallFile after local staging starts
+	// (Restore rejects invalid PEM before install, so call the installer directly).
+	missing := filepath.Join(t.TempDir(), "missing.pem")
+	if err := sslInstallFile(missing, path); err == nil {
+		t.Fatal("expected install failure")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed restore mutated live PEM")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed restore left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
+
+func TestSSLStore_FailedSwapKeepsLiveIntact(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Live is copied to .restore-old (via tmp staging), then staged renames
+	// over dst. Force only the live-path rename to fail: dst must still hold
+	// the original bytes (never missing).
+	orig := sslRename
+	sslRename = func(oldpath, newpath string) error {
+		if newpath == path {
+			return fmt.Errorf("forced rename failure")
+		}
+		return orig(oldpath, newpath)
+	}
+	t.Cleanup(func() { sslRename = orig })
+
+	SetDryRun(false)
+	if err := sslInstallFile(src, path); err == nil {
+		t.Fatal("expected install failure after forced rename")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed swap mutated live PEM")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed swap left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
+
+func TestSSLStore_FailedSwapRestoresMissingLive(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, []byte("-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a vanished live path during the staged rename so rollback
+	// restores from .restore-old.
+	orig := sslRename
+	sslRename = func(oldpath, newpath string) error {
+		if newpath == path {
+			_ = os.Remove(path)
+			return fmt.Errorf("forced rename failure")
+		}
+		return orig(oldpath, newpath)
+	}
+	t.Cleanup(func() { sslRename = orig })
+
+	SetDryRun(false)
+	if err := sslInstallFile(src, path); err == nil {
+		t.Fatal("expected install failure after forced rename")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("rollback did not restore live PEM from aside")
+	}
+	for _, leftover := range []string{path + ".restore-tmp", path + ".restore-old"} {
+		if st, err := os.Stat(leftover); err == nil {
+			t.Fatalf("failed swap left staging path %s (mode %v)", leftover, st.Mode())
+		}
+	}
+}
+
+func TestSSLStore_LeftoverRestoreOldRefused(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	aside := path + ".restore-old"
+	leftover := []byte("previous-aside-contents\n")
+	if err := os.WriteFile(aside, leftover, 0644); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	if err := os.WriteFile(src, before, 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	if err == nil {
+		t.Fatal("expected refusal when .restore-old already exists")
+	}
+	if !strings.Contains(err.Error(), aside) || !strings.Contains(err.Error(), "previous restore left") {
+		t.Fatalf("error should name leftover aside path, got %v", err)
+	}
+	gotAside, err := os.ReadFile(aside)
+	if err != nil {
+		t.Fatalf("leftover .restore-old was removed: %v", err)
+	}
+	if !bytes.Equal(gotAside, leftover) {
+		t.Fatalf("leftover .restore-old contents changed")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("refused install mutated live PEM")
+	}
+}
+
+func TestSSLStore_LeftoverRestoreOldSymlinkRefused(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	aside := path + ".restore-old"
+	// Dangling symlink must still be treated as a leftover aside.
+	if err := os.Symlink(filepath.Join(t.TempDir(), "missing-target"), aside); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(t.TempDir(), "new.pem")
+	live, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, live, 0644); err != nil {
+		t.Fatal(err)
+	}
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	if err == nil {
+		t.Fatal("expected refusal for dangling .restore-old symlink")
+	}
+	if !strings.Contains(err.Error(), aside) {
+		t.Fatalf("error should name leftover aside, got %v", err)
+	}
+	if _, err := os.Lstat(aside); err != nil {
+		t.Fatalf("dangling symlink aside was removed: %v", err)
+	}
+}
+
+func TestSSLStore_AsideCleanupFailureWarns(t *testing.T) {
+	_, path, _ := sslTestEnv(t)
+	src := filepath.Join(t.TempDir(), "new.pem")
+	live, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, live, 0644); err != nil {
+		t.Fatal(err)
+	}
+	aside := path + ".restore-old"
+	orig := sslRemove
+	sslRemove = func(name string) error {
+		if name == aside {
+			return fmt.Errorf("forced remove failure")
+		}
+		return orig(name)
+	}
+	t.Cleanup(func() { sslRemove = orig })
+
+	var buf bytes.Buffer
+	stdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	SetDryRun(false)
+	err = sslInstallFile(src, path)
+	_ = w.Close()
+	os.Stdout = stdout
+	_, _ = buf.ReadFrom(r)
+	_ = r.Close()
+	if err != nil {
+		t.Fatalf("install should succeed despite aside cleanup failure: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "warning") || !strings.Contains(out, aside) {
+		t.Fatalf("expected warning naming kept aside %s, got %q", aside, out)
+	}
+	if _, err := os.Stat(aside); err != nil {
+		t.Fatalf("aside should remain when cleanup fails: %v", err)
 	}
 }

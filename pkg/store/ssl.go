@@ -139,12 +139,29 @@ func (s sslStore) Backup() error {
 		return nil
 	}
 	s.warnIfDrifted(os.Stderr)
-	dir, err := getCertManageDir(fmt.Sprintf("%s/%d", sslBackupDir, time.Now().Unix()))
+	parent, err := getCertManageDir(sslBackupDir)
 	if err != nil {
 		return err
 	}
+	// Exclusive Mkdir so two backups in the same second never share a dir
+	// (CopyFile would truncate the earlier cert.pem). Keep unix-second names
+	// so latest-backup comparison stays compatible with other stores.
+	var dir string
+	for ts := time.Now().Unix(); ; ts++ {
+		candidate := filepath.Join(parent, fmt.Sprintf("%d", ts))
+		err := os.Mkdir(candidate, os.ModeDir|backupDirPerms)
+		if err == nil {
+			dir = candidate
+			break
+		}
+		if os.IsExist(err) {
+			continue
+		}
+		return fmt.Errorf("create ssl backup dir %s: %w", candidate, err)
+	}
 	dst := filepath.Join(dir, sslBackupFilename)
 	if err := file.CopyFile(path, dst); err != nil {
+		_ = os.RemoveAll(dir)
 		return fmt.Errorf("backup %s to %s: %w", path, dst, err)
 	}
 	return nil
@@ -220,7 +237,7 @@ func (s sslStore) Restore(where string) error {
 	if DryRun() {
 		reportDryRun("restore", "ssl", path,
 			fmt.Sprintf("source %s", srcFile),
-			fmt.Sprintf("copy %s -> %s", srcFile, path))
+			fmt.Sprintf("stage into %s.restore-tmp then swap over %s", path, path))
 		return nil
 	}
 	if err := sslInstallFile(srcFile, path); err != nil {
@@ -229,9 +246,9 @@ func (s sslStore) Restore(where string) error {
 	return s.recordLastAppliedFromFile(srcFile)
 }
 
-// replaceBundle writes certs to a temp PEM then installs it at the store path
-// with an atomic-enough sudo copy. The live file is left untouched until the
-// temp write succeeds.
+// replaceBundle writes certs to a staging PEM then installs via a sibling
+// temp directory + rename swap. The live file is left untouched until the
+// swap succeeds.
 func (s sslStore) replaceBundle(certs []*x509.Certificate) error {
 	path, err := s.certPath()
 	if err != nil {
@@ -334,32 +351,85 @@ func (s sslStore) warnIfDrifted(w io.Writer) {
 		path, shortSHA(want), shortSHA(got))
 }
 
+// sslRename is os.Rename; tests swap it to force a mid-swap failure.
+var sslRename = os.Rename
 
-// sslInstallFile replaces dst with the contents of src using a same-directory
-// temp file and rename when possible (atomic on the same filesystem). If the
-// destination directory is not writable, it stages and renames via sudo.
+// sslRemove is os.Remove; tests swap it to simulate aside cleanup failures.
+var sslRemove = os.Remove
+
+// sslInstallFile replaces dst with the contents of src by staging into a
+// sibling temp directory (dst.restore-tmp), copying the live file to
+// dst.restore-old, then renaming the staged file over dst so the live path is
+// never missing. A failed stage leaves the live file untouched. If the parent
+// directory is not writable, staging and swap run under elevated privileges.
 func sslInstallFile(src, dst string) error {
-	dir := filepath.Dir(dst)
-	tmp, err := os.CreateTemp(dir, ".trustprune-ssl-*.tmp")
-	if err == nil {
-		tmpName := tmp.Name()
-		_ = tmp.Close()
-		if copyErr := file.CopyFile(src, tmpName); copyErr != nil {
-			_ = os.Remove(tmpName)
-			return copyErr
+	tmpDir := dst + ".restore-tmp"
+	aside := dst + ".restore-old"
+	staged := filepath.Join(tmpDir, filepath.Base(dst))
+
+	if _, err := os.Lstat(aside); err == nil {
+		return fmt.Errorf("previous restore left %s; inspect it and remove it, then rerun", aside)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("stat %s: %w", aside, err)
+	}
+
+	// Permission failures (e.g. a root-owned leftover staging dir) fall through
+	// to the privileged installer, which clears and recreates the staging path.
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return sslSudoInstallAtomic(src, dst)
+	}
+	if err := os.Mkdir(tmpDir, backupDirPerms); err != nil {
+		return sslSudoInstallAtomic(src, dst)
+	}
+	if err := file.CopyFile(src, staged); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return err
+	}
+	if err := sslChmodInstalled(staged, dst); err != nil {
+		_ = os.RemoveAll(tmpDir)
+		return err
+	}
+
+	liveExists := file.Exists(dst)
+	if liveExists {
+		// Copy into the staging dir first, then rename to .restore-old so a
+		// failed copy never leaves the guarded aside path behind.
+		asideStaged := filepath.Join(tmpDir, filepath.Base(dst)+".aside")
+		if err := file.CopyFile(dst, asideStaged); err != nil {
+			_ = os.RemoveAll(tmpDir)
+			return sslSudoInstallAtomic(src, dst)
 		}
-		if chErr := sslChmodInstalled(tmpName, dst); chErr != nil {
-			_ = os.Remove(tmpName)
-			return chErr
-		}
-		if renErr := os.Rename(tmpName, dst); renErr != nil {
-			_ = os.Remove(tmpName)
-			// Fall through to privileged install.
-		} else {
-			return nil
+		if err := sslRename(asideStaged, aside); err != nil {
+			_ = os.RemoveAll(tmpDir)
+			return sslSudoInstallAtomic(src, dst)
 		}
 	}
-	return sslSudoInstallAtomic(src, dst)
+	if err := sslRename(staged, dst); err != nil {
+		if liveExists && !file.Exists(dst) {
+			// Live path vanished somehow; put the copy back.
+			if rerr := file.CopyFile(aside, dst); rerr != nil {
+				_ = os.RemoveAll(tmpDir)
+				return fmt.Errorf("install %s failed and could not restore previous file from %s: %w", dst, aside, errors.Join(err, rerr))
+			}
+		}
+		_ = os.RemoveAll(tmpDir)
+		if liveExists {
+			_ = os.Remove(aside)
+			// Parent was writable enough to stage and copy; do not escalate to
+			// sudo after rolling back — that would risk rewriting the live file.
+			return fmt.Errorf("install %s: %w", dst, err)
+		}
+		return sslSudoInstallAtomic(src, dst)
+	}
+	if err := os.RemoveAll(tmpDir); err != nil {
+		fmt.Printf("store/ssl: warning: could not remove %s after restore: %v\n", tmpDir, err)
+	}
+	if liveExists {
+		if err := sslRemove(aside); err != nil {
+			fmt.Printf("store/ssl: warning: could not remove %s after restore: %v\n", aside, err)
+		}
+	}
+	return nil
 }
 
 func sslChmodInstalled(tmpName, dst string) error {
@@ -371,21 +441,60 @@ func sslChmodInstalled(tmpName, dst string) error {
 }
 
 func sslSudoInstallAtomic(src, dst string) error {
-	// Create a temp file beside dst and rename over it under elevated privileges.
+	// Stage into a sibling temp directory, copy live aside, then rename over dst.
 	script := `set -e
 src=$1
 dst=$2
-dir=$(dirname "$dst")
-tmp=$(mktemp "$dir/.trustprune-ssl.XXXXXX")
-trap 'rm -f "$tmp"' EXIT
-cp "$src" "$tmp"
+tmpDir="${dst}.restore-tmp"
+aside="${dst}.restore-old"
+if [ -e "$aside" ] || [ -L "$aside" ]; then
+  echo "previous restore left $aside; inspect it and remove it, then rerun" >&2
+  exit 1
+fi
+rm -rf "$tmpDir"
+mkdir "$tmpDir"
+staged="$tmpDir/$(basename "$dst")"
+cp "$src" "$staged"
 mode=644
 if [ -e "$dst" ]; then
   mode=$(stat -f %OLp "$dst" 2>/dev/null || stat -c %a "$dst" 2>/dev/null || echo 644)
 fi
-chmod "$mode" "$tmp"
-mv "$tmp" "$dst"
-trap - EXIT
+chmod "$mode" "$staged"
+if [ -e "$dst" ]; then
+  asideStaged="$tmpDir/$(basename "$dst").aside"
+  if ! cp "$dst" "$asideStaged"; then
+    rm -rf "$tmpDir"
+    exit 1
+  fi
+  if ! mv "$asideStaged" "$aside"; then
+    rm -rf "$tmpDir"
+    exit 1
+  fi
+fi
+if ! mv "$staged" "$dst"; then
+  if [ ! -e "$dst" ] && [ -e "$aside" ]; then
+    if ! cp "$aside" "$dst"; then
+      echo "could not restore $dst; previous file kept at $aside" >&2
+      rm -rf "$tmpDir" || true
+      exit 1
+    fi
+  fi
+  if ! rm -rf "$tmpDir"; then
+    echo "store/ssl: warning: could not remove $tmpDir after failed restore" >&2
+  fi
+  if ! rm -f "$aside"; then
+    echo "store/ssl: warning: could not remove $aside after failed restore" >&2
+  fi
+  exit 1
+fi
+if ! rm -rf "$tmpDir"; then
+  echo "store/ssl: warning: could not remove $tmpDir after restore" >&2
+fi
+if [ -e "$aside" ] || [ -L "$aside" ]; then
+  if ! rm -f "$aside"; then
+    echo "store/ssl: warning: could not remove $aside after restore" >&2
+  fi
+fi
 `
 	var cmd *exec.Cmd
 	if os.Getuid() == 0 {
@@ -400,6 +509,9 @@ trap - EXIT
 			return fmt.Errorf("atomic install %s -> %s: %w (%s)", src, dst, err, msg)
 		}
 		return fmt.Errorf("atomic install %s -> %s: %w", src, dst, err)
+	}
+	if msg := strings.TrimSpace(string(out)); msg != "" {
+		fmt.Fprintln(os.Stderr, msg)
 	}
 	return nil
 }
